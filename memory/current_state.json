@@ -1,0 +1,52 @@
+{
+  "system_info": {
+    "version": "0.0.2",
+    "mode": "AUTONOMOUS",
+    "last_boot": "2025-12-30T03:18:38.184007Z"
+  },
+  "development_flags": {
+    "phase_1_memory_active": true,
+    "phase_2_intelligence_active": true,
+    "phase_3_execution_active": true,
+    "phase_4_evolution_ready": false,
+    "debug_mode": true
+  },
+  "trading_metrics": {
+    "win_rate": 0.5612244897959183,
+    "total_trades": 100,
+    "current_drawdown": 0.2,
+    "status": "ACTIVE",
+    "win_rate_metadata": {
+      "tp_factor": 1.0,
+      "sl_factor": 2.0,
+      "signals": 294
+    }
+  },
+  "market_context": {
+    "regime": "UNKNOWN",
+    "volatility": "NORMAL"
+  },
+  "system_state": {
+    "last_improvement_cycle": "2025-12-30T03:18:38.201507Z",
+    "last_cycle_proposals": 1,
+    "last_cycle_approved": 1,
+    "last_cycle_applied": 1,
+    "last_cycle_duration_seconds": 2.132595
+  },
+  "proposal_history": {
+    "last_type": "tighten",
+    "cycles_since_last": 0
+  },
+  "last_applied_proposal_id": "PROP_MANUAL_D52EAF53",
+  "baseline_state": {
+    "win_rate": 0.1863354037267081,
+    "total_trades": 100,
+    "current_drawdown": 0.2,
+    "status": "ACTIVE",
+    "win_rate_metadata": {
+      "tp_factor": 1.0,
+      "sl_factor": 2.0,
+      "signals": 161
+    }
+  }
+}

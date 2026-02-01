@@ -1,0 +1,23 @@
+{
+  "Trading": {
+    "atr_period": 14,
+    "tp_factor": 1.0,
+    "sl_factor": 2.0,
+    "time_limit": 48,
+    "volume_percentile_threshold": 95,
+    "body_percentile_threshold": 15,
+    "ema_period": 200,
+    "reversal_mode": false
+  },
+  "Oracle": {
+    "confidence_threshold": 0.85,
+    "n_estimators": 100,
+    "model_path": "oracle/models/oracle_reversal_v1.joblib"
+  },
+  "Postprocessor": {
+    "adaptive_sensitivity": 0.1
+  },
+  "Orchestrator": {
+    "confidence_threshold": 0.85
+  }
+}

@@ -1,0 +1,2 @@
+[console_scripts]
+aipha = aiphalab.cli:cli

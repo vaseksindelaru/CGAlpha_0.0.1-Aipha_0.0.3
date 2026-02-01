@@ -1,0 +1,32 @@
+# Environment variables - NEVER COMMIT THESE
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Data and Databases
+data_processor/data/*.duckdb
+data_processor/data/*.duckdb.wal
+data_processor/data/test_downloaded_data/
+data_processor/data/*.json
+
+# ML Models
+oracle/models/*.joblib
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+
+# Autonomous Intelligence Memory
+autonomous_intelligence/memory/backups/
