@@ -21,7 +21,7 @@ Para garantizar la estabilidad operativa mientras se desarrolla inteligencia art
 #### Componentes Clave (Arquitectura de 5 Capas):
 
 ##### **Capa 1: Infraestructura y Sistema Nervioso**
-- **`aiphalab` (CLI):** Interfaz de línea de comandos. Es el "teclado" del sistema, permite la interacción humana con el sistema.
+- **`aiphalab` (CLI):** Interfaz de línea de comandos. Ver **[GUIA_CLI_PANEL_CONTROL.md](./GUIA_CLI_PANEL_CONTROL.md)**. Es el "teclado" del sistema.
 - **`core` (Orquestación):** El director de orquesta. Coordina el flujo de información entre capas, gestiona el ciclo de vida de las operaciones.
 - **`aipha_memory` (Persistencia ACID/JSONL):** Sistema de memoria inmutable. Cada evento se registra de forma irreversible en formato JSONL para garantizar la trazabilidad completa y la capacidad de análisis forense.
 
@@ -37,15 +37,15 @@ El **corazón operativo** del sistema. Contiene toda la lógica determinista de 
 
 **3.1. Detectors (Detectores de Señal)**
 
-Implementan la **Triple Coincidencia** en temporalidad de 5 minutos:
+Implementan la **Triple Coincidencia** en temporalidad de 5 minutos (Archivos generados en mejora post-v0.0.3):
 
-- **`AccumulationZoneDetector`:**
+- **`AccumulationZoneDetector`:** ✅ **[CÓDIGO GENERADO]**
   - Identifica rangos laterales (zonas de acumulación/distribución)
   - Variables: `atr_period=14`, `atr_multiplier=1.5`, `min_zone_bars=5`, `volume_threshold=1.1`
   - Lógica: Detecta clústeres de precios donde el mercado "respira" sin dirección clara
   - Output: `zone_id`, `in_accumulation_zone` (boolean)
 
-- **`TrendDetector`:**
+- **`TrendDetector`:** ✅ **[CÓDIGO GENERADO]**
   - Mide la calidad de la tendencia usando regresión lineal (ZigZag + R²)
   - Variables: `zigzag_threshold=0.5%`
   - Output: `trend_id`, `trend_direction` (alcista/bajista), `trend_slope`, `trend_r_squared`
@@ -56,7 +56,7 @@ Implementan la **Triple Coincidencia** en temporalidad de 5 minutos:
   - Variables: `volume_lookback=20`, `volume_percentile_threshold=0.90`, `body_percentile_threshold=0.30`
   - Output: `is_key_candle` (boolean), columnas auxiliares (`volume_threshold`, `body_size`, `body_percentage`)
 
-- **`SignalCombiner`:**
+- **`SignalCombiner`:** ✅ **[CÓDIGO GENERADO]**
   - Fusiona las señales de los tres detectores
   - Variables: `tolerance=8` (velas de ventana), `min_r_squared=0.45`
   - Output: `is_triple_coincidence` (boolean)
