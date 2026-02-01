@@ -135,7 +135,7 @@ class CentralOrchestratorHardened:
         except Exception as e:
             logger.error(f"❌ Error en signal handler: {e}")
     
-    def _handle_emergency_signal(self, signum, frame):
+    def _handle_emergency_signal(self, signum: int, frame: Any) -> None:
         """
         Handler para SIGUSR2 (emergencia)
         
@@ -221,7 +221,7 @@ class CentralOrchestratorHardened:
                         f"✅ Ciclo completado en {duration:.2f}s"
                     )
     
-    def _cleanup_cycle(self, cycle_id: str):
+    def _cleanup_cycle(self, cycle_id: str) -> None:
         """Limpiar recursos del ciclo si se interrumpe"""
         
         logger.info(f"🧹 Limpiando ciclo: {cycle_id}")
@@ -260,7 +260,7 @@ class CentralOrchestratorHardened:
             return True
         return False
     
-    def _handle_pending_requests(self):
+    def _handle_pending_requests(self) -> None:
         """Procesar propuestas pendientes en cola"""
         
         stats = self.execution_queue.get_stats()
@@ -276,7 +276,7 @@ class CentralOrchestratorHardened:
         else:
             logger.info("✅ No hay tareas pendientes")
     
-    def process_pending_requests(self):
+    def process_pending_requests(self) -> None:
         """Wrapper público para procesar cola de usuario inmediatamente"""
         self._handle_pending_requests()
 
@@ -386,7 +386,7 @@ class CentralOrchestratorHardened:
                 raise
     
     # ... métodos auxiliares ...
-    async def _collect_metrics(self):
+    async def _collect_metrics(self) -> Dict[str, Any]:
         """Recolectar métricas del sistema"""
         return self.memory_manager.query_memory("trading_metrics") or {}
     
@@ -448,6 +448,6 @@ class CentralOrchestratorHardened:
         
         return result
 
-    def _generate_proposals(self, metrics, cycle_type):
+    def _generate_proposals(self, metrics: Dict[str, Any], cycle_type: CycleType) -> List[Dict[str, Any]]:
         """Generar propuestas basadas en métricas"""
         return []
