@@ -2027,7 +2027,42 @@ This enables a true feedback loop:
 ## PARTE 5: HISTORIAL Y MANTENIMIENTO
 > Absorbiendo: CHANGELOG_v0.0.3.md y CLEANUP_REPORT.md
 
-### 5.1 CHANGELOG v0.0.3
+### 5.2 REPORTE DE LIMPIEZA
+(Ver CLEANUP_REPORT.md para detalles históricos)
+
+### 5.3 FASE 1 COMPLETADA: LA INTEGRACIÓN (2026-02-01)
+
+> **Hito:** Unificación de Ciclo de Vida (Dual Heartbeat)
+
+**Logros:**
+1.  **Motor Unificado:** `TradingEngine` implementado como orquestador de Triple Coincidencia.
+2.  **Sensor Ordinal:** Activado con tracking de trayectorias MFE/MAE.
+3.  **Memoria Evolutiva:** `evolutionary_bridge.jsonl` funcional y validado.
+4.  **Integración Operativa:** `life_cycle.py` gestiona el bucle rápido (Trading) y lento (Evolución) mediante semáforo `CGA_Ops`.
+
+**Estado:** ✅ COMPLETADO
+**Siguiente Paso:** FASE 2 - Operación y Datos (The Awakening)
+
+---
+
+## PARTE 6: FASE 2 - EL DESPERTAR (OPERACIÓN)
+
+> **Objetivo:** Acumular masa crítica de datos (>1000 trayectorias) para activar el lóbulo frontal (RiskBarrierLab).
+
+### 6.1 Estrategia de Simulación
+Dado que no podemos operar semanas en tiempo real, utilizaremos **Simulación Acelerada**:
+- Generación sintética de escenarios de mercado variados.
+- Inyección de datos en `evolutionary_bridge.jsonl`.
+- Activación de `RiskBarrierLab` sobre datos sintéticos para validar lógica causal.
+
+### 6.2 Objetivos Tácticos
+1.  Llenar `evolutionary_bridge.jsonl` con >1000 eventos.
+2.  Implementar lógica real en `risk_barrier_lab.py` (Cálculo de CATE/Expectativa Matemática).
+3.  Generar la primera `PolicyProposal` autónoma.
+
+---
+
+### 5.4 CHANGELOG v0.0.3
 # CHANGELOG v0.0.3 - CGAlpha_0.0.1 Integration
 
 > **Fecha de Release:** 2026-02-01  

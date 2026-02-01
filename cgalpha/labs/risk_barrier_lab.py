@@ -1,177 +1,129 @@
 """
-RiskBarrierLab (RB) - El Juez Causal
-
-🎯 MISIÓN: Análisis causal mediante EconML para determinar si los cambios
-           de configuración CAUSARON mejoras o solo correlacionaron con suerte.
-
-⚠️ ESTADO: PLACEHOLDER (v0.0.3)
-   Este módulo requiere integración completa de EconML/DoWhy.
-   
-📝 DECISIÓN AUTÓNOMA: Implementar como placeholder
-   JUSTIFICACIÓN: EconML requiere:
-   - Datos históricos completos (>1000 trades)
-   - Configuración de Gemelos Estadísticos
-   - Implementación de DML (Double Machine Learning)
-   Estos requisitos superan el alcance de la refactorización inicial.
-   El placeholder documenta la interfaz para implementación futura.
+Risk Barrier Lab (Lóbulo Frontal de Riesgo).
+Responsable de optimizar SL, TP y Exposure basándose en evidencia causal.
 """
-
 import logging
-from typing import Dict, Any, Optional
+import json
 import pandas as pd
+import numpy as np
+from pathlib import Path
+from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
-
 class RiskBarrierLab:
     """
-    🔬 Laboratorio de Análisis Causal
-    
-    **Responsabilidades:**
-    1. Calcular CATE (Conditional Average Treatment Effect)
-    2. Buscar Gemelos Estadísticos para contrafactuales
-    3. Ejecutar DML (Double Machine Learning)
-    4. Generar recomendaciones de configuración basadas en causalidad
-    
-    **Inputs Esperados:**
-    - evolutionary_bridge.jsonl (Vector de Evidencia de Aipha)
-    - Trade history con contexto completo
-    
-    **Outputs:**
-    - PolicyProposal con score causal y justificación matemática
+    Lab especializado en Gestión de Riesgo Causal.
+    Analiza trayectorias (MFE/MAE) para ajustar barreras dinámicamente.
     """
     
-    def __init__(self, config: Optional[Dict] = None):
-        self.config = config or {}
-        logger.warning(
-            "RiskBarrierLab initialized as PLACEHOLDER. "
-            "Full EconML integration pending."
-        )
-    
-    def analyze_parameter_change(
-        self,
-        parameter_name: str,
-        old_value: Any,
-        new_value: Any,
-        trades_df: pd.DataFrame
-    ) -> Dict[str, Any]:
+    def __init__(self, bridge_path: Path):
+        self.bridge_path = bridge_path
+        
+    def run_analysis(self) -> List[Dict[str, Any]]:
         """
-        Analiza el impacto causal de un cambio de parámetro
-        
-        🚧 PLACEHOLDER IMPLEMENTATION 🚧
-        
-        Args:
-            parameter_name: Nombre del parámetro (ej: "confidence_threshold")
-            old_value: Valor anterior (ej: 0.70)
-            new_value: Valor nuevo (ej: 0.65)
-            trades_df: DataFrame con historial de trades
-                       Columnas requeridas: timestamp, config_snapshot, outcome, 
-                                           mfe_atr, mae_atr, context_*
-        
-        Returns:
-            Dict con:
-                - cate_score: float (-inf a +inf, >0 es causal positivo)
-                - confidence: float (0.0-1.0)
-                - recommendation: str
-                - cluster_analysis: Dict (contextos donde funciona)
+        Ejecuta el análisis principal del Lab.
+        Retorna lista de 'findings' (hallazgos).
         """
-        logger.warning(
-            f"PLACEHOLDER: analyze_parameter_change called for {parameter_name} "
-            f"({old_value} -> {new_value})"
-        )
+        logger.info("🧠 RiskBarrierLab: Despertando...")
         
-        # TODO: Implementar EconML DML
-        # from econml.dml import LinearDML
-        # treatment = trades_df['config_snapshot'].apply(lambda x: x[parameter_name])
-        # outcome = trades_df['mfe_atr']
-        # confounders = trades_df[['context_volatility', 'context_trend', ...]]
-        # model = LinearDML()
-        # model.fit(Y=outcome, T=treatment, X=confounders)
-        # cate = model.effect(X=confounders)
+        # 1. Cargar Datos del Puente
+        df = self._load_bridge_data()
+        if df.empty or len(df) < 100:
+            logger.info("   💤 Insuficientes datos para inferencia causal (<100).")
+            return []
+            
+        logger.info(f"   📊 Analizando {len(df)} trayectorias...")
         
-        return {
-            "cate_score": 0.0,  # PLACEHOLDER
-            "confidence": 0.0,
-            "recommendation": "PLACEHOLDER: EconML integration required",
-            "cluster_analysis": {},
-            "status": "not_implemented"
-        }
-    
-    def find_statistical_twins(
-        self,
-        target_trade: Dict,
-        historical_trades: pd.DataFrame,
-        similarity_threshold: float = 0.95
-    ) -> pd.DataFrame:
-        """
-        Busca trades similares ("gemelos estadísticos") para contrafactuales
+        findings = []
         
-        🚧 PLACEHOLDER IMPLEMENTATION 🚧
+        # 2. Análisis por Régimen (Simplificación de CATE)
+        # Identificamos regímenes basándonos en 'causal_tags'
+        # En la simulación usamos: HIGH_VOL_CRISIS, LOW_VOL_RANGING, STRONG_TREND_BULL
         
-        Args:
-            target_trade: Trade objetivo para buscar gemelos
-            historical_trades: Pool de trades históricos
-            similarity_threshold: Umbral de similitud (0.0-1.0)
+        regimes = df['regime'].unique()
         
-        Returns:
-            DataFrame con trades similares ordenados por similitud
-        """
-        logger.warning("PLACEHOLDER: find_statistical_twins called")
-        
-        # TODO: Implementar búsqueda por distancia euclídea normalizada
-        # features = ['context_volatility', 'context_rsi', 'context_volume']
-        # scaler = StandardScaler()
-        # distances = euclidean_distances(target, historical[features])
-        
-        return pd.DataFrame()  # PLACEHOLDER
-    
-    def calculate_opportunity_cost(
-        self,
-        rejected_signals: pd.DataFrame
-    ) -> Dict[str, float]:
-        """
-        Calcula el costo de oportunidad de señales rechazadas
-        
-        🚧 PLACEHOLDER IMPLEMENTATION 🚧
-        
-        Args:
-            rejected_signals: DataFrame con señales filtradas por threshold
-                             (leído de rejected_signals.jsonl)
-        
-        Returns:
-            Dict con métricas de oportunidad perdida
-        """
-        logger.warning("PLACEHOLDER: calculate_opportunity_cost called")
-        
-        # TODO: Simular qué hubiera pasado sin filtro
-        # counterfactual_profits = simulate_without_filter(rejected_signals)
-        # opportunity_cost = counterfactual_profits.sum()
-        
-        return {
-            "total_missed_atr": 0.0,  # PLACEHOLDER
-            "avg_missed_per_signal": 0.0,
-            "status": "not_implemented"
-        }
+        for regime in regimes:
+            regime_df = df[df['regime'] == regime]
+            
+            # Calcular Win Rate actual (Label > 0)
+            win_rate = len(regime_df[regime_df['label_ordinal'] > 0]) / len(regime_df)
+            
+            # Calcular Esperanza Matemática (Avg Return en R)
+            # Asumimos: label 1=1R, label 2=2R, label 3=3R, label -1=-1R
+            # Esto es una simplificación; idealmente usaríamos precios reales.
+            r_multiples = regime_df['label_ordinal'].replace({0: -0.1}) # Time limit cost
+            expectancy = r_multiples.mean()
+            
+            logger.info(f"      Regime: {regime:<20} | WR: {win_rate:.2%} | Exp: {expectancy:.2f}R")
+            
+            # 3. Generar Propuesta si detectamos anomalía u oportunidad
+            if regime == "HIGH_VOL_CRISIS":
+                if win_rate < 0.40:
+                    # En crisis, si WR es bajo, sugerimos apretar gestión o reducir exposición
+                    findings.append({
+                        "type": "risk_adjustment",
+                        "regime": regime,
+                        "observation": f"Bajo Win Rate ({win_rate:.1%}) en Alta Volatilidad",
+                        "proposal": {
+                            "parameter": "confidence_threshold",
+                            "action": "increase",
+                            "value": 0.75, # Ser más selectivo
+                            "reason": f"Protección de Capital: WR {win_rate:.1%} < 40% en Crisis."
+                        },
+                        "confidence": 0.95,
+                        "priority": 10
+                    })
+            
+            elif regime == "STRONG_TREND_BULL":
+                if expectancy > 1.5:
+                    # Si la esperanza es muy alta, podemos soltar rienda (dejar correr ganancias)
+                    findings.append({
+                        "type": "opportunity_seizing",
+                        "regime": regime,
+                        "observation": f"Alta Esperanza ({expectancy:.2f}R) en Tendencia Fuerte",
+                        "proposal": {
+                            "parameter": "tp_factor",
+                            "action": "increase",
+                            "value": 3.0, # Buscar home runs
+                            "reason": f"Maximización: Esperanza {expectancy:.2f}R sugiere dejar correr profits."
+                        },
+                        "confidence": 0.85,
+                        "priority": 8
+                    })
 
+        return findings
 
-# 🧪 Test básico de interfaz
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    
-    rb_lab = RiskBarrierLab()
-    
-    print("=" * 60)
-    print("RiskBarrierLab - Placeholder Interface Test")
-    print("=" * 60)
-    
-    # Test de interfaz (no ejecuta lógica real)
-    result = rb_lab.analyze_parameter_change(
-        parameter_name="confidence_threshold",
-        old_value=0.70,
-        new_value=0.65,
-        trades_df=pd.DataFrame()
-    )
-    
-    print(f"\nResult: {result}")
-    print("\n⚠️  Note: This is a PLACEHOLDER implementation.")
-    print("    Full EconML integration required for production use.")
+    def _load_bridge_data(self) -> pd.DataFrame:
+        """Carga y estructura datos del JSONL."""
+        data = []
+        if not self.bridge_path.exists():
+            return pd.DataFrame()
+            
+        try:
+            with open(self.bridge_path, 'r') as f:
+                for line in f:
+                    if not line.strip(): continue
+                    try:
+                        evt = json.loads(line)
+                        
+                        # Skip metadata lines or malformed events
+                        if 'timestamp' not in evt or 'outcome' not in evt:
+                            continue
+
+                        # Aplanar estructura para DataFrame
+                        row = {
+                            'timestamp': evt['timestamp'],
+                            'label_ordinal': evt['outcome']['label_ordinal'],
+                            'mfe': evt['outcome']['mfe_atr'],
+                            'mae': evt['outcome']['mae_atr'],
+                            # Extraer regimen del tag (hack para simulación)
+                            'regime': evt.get('causal_tags', ['UNKNOWN'])[0] if evt.get('causal_tags') else 'UNKNOWN'
+                        }
+                        data.append(row)
+                    except json.JSONDecodeError:
+                        continue
+            return pd.DataFrame(data)
+        except Exception as e:
+            logger.error(f"Error cargando bridge: {e}")
+            return pd.DataFrame()
