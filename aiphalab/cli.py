@@ -41,6 +41,12 @@ from core.llm_client import LLMClient
 from core.health_monitor import HealthMonitor
 from core.atomic_update_system import AtomicUpdateSystem
 from core.change_evaluator import ProposalEvaluator
+from cgalpha.nexus.ops import CGAOps
+from cgalpha.nexus.coordinator import CGANexus
+from typing import Optional
+from cgalpha.nexus.ops import CGAOps
+from cgalpha.nexus.coordinator import CGANexus
+from typing import Optional
 import uuid
 from datetime import datetime
 
@@ -1504,6 +1510,135 @@ def brain_health():
 
         
     click.secho("\n=== TEST COMPLETE ===", bold=True)
+
+
+# --- CGAlpha Commands (NEW) ---
+
+@cli.group()
+def cgalpha():
+    """Comandos para el Cerebro Causal (CGAlpha)."""
+    pass
+
+@cgalpha.command(name="status")
+def cgalpha_status():
+    """Ver estado del Semáforo de Recursos y Nexus."""
+    ops = CGAOps()
+    snapshot = ops.get_resource_state()
+    
+    if console:
+        # Resource Panel
+        color = "green" if snapshot.state.value == "green" else "yellow" if snapshot.state.value == "yellow" else "red"
+        console.print(Panel(
+            f"CPU: {snapshot.cpu_percent}%\nRAM: {snapshot.ram_percent}% ({int(snapshot.ram_available_mb)}MB free)\nState: [{color}]{snapshot.state.value.upper()}[/{color}]",
+            title="[bold]🚦 CGA_Ops Resource Monitor[/bold]",
+            border_style=color
+        ))
+        
+        # Actions Panel
+        actions = ops.get_recommended_actions()
+        console.print(Panel(
+            "\n".join([f"• {a}" for a in actions]),
+            title="[bold]📋 Recommended Actions[/bold]",
+            border_style="blue"
+        ))
+    else:
+        click.echo(f"CGA_Ops State: {snapshot.state.value.upper()} (RAM: {snapshot.ram_percent}%)")
+
+@cgalpha.command(name="signals")
+@click.option("--lines", default=10, help="Número de líneas a mostrar")
+@click.option("--follow", is_flag=True, help="Seguir el log en tiempo real")
+def cgalpha_signals(lines, follow):
+    """Ver el flujo de señales en el Puente Evolutivo (Bridge)."""
+    bridge_path = AIPHA_ROOT / "aipha_memory" / "evolutionary_bridge.jsonl"
+    
+    if not bridge_path.exists():
+        click.secho("⚠️ Evolutionary Bridge not found.", fg='yellow')
+        return
+
+    if follow:
+        click.secho(f"📡 Tailing signals from {bridge_path.name} (Ctrl+C to stop)...", fg='cyan')
+        try:
+            # Simple python tail implementation
+            with open(bridge_path, "r") as f:
+                # Go to end
+                f.seek(0, 2)
+                while True:
+                    line = f.readline()
+                    if not line:
+                        time.sleep(0.1)
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if "signal_type" in data:
+                            _print_signal(data)
+                    except:
+                        pass
+        except KeyboardInterrupt:
+            click.echo("\n🛑 Stopped.")
+    else:
+        # Show last N lines
+        import collections
+        with open(bridge_path, "r") as f:
+            last_lines = collections.deque(f, maxlen=lines)
+            
+        for line in last_lines:
+            try:
+                data = json.loads(line)
+                if "signal_type" in data:
+                    _print_signal(data)
+            except:
+                pass
+
+def _print_signal(data):
+    """Helper para imprimir señal formateada."""
+    ts = data.get("timestamp", "").split("T")[-1]
+    side = "LONG 🟢" if data.get("side") == 1 else "SHORT 🔴"
+    outcome = data.get("outcome", {})
+    label = outcome.get("label_ordinal", 0)
+    mfe = outcome.get("mfe_atr", 0.0)
+    
+    msg = f"[{ts}] {side} | Label: {label} | MFE: {mfe:.2f}R | Regime: {data.get('causal_tags', ['?'])[0]}"
+    
+    if console:
+        style = "green" if label > 0 else "red"
+        console.print(f"[{style}]{msg}[/{style}]")
+    else:
+        click.echo(msg)
+
+@cgalpha.command(name="evolve")
+@click.option("--force", is_flag=True, help="Forzar evolución ignorando semáforo")
+def cgalpha_evolve(force):
+    """Forzar un ciclo de evolución Nexus -> Lab -> Proposal."""
+    click.secho("🧬 Iniciando Ciclo de Evolución Manual...", fg='cyan')
+    
+    ops = CGAOps()
+    if not force and not ops.can_start_heavy_task():
+        click.secho("⚠️ Recursos insuficientes. Use --force para ignorar.", fg='yellow')
+        return
+
+    from cgalpha.nexus.coordinator import CGANexus
+    from cgalpha.labs.risk_barrier_lab import RiskBarrierLab
+    
+    # 1. Ejecutar Lab
+    bridge_path = AIPHA_ROOT / "aipha_memory" / "evolutionary_bridge.jsonl"
+    lab = RiskBarrierLab(bridge_path)
+    
+    with console.status("🧠 RiskBarrierLab Thinking...") if console else click.echo("Thinking..."):
+        findings = lab.run_analysis()
+    
+    click.secho(f"✅ Análisis completado. Hallazgos: {len(findings)}", fg='green')
+    
+    # 2. Nexus Synthesis
+    nexus = CGANexus(ops_manager=ops)
+    for f in findings:
+        nexus.receive_report("RiskBarrier", f, f.get('priority', 5), f.get('confidence', 0.5))
+        
+    synthesis = nexus.synthesize_for_llm()
+    
+    if console:
+        console.print(Panel(json.dumps(json.loads(synthesis), indent=2), title="🧬 Nexus Synthesis", border_style="magenta"))
+    else:
+        click.echo(synthesis)
 
 
 if __name__ == '__main__':
