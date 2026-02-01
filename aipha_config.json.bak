@@ -1,0 +1,6 @@
+{
+    "Trading": {
+        "confidence_threshold": 0.7,
+        "tp_factor": 2.0
+    }
+}
