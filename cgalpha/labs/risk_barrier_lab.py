@@ -66,7 +66,7 @@ class RiskBarrierLab:
                         "regime": regime,
                         "observation": f"Bajo Win Rate ({win_rate:.1%}) en Alta Volatilidad",
                         "proposal": {
-                            "parameter": "confidence_threshold",
+                            "parameter": "Trading.confidence_threshold",
                             "action": "increase",
                             "value": 0.75, # Ser más selectivo
                             "reason": f"Protección de Capital: WR {win_rate:.1%} < 40% en Crisis."
@@ -83,7 +83,7 @@ class RiskBarrierLab:
                         "regime": regime,
                         "observation": f"Alta Esperanza ({expectancy:.2f}R) en Tendencia Fuerte",
                         "proposal": {
-                            "parameter": "tp_factor",
+                            "parameter": "Trading.tp_factor",
                             "action": "increase",
                             "value": 3.0, # Buscar home runs
                             "reason": f"Maximización: Esperanza {expectancy:.2f}R sugiere dejar correr profits."
