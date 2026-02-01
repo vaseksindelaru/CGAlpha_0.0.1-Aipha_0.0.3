@@ -32,14 +32,14 @@ class CycleType(Enum):
 class OrchestrationState:
     """Estado global compartido del Orchestrator"""
     
-    def __init__(self):
-        self.current_cycle = None
-        self.current_cycle_type = None
-        self.cycle_lock = threading.RLock()  # Re-entrant para signal handlers
-        self.should_interrupt = False
-        self.interrupt_reason = None
-        self.interrupt_timestamp = None
-        self.wake_up_event = threading.Event()  # Evento para despertar del sleep
+    def __init__(self) -> None:
+        self.current_cycle: Optional[Dict[str, Any]] = None
+        self.current_cycle_type: Optional[CycleType] = None
+        self.cycle_lock: threading.RLock = threading.RLock()  # Re-entrant para signal handlers
+        self.should_interrupt: bool = False
+        self.interrupt_reason: Optional[str] = None
+        self.interrupt_timestamp: Optional[float] = None
+        self.wake_up_event: threading.Event = threading.Event()  # Evento para despertar del sleep
 
 
 class CentralOrchestratorHardened:
@@ -53,8 +53,8 @@ class CentralOrchestratorHardened:
     4. Health-checks: ML validado post-commit
     """
     
-    def __init__(self):
-        self.state = OrchestrationState()
+    def __init__(self) -> None:
+        self.state: OrchestrationState = OrchestrationState()
         
         # Managers
         from core.context_sentinel import ContextSentinel
@@ -62,25 +62,25 @@ class CentralOrchestratorHardened:
         
         try:
             from oracle.oracle_manager import OracleManagerWithHealthCheck
-            self.oracle_manager = OracleManagerWithHealthCheck()
+            self.oracle_manager: Any = OracleManagerWithHealthCheck()
         except (ImportError, ModuleNotFoundError):
             logger.warning("⚠️ OracleManagerWithHealthCheck no encontrado, usando Mock")
             self.oracle_manager = MagicMock() if 'MagicMock' in globals() else type('Mock', (), {'health_check': lambda: True})()
         
-        self.memory_manager = ContextSentinel(storage_root=Path("memory"))
-        self.execution_queue = ExecutionQueue(max_workers=1)
+        self.memory_manager: ContextSentinel = ContextSentinel(storage_root=Path("memory"))
+        self.execution_queue: ExecutionQueue = ExecutionQueue(max_workers=1)
         
         # Registrar signal handlers
         signal.signal(signal.SIGUSR1, self._handle_user_signal)
         signal.signal(signal.SIGUSR2, self._handle_emergency_signal)
         
         # Callbacks del LLM o dashboard
-        self.on_cycle_interrupted = None
-        self.on_user_priority_triggered = None
+        self.on_cycle_interrupted: Optional[callable] = None
+        self.on_user_priority_triggered: Optional[callable] = None
         
         logger.info("✅ CentralOrchestratorHardened inicializado")
     
-    def _handle_user_signal(self, signum, frame):
+    def _handle_user_signal(self, signum: int, frame: Any) -> None:
         """
         Handler para SIGUSR1 (propuesta del usuario)
         
