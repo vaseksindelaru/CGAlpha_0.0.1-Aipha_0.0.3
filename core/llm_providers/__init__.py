@@ -13,10 +13,11 @@ Estructura:
 
 from .base import LLMProvider
 from .openai_provider import OpenAIProvider
-from .rate_limiter import RateLimiter
+from .rate_limiter import RateLimiter, retry_with_rate_limit
 
 __all__ = [
     "LLMProvider",
     "OpenAIProvider",
     "RateLimiter",
+    "retry_with_rate_limit",
 ]

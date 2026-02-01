@@ -14,6 +14,7 @@ Comandos disponibles:
   - debug.py      : Herramientas de debug
 """
 
+from .base import BaseCommand
 from .status import status_group
 from .cycle import cycle_group
 from .config import config_group
@@ -21,6 +22,7 @@ from .history import history_group
 from .debug import debug_group
 
 __all__ = [
+    "BaseCommand",
     "status_group",
     "cycle_group",
     "config_group",
