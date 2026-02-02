@@ -38,6 +38,19 @@
       "sl_factor": 2.0,
       "signals": 21,
       "triple_coincidences": 21
+    },
+    "test_accuracy_no_filter": 0.7090909090909091,
+    "test_accuracy_no_filter_metadata": {
+      "signals": 55,
+      "correct": 39,
+      "timeframe": "5m"
+    },
+    "test_accuracy_with_filter": 0.75,
+    "test_accuracy_with_filter_metadata": {
+      "signals": 55,
+      "filtered": 24,
+      "correct": 18,
+      "timeframe": "5m"
     }
   },
   "market_context": {
