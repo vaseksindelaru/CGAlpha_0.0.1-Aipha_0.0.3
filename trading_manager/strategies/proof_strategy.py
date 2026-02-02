@@ -3,7 +3,10 @@ import duckdb
 import logging
 import sys
 import os
+import numpy as np
+import joblib
 from datetime import date, timedelta
+from pathlib import Path
 
 # Añadir el directorio raíz al path para poder importar los building blocks
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -20,6 +23,106 @@ from core.memory_manager import MemoryManager
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
+
+# Cache global para Oracle
+_oracle_cache = None
+
+def get_oracle_model():
+    """Carga el modelo Oracle en caché (lazy loading)."""
+    global _oracle_cache
+    if _oracle_cache is None:
+        aipha_root = Path(__file__).parent.parent.parent
+        model_path = aipha_root / "oracle" / "models" / "oracle_5m_trained.joblib"
+        if model_path.exists():
+            try:
+                _oracle_cache = joblib.load(str(model_path))
+                logger.info("✅ Oracle model cargado en caché")
+            except Exception as e:
+                logger.warning(f"⚠️  No se pudo cargar Oracle: {e}")
+                _oracle_cache = None
+        else:
+            logger.warning(f"⚠️  Modelo Oracle no encontrado en {model_path}")
+    return _oracle_cache
+
+def extract_oracle_features(df_row, df_context):
+    """
+    Extrae 4 características para Oracle a partir de una vela.
+    Features: [body_percentage, volume_ratio, relative_range, hour_of_day]
+    """
+    try:
+        # Body percentage (cuerpo pequeño indica potencial reversión)
+        open_price = df_row['Open']
+        close_price = df_row['Close']
+        high = df_row['High']
+        low = df_row['Low']
+        
+        total_range = high - low
+        body = abs(close_price - open_price)
+        body_percentage = (body / total_range) if total_range > 0 else 0
+        
+        # Volume ratio (comparado con promedio de lookback)
+        vol_lookback = 50
+        avg_volume = df_context.iloc[-vol_lookback:]['Volume'].mean() if len(df_context) >= vol_lookback else df_context['Volume'].mean()
+        volume_ratio = df_row['Volume'] / avg_volume if avg_volume > 0 else 1.0
+        
+        # Relative range (rango relativo al precio)
+        relative_range = total_range / open_price if open_price > 0 else 0
+        
+        # Hour of day (normalizado 0-23 a 0-1)
+        hour_of_day = df_row.name.hour / 24.0  # name es el timestamp
+        
+        # Normalizar valores a rango [0, 1]
+        features = np.array([
+            min(max(body_percentage, 0), 1),
+            min(max(volume_ratio / 10, 0), 1),  # Dividir por 10 para escalar
+            min(max(relative_range * 100, 0), 1),  # Multiplicar por 100 para escalar
+            hour_of_day
+        ], dtype=np.float32)
+        
+        return features
+    except Exception as e:
+        logger.warning(f"Error extrayendo características Oracle: {e}")
+        return np.zeros(4, dtype=np.float32)
+
+def filter_signals_with_oracle(df, triple_signals_idx, oracle_model, confidence_threshold=0.5):
+    """
+    Filtra Triple Coincidencias usando predicciones del Oracle.
+    Mantiene solo señales predichas como TP (clase 1).
+    Retorna: (filtered_idx, predictions, confidences)
+    """
+    if oracle_model is None:
+        logger.warning("Oracle no disponible, retornando todas las señales")
+        return triple_signals_idx, None, None
+    
+    try:
+        # Extraer características para cada señal
+        features_list = []
+        for idx in triple_signals_idx:
+            row_pos = df.index.get_loc(idx)
+            features = extract_oracle_features(df.iloc[row_pos], df.iloc[max(0, row_pos-100):row_pos])
+            features_list.append(features)
+        
+        X = np.array(features_list, dtype=np.float32)
+        
+        # Predicciones y confianzas
+        predictions = oracle_model.predict(X)
+        confidences = np.max(oracle_model.predict_proba(X), axis=1)
+        
+        # Filtrar: mantener solo TP (clase 1) con confianza > threshold
+        mask = (predictions == 1) & (confidences >= confidence_threshold)
+        filtered_idx = triple_signals_idx[mask]
+        
+        tp_count = (predictions == 1).sum()
+        sl_count = (predictions == -1).sum()
+        
+        logger.info(f"   Oracle filtrado: {tp_count} TP predichos, {sl_count} SL predichos")
+        logger.info(f"   Mantenidas {len(filtered_idx)} de {len(triple_signals_idx)} señales (filtro por confianza > {confidence_threshold})")
+        
+        return filtered_idx, predictions, confidences
+    except Exception as e:
+        logger.error(f"Error filtrando con Oracle: {e}")
+        return triple_signals_idx, None, None
+
 
 def ensure_5m_data_exists(db_path: str, force_redownload: bool = False):
     """Descarga datos de 5 minutos si no existen o si force_redownload es True."""
@@ -187,6 +290,23 @@ def run_proof_strategy():
     # Determinar lado de la operación basado en dirección de tendencia
     sides = triple_signals['trend_direction'].copy()
     
+    # 5a. FILTRADO CON ORACLE (Nuevo)
+    logger.info("\n--- APLICANDO FILTRO ORACLE ---")
+    oracle_model = get_oracle_model()
+    
+    if oracle_model is not None:
+        # Filtrar señales con Oracle (mantener solo TP predichos)
+        t_events_filtered, oracle_predictions, oracle_confidences = filter_signals_with_oracle(
+            df, t_events.values, oracle_model, confidence_threshold=0.5
+        )
+        sides = sides[sides.index.isin(t_events_filtered)]
+        t_events = pd.Index(t_events_filtered)
+        logger.info(f"   ✅ Filtro Oracle aplicado: {len(t_events)} de {len(triple_signals)} señales mantienen")
+    else:
+        logger.info("   ⚠️  Oracle no disponible, usando todas las Triple Coincidencias")
+        oracle_predictions = None
+        oracle_confidences = None
+    
     logger.info(f"\n--- ETIQUETANDO {len(t_events)} SEÑALES CON TRIPLE BARRIER METHOD ---")
     
     # 6. Etiquetado (Triple Barrier Method - ATR dinámico)
@@ -206,7 +326,7 @@ def run_proof_strategy():
 
     # 7. Resultados Finales
     logger.info("\n" + "=" * 60)
-    logger.info("RESULTADOS FINALES - ESTRATEGIA DE 5 MINUTOS")
+    logger.info("RESULTADOS FINALES - ESTRATEGIA DE 5 MINUTOS CON ORACLE")
     logger.info("=" * 60)
     
     # Manejar resultado dict o Series
@@ -229,20 +349,36 @@ def run_proof_strategy():
         win_rate = (summary["Take Profit (TP hit)"] / len(labels)) * 100
         print(f"\n  🎯 Win Rate (TP vs Total): {win_rate:.2f}%")
         
+        # Mostrar métricas de Oracle si fue aplicado
+        if oracle_model is not None and oracle_predictions is not None:
+            oracle_tp_count = (oracle_predictions == 1).sum()
+            oracle_sl_count = (oracle_predictions == -1).sum()
+            oracle_accuracy = (summary["Take Profit (TP hit)"] / len(labels) if len(labels) > 0 else 0) * 100
+            
+            print(f"\n📊 ORACLE METRICS:")
+            print(f"  - Signals predicted as TP: {oracle_tp_count} / {len(triple_signals)}")
+            print(f"  - Signals predicted as SL: {oracle_sl_count} / {len(triple_signals)}")
+            print(f"  - Actual TP from filtered: {summary['Take Profit (TP hit)']} / {len(labels)}")
+            print(f"  - Oracle-assisted accuracy: {oracle_accuracy:.2f}%")
+            if oracle_confidences is not None and len(oracle_confidences) > 0:
+                print(f"  - Avg confidence: {oracle_confidences.mean():.2f}")
+        
         # REGISTRAR MÉTRICA EN CAPA 1
         memory.record_metric(
             component="Trading",
-            metric_name="win_rate_5m",
+            metric_name="win_rate_5m_with_oracle",
             value=float(win_rate / 100.0),
             metadata={
                 "timeframe": "5m",
                 "tp_factor": float(config.get("Trading.tp_factor")),
                 "sl_factor": float(config.get("Trading.sl_factor")),
                 "signals": int(len(labels)),
-                "triple_coincidences": int(triple_count)
+                "triple_coincidences": int(triple_count),
+                "oracle_filtered": oracle_model is not None,
+                "oracle_predictions_tp": int((oracle_predictions == 1).sum()) if oracle_predictions is not None else 0
             }
         )
-        logger.info("✅ Métrica registrada en memoria del sistema.")
+        logger.info("✅ Métricas registradas en memoria del sistema.")
     
     logger.info("=" * 60)
     logger.info("✅ PROOF STRATEGY COMPLETADA")
