@@ -209,6 +209,10 @@ def run_proof_strategy():
     logger.info("RESULTADOS FINALES - ESTRATEGIA DE 5 MINUTOS")
     logger.info("=" * 60)
     
+    # Manejar resultado dict o Series
+    if isinstance(labels, dict):
+        labels = labels.get('labels', labels)
+    
     counts = labels.value_counts().sort_index()
     
     summary = {
@@ -229,13 +233,13 @@ def run_proof_strategy():
         memory.record_metric(
             component="Trading",
             metric_name="win_rate_5m",
-            value=win_rate / 100.0,
+            value=float(win_rate / 100.0),
             metadata={
                 "timeframe": "5m",
-                "tp_factor": config.get("Trading.tp_factor"),
-                "sl_factor": config.get("Trading.sl_factor"),
-                "signals": len(labels),
-                "triple_coincidences": triple_count
+                "tp_factor": float(config.get("Trading.tp_factor")),
+                "sl_factor": float(config.get("Trading.sl_factor")),
+                "signals": int(len(labels)),
+                "triple_coincidences": int(triple_count)
             }
         )
         logger.info("✅ Métrica registrada en memoria del sistema.")

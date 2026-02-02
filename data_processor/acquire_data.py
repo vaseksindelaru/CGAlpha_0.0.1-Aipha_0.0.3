@@ -42,30 +42,31 @@ def acquire_historical_data_1h():
         logger.error("❌ No se pudieron obtener los datos (1H).")
 
 def acquire_historical_data_5m():
-    """Descarga datos de 5 minutos para la Triple Coincidencia."""
+    """Descarga datos de 5 minutos para la Triple Coincidencia - EXTENDIDO 12 MESES."""
     db_path = "data_processor/data/aipha_data.duckdb"
     
     client = ApiClient(timeout=60)
     fetcher = BinanceKlinesFetcher(client, download_dir="data_processor/data/test_downloaded_data")
     
-    # Descargar 1 mes de datos en 5m (Enero 2024)
+    # Descargar 12 meses de datos en 5m (Enero-Diciembre 2024) para entrenar Oracle
+    # Objetivo: ~400-500 Triple Coincidencias (suficiente para Oracle robusto)
     start_date = date(2024, 1, 1)
-    end_date = date(2024, 1, 31)
+    end_date = date(2024, 12, 31)
     
     template = KlinesDataRequestTemplate(
-        name="BTC_5m_Jan_2024",
+        name="BTC_5m_12M_2024",
         symbol="BTCUSDT",
         interval="5m",
         start_date=start_date,
         end_date=end_date,
-        description="Datos de 5 minutos para Triple Coincidencia"
+        description="Datos de 5 minutos (12 meses) para entrenamiento robusto de Oracle"
     )
     
-    logger.info(f"Descargando datos para {template.symbol} {template.interval}...")
+    logger.info(f"Descargando datos para {template.symbol} {template.interval} (12 meses)...")
     df = fetcher.fetch_klines_by_template(template)
     
     if df is not None and not df.empty:
-        logger.info(f"✅ Éxito: {len(df)} filas obtenidas (5M).")
+        logger.info(f"✅ Éxito: {len(df)} filas obtenidas (5M, 12 meses).")
         save_results_to_duckdb(df, "btc_5m_data", db_path=db_path)
         logger.info("✅ Datos guardados en la tabla 'btc_5m_data'.")
     else:

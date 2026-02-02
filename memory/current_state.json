@@ -20,6 +20,24 @@
       "tp_factor": 1.0,
       "sl_factor": 2.0,
       "signals": 294
+    },
+    "training_complete": 1.0,
+    "training_complete_metadata": {
+      "timeframe": "5m",
+      "data_samples": 29,
+      "accuracy": 0.5,
+      "test_samples": 10,
+      "features": 4,
+      "model_path": "oracle/models/oracle_5m_trained.joblib",
+      "period": "Enero-Junio 2024"
+    },
+    "win_rate_5m": 0.4761904761904761,
+    "win_rate_5m_metadata": {
+      "timeframe": "5m",
+      "tp_factor": 1.0,
+      "sl_factor": 2.0,
+      "signals": 21,
+      "triple_coincidences": 21
     }
   },
   "market_context": {
