@@ -51,6 +51,21 @@
       "filtered": 24,
       "correct": 18,
       "timeframe": "5m"
+    },
+    "multiyear_training_v2": 0.7417582417582418,
+    "multiyear_training_v2_metadata": {
+      "years": [
+        2023,
+        2024
+      ],
+      "total_samples": 725,
+      "train_samples": 543,
+      "test_samples": 182,
+      "train_accuracy": 0.8397790055248618,
+      "test_accuracy": 0.7417582417582418,
+      "overfitting_risk": "LOW",
+      "model_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/oracle/models/oracle_5m_trained_v2_multiyear.joblib",
+      "status": "EXPERIMENTAL"
     }
   },
   "market_context": {

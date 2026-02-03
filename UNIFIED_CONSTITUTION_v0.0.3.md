@@ -134,54 +134,52 @@ Implementan la **Triple Coincidencia** en temporalidad de 5 minutos. **ESTADO: C
 
 - **Innovación clave:** El sistema NO cierra la posición al tocar el primer TP. En su lugar, registra **hasta dónde llegó realmente** el movimiento. Esto permite que CGAlpha (Capa 5) analice si las barreras están configuradas de forma óptima.
 
-##### **Capa 4: Oracle (Motor Probabilístico)** ✅ **[COMPLETAMENTE INTEGRADO - 3 FEB 2026]**
-- **Modelo:** Random Forest (100 árboles)
-- **Dataset de Entrenamiento:** 39 muestras (12 meses de BTCUSDT 5m)
-  - Train: 29 muestras (74.4%)
-  - Test: 10 muestras (25.6%)
+##### **Capa 4: Oracle (Motor Probabilístico)** ⚠️ **[BETA - VALIDACIÓN CRUZADA REVELÓ OVERFITTING - 3 FEB 2026]**
+
+**Status CRÍTICO:** Validación cruzada temporal (Nov-Dec 2024 vs training 2024) reveló overfitting severo.
+
+- **Modelo v1 (Original):** Random Forest (100 árboles)
+  - Dataset: 39 muestras (12 meses 2024 solamente)
+  - Accuracy en datos 2024: 75.00% ✅
+  - Accuracy en Nov-Dec 2024 (NUEVOS): 16.39% ❌
+  - Diferencia: -58.61% → **OVERFITTING CONFIRMADO**
+  - **VERDICT:** ❌ NO USAR EN PRODUCCIÓN
+
+- **Modelo v2 (Multiyear - NUEVO):** Random Forest (100 árboles)
+  - Dataset: 725 muestras (24 meses: 2023 + 2024)
+  - Training Accuracy: 83.98%
+  - Testing Accuracy: 74.18%
+  - Diferencia Train-Test: 9.80% (< 10% = BUENO) ✅
+  - Tamaño del Modelo: 1,062 KB (oracle/models/oracle_5m_trained_v2_multiyear.joblib)
+  - **VERDICT:** ⚠️ EXPERIMENTAL - Requiere validación en datos 2025
+
 - **Features:** 4 características (body_percentage, volume_ratio, relative_range, hour_of_day)
-- **Accuracy Entrenamiento:** 50.00%
-- **Accuracy Validación (UNSEEN data - 55 nuevas TC):** 70.91%
-- **Accuracy CON Filtro TP:** 75.00% (+4.09% mejora) ✅
-- **Precision en Filtradas:** 75%
-- **Tamaño del Modelo:** 153 KB (oracle/models/oracle_5m_trained.joblib)
-- **Status Producción:** ✅ **COMPLETAMENTE INTEGRADO EN PRODUCCIÓN**
+- **Status Producción:** ⚠️ **BETA - NO USAR EN TRADING REAL HASTA VALIDACIÓN 2025**
 
-**📍 INTEGRACIÓN COMPLETA v0.1.2:**
-1. **CLI v2** (aiphalab/cli_v2.py)
-   - Comando: `aipha oracle test-model` - Verifica disponibilidad del modelo
-   - Comando: `aipha oracle predict` - Ejecuta predicciones en muestras
-   - Comando: `aipha oracle status` - Muestra métricas y estado
-   - Lazy-loading singleton: Carga una sola vez en memoria
+**📍 NOTA IMPORTANTE - CAMBIOS v0.1.3:**
 
-2. **Strategy Integration** (trading_manager/strategies/proof_strategy.py)
-   - Nuevo paso: "APLICANDO FILTRO ORACLE" después de Triple Coincidencia
-   - Extrae 4 características de cada señal detectada
-   - Mantiene solo señales predichas como TP (clase 1)
-   - Filtro de confianza configurable (default 0.5)
-   - Mejora observable: +4.09% en win rate (43.59% → ~47.68% esperado)
-   - Métricas registradas en memory: win_rate_5m_with_oracle
+**Validación Cruzada Temporal (3 FEB 2026):**
+Durante testing riguroso se descubrió que Oracle v1 sufre de overfitting severo:
+- Entrenado en: 2024 completo
+- Testeado en: Nov-Dec 2024 (nuevos datos) → 16.39% accuracy
+- Diferencia vs training: -58.61% ❌
 
-3. **Integration Utils** (oracle/scripts/oracle_integration_utils.py)
-   - `OracleIntegration`: Carga y caché centralizado del modelo
-   - `OracleFeatureExtractor`: Extrae 4 características normalizadas
-   - `OracleSignalFilter`: Filtra señales con predicciones
-   - `OracleProducer`: Interfaz simplificada para aplicaciones
-   - Métodos: `filter_and_trade()`, `predict()`, `get_status()`
+**Decisión:** 
+1. v1 DESCARTADO - Overfitteó completamente
+2. v2 MULTIYEAR CREADO - 2023+2024 (725 muestras)
+   - Accuracy test: 74.18%
+   - Diferencia Train-Test: 9.80% (ACEPTABLE)
+   - Status: BETA - Requiere validación 2025
+3. Integración CLI/Strategy PAUSADA hasta confirmación v2
 
-**🛡️ Función Crítica v0.1.2:** 
-- **Filtro Multi-capas:**
-  - Predicción TP pura (alta precision)
-  - Confianza > 0.5-0.6 (control de false positives)
-  - Balance automático: quality vs coverage
-  - ~75% accuracy en datos no vistos (UNSEEN test set)
+**Lección Aprendida:** 
+Small datasets (39 muestras) en modelos complejos generan overfitting severo.
+La validación cruzada temporal es CRÍTICA antes de producción.
 
-**📊 Métricas Finales Integración:**
-- CLI Status: ✅ Operativo (3 comandos)
-- Estrategia Integration: ✅ Operativo (filtro automático en proof_strategy.py)
-- Feature Extraction: ✅ Normalizado (4 features → [0,1])
-- Integration Utils: ✅ Disponible (8 clases/métodos centralizados)
-- Production Readiness: ✅ **100% - LISTO PARA LIVE TRADING**
+**Próximos Pasos:**
+- Validar v2 en datos 2025 conforme se generan
+- Implementar monitoreo continuo de accuracy
+- Considerar ensemble methods para mayor robustez
 
 ##### **Capa 5: Data Postprocessor (CGAlpha - El Enlace Causal)** 🧠
 
