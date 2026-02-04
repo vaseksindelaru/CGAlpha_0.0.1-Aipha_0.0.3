@@ -15,6 +15,9 @@
 4. [PRÓXIMOS PASOS: MEJORA ORACLE CON CGALPHA](#próximos-pasos-mejora-del-oracle-con-cgalpha)
 5. [PLAN DE IMPLEMENTACIÓN (Roadmap)](#parte-4-roadmap-y-desarrollo)
 6. [HISTORIAL DE CAMBIOS (Changelog)](#parte-5-historial-y-mantenimiento)
+7. [ANÁLISIS INTEGRAL: CAPA 1.5 + 10 FRAMEWORKS](#parte-6-análisis-integral-del-sistema-propuesto)
+8. [BIBLE DUAL: OPERACIONAL + TÉCNICA](#parte-7-bible-dual-arquitectura-completa)
+9. [GHOST ARCHITECT: ASISTENTE PERSONAL LLM LOCAL](#parte-8-ghost-architect-asistente-personal-llm-local)
 
 ---
 
