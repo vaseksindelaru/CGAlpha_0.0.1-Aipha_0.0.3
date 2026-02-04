@@ -3043,3 +3043,296 @@ Tags:
 > All P0 critical problems solved. All P1 improvements implemented.
 > 96 tests passing. Ready for deployment.
 
+
+---
+
+# 🎨 PARTE 9: CODE CRAFT SAGE - GENERADOR DE CÓDIGO AUTOMÁTICO
+
+> **Propósito:** Convertir propuestas aprobadas en código ejecutable, tests y documentación
+> **Ubicación:** Capa 5 Labs / Capa 6 (Nueva)
+> **Estado:** Arquitectura diseñada, listo para implementación
+
+## 🎯 Misión Core
+
+Code Craft Sage **no solo evalúa propuestas, las implementa automáticamente.** Es el artesano que transforma decisiones en código.
+
+**Entrada:** Propuesta aprobada con score > 0.75
+**Salida:** Código implementado + Tests pasando + Documentación + PR en GitHub
+
+## 🏗️ Las 5 Fases de Code Craft Sage
+
+### Fase 1: Proposal Parser
+**¿Qué cambio se propone exactamente?**
+
+El parser entiende la propuesta y extrae detalles:
+- Tipo de cambio: ¿Es parámetro? ¿Feature nueva? ¿Optimización?
+- Componente afectado: ¿Cuál archivo? ¿Cuál clase?
+- Valor anterior vs nuevo: Dónde está, qué era, qué será
+- Validaciones: ¿Rango permitido? ¿Dependencias?
+- Tests necesarios: ¿Qué tests se deben ejecutar?
+
+**Ejemplo:** "Cambiar confidence_threshold de 0.70 a 0.65"
+→ Parser identifica: archivo `core/oracle.py`, clase `OracleV2`, atributo `confidence_threshold`, rango [0.5-0.9]
+
+### Fase 2: Code Generator
+**Implementar el cambio en el codebase**
+
+Una vez entendida la propuesta:
+1. Crear rama git: `feature/prop_20260204_042`
+2. Modificar archivo: Reemplazar valor antiguo con nuevo
+3. Actualizar configuración: `aipha_config.json` si aplica
+4. Hacer commit automático con mensaje descriptivo
+5. Todo versionado en Git (puede revertirse)
+
+**Nunca escribe en main. Siempre en rama feature.**
+
+### Fase 3: Test Generator
+**Generar tests automáticamente**
+
+Code Craft crea tests para:
+- **Unit tests:** ¿El parámetro tiene nuevo valor?
+- **Integration tests:** ¿Funciona con otros componentes?
+- **Regression tests:** ¿Las operaciones anteriores siguen funcionando?
+- **Performance tests:** ¿No degradamos velocidad?
+
+Garantiza cobertura mínima de 80%.
+
+**Ejemplo:** Para cambio de threshold, genera tests que verifiquen:
+- Nuevo threshold es 0.65 (no es 0.70)
+- Signals con confidence 0.68 se aceptan (antes se rechazaban)
+- Accuracy en test set sigue siendo 83%+
+- No hay regression en casos antiguos
+
+### Fase 4: Documentation Generator
+**Documentación automática**
+
+Actualiza:
+- Docstrings en código (por qué cambió, cuándo, impacto esperado)
+- CHANGELOG (registro de cambios)
+- README (si es cambio visible usuario)
+- API docs (si afecta interfaz pública)
+
+**Todo documentado automáticamente, sin esfuerzo manual.**
+
+### Fase 5: Code Validator
+**Verificaciones antes de hacer merge**
+
+Valida:
+- **Linting:** ¿Sigue PEP8?
+- **Type checking:** ¿Tipos de datos correctos? (mypy)
+- **Security:** ¿No hay vulnerabilidades? (bandit)
+- **Complexity:** ¿Complejidad ciclomática < 15?
+- **Performance:** ¿Funciones rápidas? (< 10ms)
+
+Si algo falla, NO se permite merge. Code Craft es guardián de calidad.
+
+## 📊 Workflow Completo
+
+```
+User proposes: "Cambiar threshold de 0.70 a 0.65"
+                        ↓
+          Ghost Architect evaluates
+                        ↓
+User approves (score > 0.75)
+                        ↓
+Code Craft Sage inicia:
+
+1. Parser:      ✅ Entendido qué cambiar
+2. Generator:   ✅ Código modificado en rama feature
+3. Tests:       ✅ 12 tests generados, todos pasando
+4. Docs:        ✅ CHANGELOG + Docstrings actualizado
+5. Validator:   ✅ Linting, types, security OK
+                        ↓
+Output: PR ready para merge
+                        ↓
+Developer revisa PR (humans-in-the-loop)
+                        ↓
+Merge a main
+                        ↓
+Deploy a producción
+```
+
+## 🎯 Ventajas
+
+- **Eliminación de errores humanos:** Código generado es consistente
+- **Speed:** Una propuesta aprobada → código listo en 30 segundos
+- **Trazabilidad:** Cada cambio está en rama feature + commit message
+- **Rollback fácil:** Si algo falla, `git revert` y vuelta a cero
+- **Tests garantizados:** Nunca deploy sin tests
+- **Documentación siempre actualizada:** Auto-generada
+
+---
+
+# 💰 PARTE 10: EXECUTION ENGINE - EL EJECUTOR DE OPERACIONES
+
+> **Propósito:** Ejecutar operaciones reales contra broker (Binance)
+> **Ubicación:** Capa 3 - Execution Layer (Nueva)
+> **Modos:** Paper Trading (ficticio) + Live Trading (real) + Hybrid (gradual)
+
+## 🎯 Misión Core
+
+Execution Engine es quién **transforma predicciones en operaciones reales.**
+
+**Input:** Signal desde Oracle (BUY/SELL con confidence)
+**Output:** Orden ejecutada contra Binance + Posición abierta + Monitoreo
+
+## 🔀 Dos Modos de Operación
+
+### Modo 1: Paper Trading (Dinero Ficticio)
+**Para testing seguro sin riesgo real**
+
+- Portfolio virtual con $100,000 USD iniciales
+- Simula operaciones usando precios reales del mercado
+- SL y TP se cierran automáticamente cuando se tocan
+- Sin comisiones reales (solo simuladas)
+- Sin conexión a Binance (es 100% local)
+- Perfecto para validar estrategia antes de arriesgar dinero real
+
+**Caso de uso:** "Tengo nueva estrategia. ¿Funciona? Prueba en Paper primero durante 2 semanas."
+
+### Modo 2: Live Trading (Dinero Real)
+**Para operaciones reales contra Binance**
+
+- Conexión real a Binance (API key + API secret)
+- Órdenes MARKET ejecutadas en tiempo real
+- Comisiones reales deducidas
+- Dinero real en juego
+- Sistema de Kill Switch como medida de seguridad
+
+**Caso de uso:** "Paper tuvo 72% de éxito durante 30 días. Pasamos a Live con capital real."
+
+### Modo 3: Hybrid (Gradual, Recomendado)
+**Transición segura de Paper → Live**
+
+- Primeros días: 100% Paper, 0% Live (validar)
+- Días 5-10: 75% Paper, 25% Live (acostumbrarse)
+- Días 10-20: 50% Paper, 50% Live (equilibrio)
+- Días 20+: 25% Paper, 75% Live (confianza)
+- Final: 0% Paper, 100% Live (producción)
+
+**Esto reduce riesgo psicológico y permite aprendizaje gradual.**
+
+## 🛡️ Sistema de Seguridad: KILL SWITCH
+
+**Lo más crítico del Execution Engine.**
+
+Kill Switch es un botón rojo que **cierra TODAS las posiciones inmediatamente** si:
+- Pérdida diaria > 1% del capital
+- Correlación de mercado > 0.9 (mercado está correlacionado, estrategia no funciona)
+- Broker se desconecta (pérdida de conexión)
+- Precios anormales (gap/flash crash)
+- Usuario presiona botón manual
+
+**Cuando se activa Kill Switch:**
+1. Cancela todas las órdenes pendientes
+2. Cierra TODAS las posiciones con MARKET order (ahora)
+3. Notifica al usuario (email + Telegram)
+4. Registra evento crítico en logs
+5. Sistema entra en modo "READ ONLY" (sin nuevas órdenes)
+
+**Esto es lo que diferencia un sistema responsable de uno que pierde todo.**
+
+## 📊 Control de Riesgo: Límites Estrictos
+
+### En Paper Trading
+- Position size máximo: 1.5% del portfolio
+- Pérdida diaria máxima: 2% del portfolio
+- Leverage: 1:1 (sin leverage)
+- Posiciones simultáneas: Sin límite (es ficticio)
+
+### En Live Trading (MÁS CONSERVADOR)
+- Position size máximo: 1% del capital real
+- Pérdida diaria máxima: 1% del capital real
+- Leverage: 1:1 (sin leverage)
+- Posiciones simultáneas: Máximo 3 abiertas
+
+**Live es más conservador porque es dinero real.**
+
+## 🎯 Workflow de una Operación
+
+```
+Oracle predice: TRIPLE_COINCIDENCE, confidence=0.82, BTC/USDT
+
+Execution Engine recibe signal:
+
+1. VALIDAR SIGNAL
+   ✓ ¿Es legítimo? ¿Confidence > 0.70? ¿Parámetros válidos?
+
+2. RISK CHECKS (Pre-order)
+   ✓ ¿Posición nueva excede 1%? NO → OK
+   ✓ ¿Pérdida diaria ya es > 0.5%? NO → OK
+   ✓ ¿Correlación BTC-ETH es normal? SÍ → OK
+
+3. CALCULAR POSICIÓN
+   Entry: 65234.50 (precio de la signal)
+   Position size: 1% de $150k = $1,500
+   Position qty: 0.023 BTC
+   Stop Loss: -0.8 ATR = 64700 (automático)
+   Take Profit: +1.5 ATR = 66200 (automático)
+
+4. EJECUTAR SEGÚN MODE
+   
+   Si PAPER:
+   - Actualizar portfolio virtual
+   - Registrar trade
+   - Monitorear P&L en tiempo real
+   
+   Si LIVE:
+   - Conectar a Binance API
+   - POST /api/v3/order (MARKET BUY)
+   - POST /api/v3/order (STOP LOSS)
+   - POST /api/v3/order (TAKE PROFIT)
+   - Esperar fills
+   - Confirmar posición abierta
+
+5. MONITOREAR
+   - Precio actual actualizado cada vela (4h)
+   - P&L calculado en tiempo real
+   - Si precio ≤ 64700 → Ejecuta SL → Cierra
+   - Si precio ≥ 66200 → Ejecuta TP → Cierra
+
+6. CERRAR POSICIÓN
+   Cuando SL o TP se tocan:
+   - En Paper: actualizar portfolio, registrar resultado
+   - En Live: ejecutar orden SELL en Binance
+   - Registrar PnL final: +$280 (ganancia)
+   - Loguear en Bible
+
+7. APRENDER
+   Bible registra: "TRIPLE_COINCIDENCE con confidence=0.82 → +2.9% ROI"
+   La próxima signal similar sabe: "Cambios similares → 72% éxito"
+```
+
+## 🔗 Integración con Binance
+
+**Solo Live Trading necesita conexión real:**
+
+- **Authentication:** API key + API secret (seguro en variables de entorno)
+- **Order types:**
+  - **Entry:** MARKET order (ejecución inmediata)
+  - **SL/TP:** Órdenes separadas en Binance (broker las ejecuta)
+- **Heartbeat:** Conexión keep-alive cada 30 segundos
+- **WebSocket:** Precio actualizado en tiempo real (4h bars)
+- **Error handling:** Retry logic (hasta 3 intentos si falla)
+
+## 📈 Comparación: Paper vs Live
+
+| Aspecto | Paper | Live |
+|---------|-------|------|
+| Dinero en riesgo | $0 (ficticio) | $$ (real) |
+| Velocidad ejecución | Instantáneo | Real market (< 1s) |
+| Slippage | Exacto | ±0.02% simulado |
+| Comisiones | No hay | Binance 0.1% real |
+| Position size | 1.5% | 1% (más conservador) |
+| Kill Switch | Deshabilitado | ACTIVO SIEMPRE |
+| Para qué | Testing, validación | Operaciones reales |
+| Duración típica | 2-4 semanas | Indefinido (producción) |
+
+---
+
+> **SISTEMA INTEGRADO COMPLETO**
+> 
+> Ghost Architect (Evalúa) → Code Craft Sage (Implementa) → Execution Engine (Ejecuta) → Bible (Aprende)
+>
+> **Esto es un sistema que no solo toma decisiones, sino que las implementa, ejecuta y aprende de ellas.**
+
