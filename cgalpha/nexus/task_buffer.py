@@ -9,15 +9,18 @@ import sqlite3
 import json
 import logging
 import time
+import threading
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
 class TaskBufferManager:
     def __init__(self, db_path: str = "aipha_memory/temporary/task_buffer.db"):
         self.db_path = Path(db_path)
+        self._lock = threading.Lock()
         self._ensure_db()
 
     def _ensure_db(self):
@@ -25,6 +28,8 @@ class TaskBufferManager:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             with sqlite3.connect(self.db_path) as conn:
+                # Enable WAL mode for better concurrency
+                conn.execute("PRAGMA journal_mode=WAL")
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS buffered_tasks (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,20 +46,21 @@ class TaskBufferManager:
 
     def save_task(self, task_type: str, payload: Dict[str, Any]) -> bool:
         """
-        Guarda una tarea fallida en el buffer local.
+        Guarda una tarea fallida en el buffer local (thread-safe).
         Returns: True si se guardó correctamente.
         """
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.execute(
-                    "INSERT INTO buffered_tasks (task_type, payload, created_at, status) VALUES (?, ?, ?, ?)",
-                    (task_type, json.dumps(payload), time.time(), 'pending')
-                )
-            logger.warning(f"💾 Task buffered to disk: {task_type}")
-            return True
-        except sqlite3.Error as e:
-            logger.error(f"❌ CRITICAL failure saving task to buffer: {e}")
-            return False
+        with self._lock:
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    conn.execute(
+                        "INSERT INTO buffered_tasks (task_type, payload, created_at, status) VALUES (?, ?, ?, ?)",
+                        (task_type, json.dumps(payload), time.time(), 'pending')
+                    )
+                logger.warning(f"💾 Task buffered to disk: {task_type}")
+                return True
+            except sqlite3.Error as e:
+                logger.error(f"❌ CRITICAL failure saving task to buffer: {e}")
+                return False
 
     def get_pending_tasks(self, limit: int = 100) -> List[Dict[str, Any]]:
         """Recupera tareas pendientes para reintento."""

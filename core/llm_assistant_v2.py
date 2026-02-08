@@ -213,3 +213,6 @@ def reset_llm_assistant():
     """Resetear la instancia global (útil para testing)"""
     global _assistant_instance
     _assistant_instance = None
+
+# Alias para compatibilidad con código legacy
+LLMAssistant = LLMAssistantV2
