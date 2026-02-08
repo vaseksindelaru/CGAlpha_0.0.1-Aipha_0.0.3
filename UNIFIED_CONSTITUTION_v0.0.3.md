@@ -50,6 +50,7 @@ Para garantizar la estabilidad operativa mientras se desarrolla inteligencia art
 - **`aiphalab` (CLI):** Interfaz de línea de comandos. Ver **[GUIA_CLI_PANEL_CONTROL.md](./GUIA_CLI_PANEL_CONTROL.md)**. Es el "teclado" del sistema.
 - **`core` (Orquestación):** El director de orquesta. Coordina el flujo de información entre capas, gestiona el ciclo de vida de las operaciones.
 - **`aipha_memory` (Persistencia ACID/JSONL):** Sistema de memoria inmutable organizada en tres capas: operacional (Aipha), evolutivo (CGAlpha), y testing. Ver **[bible/memory_system.md](bible/memory_system.md)** para detalles de arquitectura y políticas de retención.
+- **`redis_infrastructure` (Cache & Colas):** Capa de infraestructura determinista para estado volátil, colas de tareas y comunicación pub/sub. Ver **[bible/infrastructure/redis_integration.md](bible/infrastructure/redis_integration.md)**.
 
 ##### **Capa 2: Data Preprocessor**
 - **Función:** Normalización y preparación de datos en tiempo real.
