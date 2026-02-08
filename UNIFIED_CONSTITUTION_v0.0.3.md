@@ -49,7 +49,7 @@ Para garantizar la estabilidad operativa mientras se desarrolla inteligencia art
 ##### **Capa 1: Infraestructura y Sistema Nervioso**
 - **`aiphalab` (CLI):** Interfaz de línea de comandos. Ver **[GUIA_CLI_PANEL_CONTROL.md](./GUIA_CLI_PANEL_CONTROL.md)**. Es el "teclado" del sistema.
 - **`core` (Orquestación):** El director de orquesta. Coordina el flujo de información entre capas, gestiona el ciclo de vida de las operaciones.
-- **`aipha_memory` (Persistencia ACID/JSONL):** Sistema de memoria inmutable. Cada evento se registra de forma irreversible en formato JSONL para garantizar la trazabilidad completa y la capacidad de análisis forense.
+- **`aipha_memory` (Persistencia ACID/JSONL):** Sistema de memoria inmutable organizada en tres capas: operacional (Aipha), evolutivo (CGAlpha), y testing. Ver **[bible/memory_system.md](bible/memory_system.md)** para detalles de arquitectura y políticas de retención.
 
 ##### **Capa 2: Data Preprocessor**
 - **Función:** Normalización y preparación de datos en tiempo real.
@@ -307,7 +307,7 @@ El orquestador estratégico y enlace con el LLM Inventor.
 
 **Proceso de Inferencia Causal:**
 
-1. **Lectura del Puente Evolutivo:** Lee `evolutionary_bridge.jsonl`
+1. **Lectura del Puente Evolutivo:** Lee `evolutionary/bridge.jsonl`
    ```json
    {
      "trade_id": "UUID",
@@ -726,7 +726,7 @@ Aipha ya NO reporta solo "Ganado/Perdido". Reporta la **Trayectoria Completa**:
    - **JUSTIFICACIÓN:** Documentar contrato sin bloquear desarrollo
 
 6. **🌉 Puente Evolutivo**
-   - ✅ **CREADO:** `evolutionary_bridge.jsonl`
+   - ✅ **CREADO:** `evolutionary/bridge.jsonl`
    - **JUSTIFICACIÓN:** Append incremental JSONL
 
 ### 🔒 COMPONENTES MANTENIDOS:
@@ -855,7 +855,7 @@ python -m cgalpha.nexus.coordinator
 **Impacto:** Balance entre análisis y estabilidad
 
 ### Decisión 5: JSONL para Puente Evolutivo
-**Qué:** `evolutionary_bridge.jsonl` en lugar de JSON único  
+**Qué:** `evolutionary/bridge.jsonl` en lugar de JSON único  
 **Por qué:** Append incremental sin reescribir file  
 **Impacto:** Performance en I/O
 
@@ -891,7 +891,7 @@ python -m cgalpha.nexus.coordinator
 
 ### Prioridad 2: Oracle Enhancement
 - [ ] RejectedSignalsTracker implementation
-- [ ] Integration con `evolutionary_bridge.jsonl`
+- [ ] Integration con `evolutionary/bridge.jsonl`
 
 ### Prioridad 3: EconML Integration
 - [ ] Acumular >1000 trades con trayectorias completas
@@ -2230,7 +2230,7 @@ This enables a true feedback loop:
 - **Justificación:** Separación clara entre Aipha (ejecutor) y CGAlpha (analista)
 
 #### **PRIORIDAD 4: Puente Evolutivo**
-**Archivo nuevo:** `evolutionary_bridge.jsonl` (en `aipha_memory/`)
+**Archivo nuevo:** `evolutionary/bridge.jsonl` (en `aipha_memory/`)
 - **Formato:**
   ```json
   {
@@ -2263,7 +2263,7 @@ This enables a true feedback loop:
 
 ### Fase 1: Fundamentos (CRÍTICO)
 1. ✅ Modificar `potential_capture_engine.py` (Sensor Ordinal)
-2. ✅ Crear `evolutionary_bridge.jsonl`
+2. ✅ Crear `evolutionary/bridge.jsonl`
 3. ✅ Agregar `rejected_signals_tracker.py`
 
 ### Fase 2: Estructura CGAlpha
@@ -2284,7 +2284,7 @@ This enables a true feedback loop:
 
 ## 📊 MÉTRICAS DE ÉXITO:
 - ✅ `potential_capture_engine.py` genera datos ordinales completos
-- ✅ `evolutionary_bridge.jsonl` se puebla con cada trade
+- ✅ `evolutionary/bridge.jsonl` se puebla con cada trade
 - ✅ `cgalpha/` estructura funcional y desacoplada
 - ✅ Tests unitarios pasan (sin regresión)
 - ✅ Sistema v0.0.2 sigue funcionando durante transición
@@ -2304,7 +2304,7 @@ This enables a true feedback loop:
 **Logros:**
 1.  **Motor Unificado:** `TradingEngine` implementado como orquestador de Triple Coincidencia.
 2.  **Sensor Ordinal:** Activado con tracking de trayectorias MFE/MAE.
-3.  **Memoria Evolutiva:** `evolutionary_bridge.jsonl` funcional y validado.
+3.  **Memoria Evolutiva:** `evolutionary/bridge.jsonl` funcional y validado.
 4.  **Integración Operativa:** `life_cycle.py` gestiona el bucle rápido (Trading) y lento (Evolución) mediante semáforo `CGA_Ops`.
 
 **Estado:** ✅ COMPLETADO
@@ -2319,11 +2319,11 @@ This enables a true feedback loop:
 ### 6.1 Estrategia de Simulación
 Dado que no podemos operar semanas en tiempo real, utilizaremos **Simulación Acelerada**:
 - Generación sintética de escenarios de mercado variados.
-- Inyección de datos en `evolutionary_bridge.jsonl`.
+- Inyección de datos en `evolutionary/bridge.jsonl`.
 - Activación de `RiskBarrierLab` sobre datos sintéticos para validar lógica causal.
 
 ### 6.2 Objetivos Tácticos
-1.  Llenar `evolutionary_bridge.jsonl` con >1000 eventos.
+1.  Llenar `evolutionary/bridge.jsonl` con >1000 eventos.
 2.  Implementar lógica real en `risk_barrier_lab.py` (Cálculo de CATE/Expectativa Matemática).
 3.  Generar la primera `PolicyProposal` autónoma.
 
@@ -2334,7 +2334,7 @@ Dado que no podemos operar semanas en tiempo real, utilizaremos **Simulación Ac
 > **Hito:** Conciencia Causal y Generación de Propuestas
 
 **Logros:**
-1.  **Datos:** Inyección de 1208 trayectorias sintéticas en `evolutionary_bridge.jsonl`.
+1.  **Datos:** Inyección de 1208 trayectorias sintéticas en `evolutionary/bridge.jsonl`.
 2.  **Cortex:** `RiskBarrierLab` analizó datos y detectó régimen de crisis (WR 15%).
 3.  **Voz:** Nexus sintetizó la primera propuesta autónoma (Ajuste de Riesgo).
 
@@ -2382,7 +2382,7 @@ Transformaremos la `PolicyProposal` (JSON) en código ejecutable:
 ### 8.1 Objetivos Tácticos
 1.  **Comando `aipha cgalpha`:** Nuevo grupo de comandos en el CLI.
     - `status`: Ver estado de Nexus y semáforo de recursos.
-    - `signals`: Ver flujo en tiempo real (tailing `evolutionary_bridge.jsonl`).
+    - `signals`: Ver flujo en tiempo real (tailing `evolutionary/bridge.jsonl`).
     - `evolve`: Forzar un ciclo de evolución manual.
 2.  **Visualización Dual:** Mostrar claramente la separación entre Fast Loop (Trading) y Slow Loop (Evolution).
 
@@ -2588,7 +2588,7 @@ prompt_json = nexus.synthesize_for_llm(max_reports=10)
 
 ### 5. Puente Evolutivo
 
-**Nuevo Archivo:** `aipha_memory/evolutionary_bridge.jsonl`
+**Nuevo Archivo:** `aipha_memory/evolutionary/bridge.jsonl`
 
 **Formato:**
 ```json

@@ -58,7 +58,7 @@ class TestContextSentinel:
         sentinel = ContextSentinel(temp_storage)
         sentinel.add_memory("good", {"val": 1})
         
-        state_file = temp_storage / "current_state.json"
+        state_file = temp_storage / "operational/current_state.json"
         state_file.write_text("{ invalid json")
         
         sentinel2 = ContextSentinel(temp_storage)

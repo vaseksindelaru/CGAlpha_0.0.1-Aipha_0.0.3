@@ -75,7 +75,7 @@ def simulate_phase2_data(num_events: int = 1200):
     """
     logger.info(f"🧬 Iniciando Simulación Fase 2: Generando {num_events} trayectorias...")
     
-    bridge_path = "aipha_memory/evolutionary_bridge.jsonl"
+    bridge_path = "aipha_memory/testing/stress_test.jsonl"
     
     scenarios = [
         {"name": "HIGH_VOL_CRISIS", "vol": "HIGH", "trend": "HOSTILE", "count": 400},

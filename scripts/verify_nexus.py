@@ -32,7 +32,7 @@ def verify_nexus_evolution():
     
     from cgalpha.labs.risk_barrier_lab import RiskBarrierLab
     
-    bridge_path = Path("aipha_memory/evolutionary_bridge.jsonl")
+    bridge_path = Path("aipha_memory/testing/stress_test.jsonl")
     lab = RiskBarrierLab(bridge_path)
     
     findings = lab.run_analysis()

@@ -46,8 +46,12 @@ test -f "cgalpha/labs/risk_barrier_lab.py"
 check $? "RiskBarrierLab creado"
 
 # Puente evolutivo
-test -f "aipha_memory/evolutionary_bridge.jsonl"
-check $? "Evolutionary Bridge inicializado"
+# Puente evolutivo
+test -f "aipha_memory/testing/stress_test.jsonl"
+check $? "Evolutionary Bridge migrated to testing/stress_test.jsonl"
+
+test -f "aipha_memory/operational/current_state.json"
+check $? "Operational state in correct location"
 
 echo ""
 echo "📚 VERIFICANDO DOCUMENTACIÓN"

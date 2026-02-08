@@ -20,7 +20,7 @@ class HistoryCommand(BaseCommand):
         """Obtener historial de acciones"""
         try:
             memory_path = Path("./memory")
-            history_file = memory_path / "action_history.jsonl"
+            history_file = memory_path / "operational/action_history.jsonl"
             
             if not history_file.exists():
                 return []

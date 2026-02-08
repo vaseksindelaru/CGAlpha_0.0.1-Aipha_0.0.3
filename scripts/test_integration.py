@@ -73,7 +73,7 @@ def test_deep_integration():
         logger.info(f"   ✨ ÉXITO: {result['trajectories_saved']} trayectorias guardadas en Bridge.")
         
         # Verificar contenido del bridge
-        bridge_path = Path("aipha_memory/evolutionary_bridge.jsonl")
+        bridge_path = Path("aipha_memory/evolutionary/bridge.jsonl")
         last_line = ""
         with open(bridge_path, 'r') as f:
             for line in f:

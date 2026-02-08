@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger("FullOrganismTest")
 
 CONFIG_PATH = "aipha_config.json"
-BRIDGE_PATH = "aipha_memory/evolutionary_bridge.jsonl"
+BRIDGE_PATH = "aipha_memory/testing/stress_test.jsonl"
 
 def setup_environment():
     """Prepara el entorno para la prueba."""

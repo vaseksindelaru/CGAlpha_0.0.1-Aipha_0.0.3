@@ -48,9 +48,13 @@ class ContextSentinel:
         
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
+
+        # Structure Update: Use 'operational' subdirectory
+        self.operational_dir = self.storage_root / "operational"
+        self.operational_dir.mkdir(parents=True, exist_ok=True)
         
-        self.action_history_file = self.storage_root / "action_history.jsonl"
-        self.state_file = self.storage_root / "current_state.json"
+        self.action_history_file = self.operational_dir / "action_history.jsonl"
+        self.state_file = self.operational_dir / "current_state.json"
         
         logger.info(f"ContextSentinel inicializado en: {self.storage_root}")
         

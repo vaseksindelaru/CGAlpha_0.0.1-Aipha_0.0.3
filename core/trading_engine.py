@@ -30,7 +30,7 @@ class TradingEngine:
     def __init__(self):
         self.config = ConfigManager()
         self.memory = MemoryManager()
-        self.bridge_path = Path("aipha_memory/evolutionary_bridge.jsonl")
+        self.bridge_path = Path("aipha_memory/evolutionary/bridge.jsonl")
         
         # Asegurar que el bridge existe
         self.bridge_path.parent.mkdir(parents=True, exist_ok=True)
