@@ -96,17 +96,12 @@ class CGAOps:
     def _try_recover_buffer(self):
         """Intenta enviar tareas pendientes del buffer a Redis."""
         if self.redis and self.redis.is_connected():
-            pending = self.task_buffer.get_pending_tasks(limit=50)
-            recovered_ids = []
-            for task in pending:
-                # task['payload'] es el dict que guardamos
-                # task['task_type'] es "lab_analysis"
-                if self.redis.push_analysis_task(task['task_type'], task['payload']):
-                    recovered_ids.append(task['id'])
-            
-            if recovered_ids:
-                self.task_buffer.mark_as_recovered(recovered_ids)
-                logger.info(f"♻️ Recovered {len(recovered_ids)} tasks from local buffer to Redis")
+            recovered = self.task_buffer.recover_tasks(
+                push_callback=lambda task_type, payload: self.redis.push_analysis_task(task_type, payload),
+                limit=50
+            )
+            if recovered:
+                logger.info(f"♻️ Recovered {recovered} tasks from local buffer to Redis")
 
     def get_resource_state(self) -> ResourceSnapshot:
         """

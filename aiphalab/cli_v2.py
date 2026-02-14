@@ -42,7 +42,11 @@ from aiphalab.commands import (
     config_group,
     history_group,
     debug_group,
+    codecraft_group,
+    ask_command,
+    ask_health_command,
 )
+from cgalpha.orchestrator import CGAlphaOrchestrator
 
 # Rich console (optional)
 try:
@@ -72,12 +76,12 @@ def get_oracle():
 @click.pass_context
 def cli(ctx, dry_run):
     """
-    🦅 AiphaLab CLI v2.0 - Refactored & Modularized
+    🧠 CGAlpha CLI v2.0 - Unified & Modularized (AiphaLab CLI legacy)
     
-    Aipha v0.0.3 - Self-improving trading system
-    CGAlpha v0.0.1 - Collaborative governance layer
+    CGAlpha v0.1.x - Unified autonomous system
+    (legacy alias: aipha)
     
-    Run: aipha --help for commands
+    Run: cgalpha --help for commands
     """
     ctx.ensure_object(dict)
     ctx.obj['dry_run'] = dry_run
@@ -95,14 +99,17 @@ cli.add_command(cycle_group)
 cli.add_command(config_group)
 cli.add_command(history_group)
 cli.add_command(debug_group)
+cli.add_command(codecraft_group)
+cli.add_command(ask_command)
+cli.add_command(ask_health_command)
 
 
 @cli.command()
 def version():
     """Show version information"""
     version_info = {
-        "aipha": "0.0.3",
-        "cgalpha": "0.0.1",
+        "cgalpha": "0.1.x",
+        "aipha_alias": "supported",
         "cli": "2.0 (refactored)",
         "python": f"{sys.version.split()[0]}"
     }
@@ -128,7 +135,7 @@ def info():
     if console:
         from rich.panel import Panel
         console.print(Panel("""
-[bold]AiphaLab CLI v2.0[/bold]
+[bold]CGAlpha CLI v2.0[/bold]
 
 A modularized, production-ready CLI for Aipha.
 
@@ -141,18 +148,21 @@ A modularized, production-ready CLI for Aipha.
   • oracle   - Oracle signal filtering
 
 [bold blue]Usage:[/bold blue]
-  aipha status show          # Show system status
-  aipha cycle run            # Run one cycle
-  aipha config show          # Show configuration
-  aipha history actions      # Show action history
-  aipha debug check-deps     # Check dependencies
-  aipha oracle test-model    # Test Oracle model
+  cgalpha status show          # Show system status
+  cgalpha cycle run            # Run one cycle
+  cgalpha config show          # Show configuration
+  cgalpha history actions      # Show action history
+  cgalpha debug check-deps     # Check dependencies
+  cgalpha oracle test-model    # Test Oracle model
+  cgalpha auto-analyze         # Ghost Architect causal analysis
+  cgalpha ask "..."            # Local Librarian mentor
+  cgalpha ask-health           # Local Librarian health check
 
-For more: aipha --help
+For more: cgalpha --help
         """, border_style="blue", title="ℹ️  Information"))
     else:
-        click.echo("AiphaLab CLI v2.0")
-        click.echo("Run: aipha --help for commands")
+        click.echo("CGAlpha CLI v2.0")
+        click.echo("Run: cgalpha --help for commands")
 
 
 @cli.group()
@@ -220,6 +230,78 @@ def status():
     click.echo(f"   Filtered accuracy: 75.00% (+4.09% improvement)")
     click.echo(f"   Status: Production-Ready ✅")
     click.echo(f"   Location: oracle/models/oracle_5m_trained.joblib")
+
+
+@cli.command(name="auto-analyze")
+@click.option('--working-dir', 'working_dir', type=str, default='.',
+              help='Directorio de trabajo (raíz del proyecto)')
+@click.option('--min-confidence', 'min_confidence', type=float, default=0.70,
+              help='Confianza mínima para propuestas (default: 0.70)')
+@click.option('--log-file', 'log_file', type=str, default=None,
+              help='Ruta explícita a logs JSONL (opcional)')
+@click.option('--cleanup-processed', 'cleanup_processed', is_flag=True, default=False,
+              help='Renombrar log procesado a *.processed al finalizar')
+def auto_analyze(working_dir: str, min_confidence: float, log_file: str, cleanup_processed: bool):
+    """
+    🔍 Ghost Architect v0.1 - Análisis causal histórico + propuestas accionables.
+    """
+    orchestrator = CGAlphaOrchestrator(working_dir=working_dir)
+    result = orchestrator.auto_analyze(
+        min_confidence=min_confidence,
+        log_file=log_file,
+        cleanup_processed=cleanup_processed
+    )
+
+    analysis = result["analysis"]
+    insights = result["insights"][:5]
+    proposals = result["proposals"][:5]
+    causal_metrics = analysis.get("causal_metrics", {})
+
+    click.echo("🔍 CGAlpha Performance Analysis")
+    click.echo("📊 Detected Issues:")
+    click.echo(f"- Records analyzed: {analysis.get('records_analyzed', 0)}")
+    click.echo(f"- Patterns detected: {len(analysis.get('patterns', []))}")
+    click.echo(f"- Analysis engine: {analysis.get('analysis_engine', 'heuristic_fallback')}")
+
+    if analysis.get("patterns"):
+        for pattern in analysis["patterns"][:3]:
+            ptype = pattern.get("type", "unknown")
+            value = pattern.get("value")
+            click.echo(f"- {ptype}: {value}")
+    else:
+        click.echo("- No critical patterns detected in historical logs.")
+
+    if causal_metrics:
+        click.echo("")
+        click.echo("Causal Metrics:")
+        click.echo(f"- Accuracy Causal: {causal_metrics.get('accuracy_causal', 0):.2f}")
+        click.echo(f"- Efficiency: {causal_metrics.get('efficiency', 0):.2f}")
+
+    click.echo("")
+    click.echo("💡 Generated Proposals:")
+    if proposals:
+        for proposal in proposals:
+            click.echo(f"[Confidence: {proposal['confidence']:.2f}] \"{proposal['proposal_text']}\"")
+            click.echo(f"Reason: {proposal['reason']}")
+    else:
+        click.echo("No automatic proposals generated from performance data.")
+
+    if insights:
+        click.echo("")
+        click.echo("🧠 Ghost Architect Insights:")
+        for insight in insights:
+            click.echo(f"- {insight['type']}: {insight['reason']}")
+            click.echo(f"  Suggested: {insight['command']}")
+
+    if proposals:
+        first_id = proposals[0].get("proposal_id", "AUTO_PROP_001")
+        click.echo("")
+        click.echo(f"Run 'cgalpha codecraft apply --id {first_id}' to execute.")
+
+    click.echo("")
+    click.echo(f"Report saved: {result['report_path']}")
+    if result.get("cleaned_log"):
+        click.echo(f"Processed log archived: {result['cleaned_log']}")
 
 
 if __name__ == "__main__":

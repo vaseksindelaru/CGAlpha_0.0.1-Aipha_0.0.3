@@ -15,7 +15,7 @@ import os
 import json
 import logging
 import redis
-from typing import Optional, Dict, Any, Tuple, Callable
+from typing import Optional, Dict, Any, Tuple, Callable, List
 from redis.exceptions import ConnectionError, TimeoutError, RedisError
 
 logger = logging.getLogger(__name__)
@@ -166,6 +166,41 @@ class RedisClient:
         except (json.JSONDecodeError, RedisError) as e:
             logger.error(f"Error retrieving system state {key}: {e}")
             return None
+
+    def delete_system_state(self, key: str) -> bool:
+        """
+        Elimina una clave de estado (`state:{key}`).
+        """
+        if not self.is_connected():
+            return False
+
+        full_key = self.get_namespaced_key(f"state:{key}")
+        try:
+            self.client.delete(full_key)
+            return True
+        except RedisError as e:
+            logger.error(f"Error deleting system state {key}: {e}")
+            return False
+
+    def delete_keys_by_pattern(self, pattern: str) -> int:
+        """
+        Elimina claves namespaced por patrón.
+
+        `pattern` es relativo al namespace, ej: `state:codecraft:session:*`.
+        """
+        if not self.is_connected():
+            return 0
+
+        full_pattern = self.get_namespaced_key(pattern)
+        deleted = 0
+        try:
+            keys: List[str] = self.client.keys(full_pattern)
+            if keys:
+                deleted = int(self.client.delete(*keys))
+            return deleted
+        except RedisError as e:
+            logger.error(f"Error deleting keys by pattern {pattern}: {e}")
+            return 0
 
     # --- Colas de Tareas (FIFO) ---
 

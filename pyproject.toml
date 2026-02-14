@@ -24,11 +24,82 @@ dependencies = [
 ]
 
 [project.scripts]
-aipha = "aiphalab.cli:cli"
+aipha = "aiphalab.cli_v2:cli"
+cgalpha = "aiphalab.cli_v2:cli"
 
 [project.urls]
 Homepage = "https://github.com/vaclav/Aipha"
 Repository = "https://github.com/vaclav/Aipha"
 
 [tool.setuptools]
-packages = ["core", "aiphalab", "oracle", "data_processor", "trading_manager", "simulation"]
+packages = [
+    "core",
+    "aiphalab",
+    "aiphalab.commands",
+    "oracle",
+    "data_processor",
+    "trading_manager",
+    "simulation",
+    "cgalpha",
+    "cgalpha.codecraft",
+    "cgalpha.labs",
+    "cgalpha.nexus",
+    "cgalpha.ghost_architect",
+]
+
+# ============================================================================
+# PYTEST CONFIGURATION - Code Craft Sage Phase 3 Support
+# ============================================================================
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "regression: Regression tests",
+    "slow: Slow running tests",
+]
+
+# ============================================================================
+# COVERAGE CONFIGURATION - Constitution Part 9 Compliance
+# Minimum coverage: 80%
+# ============================================================================
+[tool.coverage.run]
+source = ["cgalpha", "core", "oracle", "aiphalab"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "*/venv/*",
+    "*/env/*",
+    "*/virtualenv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"

@@ -1,0 +1,8 @@
+class OracleV2:
+    """Oracle para predicciones"""
+    def __init__(self):
+        self.confidence_threshold = 0.70  # Línea a modificar
+        self.max_predictions = 100
+    
+    def predict(self):
+        return self.confidence_threshold

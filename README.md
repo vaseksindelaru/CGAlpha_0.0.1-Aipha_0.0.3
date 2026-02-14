@@ -1,4 +1,4 @@
-# 🦅 Aipha v0.0.3 + CGAlpha v0.0.1 - **v0.1.0 Production-Ready**
+# 🧠 CGAlpha (Unified) - **v0.1.0 Production-Ready**
 
 > **El Sistema Unificado de Trading Evolutivo basado en Causalidad**  
 > **Status:** ✅ Production-Ready Beta | 8.5/10 | 96/96 Tests Pass  
@@ -8,10 +8,10 @@
 
 ## 🎯 Quick Summary
 
-A **self-improving trading system** that combines:
-- **Aipha (Executive):** High-frequency trading executor, hardened & bulletproof
-- **CGAlpha (Brain):** Causal inference engine with contrafactual analysis
-- **Result:** An organism that doesn't just trade, but **learns mathematically** from its own decisions
+A **self-improving trading system** unified under CGAlpha:
+- **Code Craft Sage (Body):** ejecuta cambios de código de forma autónoma
+- **Ghost Architect (Brain):** detecta causas y propone estrategia
+- **Result:** un organismo que no solo ejecuta, sino que **aprende causalmente**
 
 ---
 
@@ -40,20 +40,64 @@ cd CGAlpha_0.0.1-Aipha_0.0.3
 pip install -r requirements.txt
 
 # Verify installation
-python -m aiphalab.cli_v2 --version
-# Output: AiphaLab CLI v0.1.0 - Production-Ready
+cgalpha --version
 ```
 
 ### Quick Start
 ```bash
 # Show system status
-python -m aiphalab.cli_v2 status show
+cgalpha status show
 
 # Run a cycle
-python -m aiphalab.cli_v2 cycle execute
+cgalpha cycle execute
 
 # View help
-python -m aiphalab.cli_v2 --help
+cgalpha --help
+```
+
+### 📚 Local Librarian (Offline Mentor)
+```bash
+# Health check del asistente local
+cgalpha ask-health --smoke
+
+# Consulta rápida (modo local estricto)
+cgalpha ask "¿Qué hace auto-analyze?" --no-remote
+
+# Perfil recomendado en hardware limitado
+cgalpha ask "Explica simple_causal_analyzer.py" \
+  --no-remote --max-files 2 --max-chars 450 \
+  --num-predict 120 --num-ctx 1536 --timeout 300
+```
+
+### 🎨 Code Craft Sage - AI-Powered Code Improvement
+
+Code Craft Sage es un sistema de mejora de código impulsado por IA que puede:
+- Parsear propuestas de cambio en lenguaje natural
+- Modificar código fuente automáticamente
+- Generar tests unitarios específicos
+- Ejecutar tests de regresión
+- Crear ramas Git y commits
+
+```bash
+# Ver estado de Code Craft Sage
+cgalpha codecraft status
+
+# Aplicar una propuesta de cambio
+cgalpha codecraft apply --text "Cambiar threshold de 0.3 a 0.65"
+
+# Con output detallado
+cgalpha codecraft apply --text "Update confidence" --verbose
+
+# Ghost Architect v0.1 (Fase 7)
+cgalpha auto-analyze
+```
+
+**Documentación:**
+- **[Fase 1: Fundamentals](bible/codecraft_sage/phase1_fundamentals.md)** - ProposalParser
+- **[Fase 2: AST Modifier](bible/codecraft_sage/phase2_ast_modifier.md)** - Modificador de código
+- **[Fase 3: Test Generator](bible/codecraft_sage/phase3_test_generator.md)** - Generador de tests
+- **[Fase 4: Git Automator](bible/codecraft_sage/phase4_git_automator.md)** - Control de versiones
+- **[Fase 5: CLI Integration](bible/codecraft_sage/phase5_cli_integration.md)** - Integración CLI
 
 # Run all tests
 python -m pytest tests/ -v
@@ -157,16 +201,16 @@ python -m pytest tests/ -v --durations=10
 ### Docker (Recommended)
 ```bash
 # Build image
-docker build -t aipha:v0.1.0 .
+docker build -t cgalpha:v0.1.0 .
 
 # Run container
-docker run -v $(pwd)/memory:/app/memory aipha:v0.1.0
+docker run -v $(pwd)/memory:/app/memory cgalpha:v0.1.0
 ```
 
 ### Direct Installation
 ```bash
 pip install -r requirements.txt
-python -m aiphalab.cli_v2 cycle execute
+cgalpha cycle execute
 ```
 
 ### Systemd Service (Linux)

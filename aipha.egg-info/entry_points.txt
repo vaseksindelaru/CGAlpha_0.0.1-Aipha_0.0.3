@@ -1,2 +1,3 @@
 [console_scripts]
-aipha = aiphalab.cli:cli
+aipha = aiphalab.cli_v2:cli
+cgalpha = aiphalab.cli_v2:cli

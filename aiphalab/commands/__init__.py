@@ -12,6 +12,7 @@ Comandos disponibles:
   - config.py     : Gestión de configuración
   - history.py    : Historial de cambios
   - debug.py      : Herramientas de debug
+  - codecraft.py  : Code Craft Sage - AI-Powered Code Improvement
 """
 
 from .base import BaseCommand
@@ -20,6 +21,8 @@ from .cycle import cycle_group
 from .config import config_group
 from .history import history_group
 from .debug import debug_group
+from .codecraft import codecraft_group
+from .librarian import ask_command, ask_health_command
 
 __all__ = [
     "BaseCommand",
@@ -28,4 +31,7 @@ __all__ = [
     "config_group",
     "history_group",
     "debug_group",
+    "codecraft_group",
+    "ask_command",
+    "ask_health_command",
 ]

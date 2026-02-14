@@ -36,5 +36,11 @@ pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0
 
+# Code Craft Sage - Phase 3: Test Generator
+jinja2>=3.0.0
+
+# Code Craft Sage - Phase 4: Git Automator
+gitpython>=3.1.0
+
 # Optional: Performance & Debugging
 python-dateutil>=2.8.0
