@@ -86,3 +86,6 @@ Combinacion de:
 - `analyze_logs()` mantiene compatibilidad y delega a `analyze_performance()`.
 - El sistema no depende 100% del LLM gracias al fallback heuristico.
 - No se requiere refactor total; evoluciona por capas incrementales.
+
+## Siguiente Capitulo
+- Continuidad oficial: `bible/codecraft_sage/phase8_deep_causal_v03.md`
