@@ -3337,3 +3337,62 @@ Execution Engine recibe signal:
 >
 > **Esto es un sistema que no solo toma decisiones, sino que las implementa, ejecuta y aprende de ellas.**
 
+---
+
+## 🧩 PARTE 10.1: EXTENSIÓN DE GOBERNANZA CAUSAL (DEEP CAUSAL)
+
+> **Objetivo:** asegurar que la inferencia causal use evidencia real de microestructura y no supuestos.
+
+### Reglas obligatorias
+
+1. La fuente oficial de microestructura para Ghost Architect es:
+   - `aipha_memory/operational/order_book_features.jsonl`
+2. Todo análisis causal debe reportar:
+   - `data_alignment`
+   - `causal_metrics`
+   - `readiness_gates`
+3. Si no hay match válido de microdatos para un trade, debe marcarse:
+   - `micro_data_mode = BLIND_TEST`
+4. Está prohibido elevar confianza causal cuando:
+   - `blind_test_ratio` supera el umbral configurado.
+5. La inyección de datos debe ser incremental:
+   - sin refactor total del núcleo,
+   - sin romper `cgalpha auto-analyze`.
+
+### Thresholds recomendados (v0.2.2 -> v0.3)
+
+- `max_blind_test_ratio <= 0.25`
+- `max_nearest_match_avg_lag_ms <= 150`
+- `min_causal_accuracy >= 0.55`
+- `min_efficiency >= 0.40`
+
+Estos límites se consideran gates de readiness para proceder hacia v0.3.
+
+---
+
+# 🧠 PARTE 11: PROTOCOLO DE EVALUACIÓN CAUSAL (OOS)
+
+> **Objetivo:** separar correlación aparente de causalidad operativa real.
+
+## 11.1 Principio rector
+
+No basta con rendimiento in-sample. Toda mejora causal debe validar comportamiento out-of-sample (OOS).
+
+## 11.2 Métricas mínimas obligatorias
+
+- `causal_accuracy_oos`
+- `precision_fakeout`
+- `precision_structure_break`
+- `blind_test_ratio`
+- `noise_rejection_rate`
+
+## 11.3 Regla de aprobación
+
+Una iteración Deep Causal se aprueba solo si:
+
+1. Pasa gates de calidad de datos (`readiness_gates.data_quality_pass = true`).
+2. Pasa gates causales (`readiness_gates.causal_quality_pass = true`).
+3. Mantiene compatibilidad operativa (`cgalpha auto-analyze` funcional).
+4. No requiere refactor masivo del núcleo.
+
+Si un cambio propone reescritura total, debe clasificarse como `INSEGURO` hasta demostrar equivalencia funcional y plan de migración sin ruptura.

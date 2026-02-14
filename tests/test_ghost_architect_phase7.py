@@ -46,6 +46,8 @@ def test_simple_causal_analyzer_detects_actionable_patterns(tmp_path):
     assert analysis["records_analyzed"] == 3
     assert analysis["analysis_engine"] in {"llm", "heuristic_fallback"}
     assert "causal_metrics" in analysis
+    assert "readiness_gates" in analysis
+    assert analysis["readiness_gates"]["has_minimum_data"] is True
     pattern_types = {p["type"] for p in analysis["patterns"]}
     assert "high_drawdown" in pattern_types
     assert "low_win_rate" in pattern_types
@@ -248,6 +250,7 @@ def test_order_book_feature_enrichment_and_alignment(tmp_path):
     assert analysis["data_alignment"]["order_book_features_loaded"] is True
     assert analysis["data_alignment"]["order_book_coverage"] == 1.0
     assert analysis["data_alignment"]["contains_blind_tests"] is False
+    assert analysis["readiness_gates"]["data_quality_pass"] is True
     assert "fakeout_cluster" in pattern_types
 
 
@@ -309,3 +312,5 @@ def test_order_book_nearest_window_and_blind_test_marker(tmp_path):
     assert analysis["data_alignment"]["contains_blind_tests"] is True
     assert analysis["data_alignment"]["blind_test_count"] >= 1
     assert analysis["data_alignment"]["max_feature_join_lag_ms"] == 250
+    assert analysis["readiness_gates"]["data_quality_pass"] is False
+    assert analysis["readiness_gates"]["proceed_v03"] is False

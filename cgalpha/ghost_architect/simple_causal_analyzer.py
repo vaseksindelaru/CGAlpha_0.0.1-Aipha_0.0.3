@@ -71,6 +71,10 @@ class SimpleCausalAnalyzer:
         self.llm = llm_assistant
         self.enable_llm = enable_llm
         self.max_feature_join_lag_ms = int(os.environ.get("CGALPHA_FEATURE_JOIN_LAG_MS", "250"))
+        self.max_blind_test_ratio = float(os.environ.get("CGALPHA_MAX_BLIND_TEST_RATIO", "0.25"))
+        self.max_nearest_match_avg_lag_ms = float(os.environ.get("CGALPHA_MAX_NEAREST_LAG_MS", "150"))
+        self.min_causal_accuracy = float(os.environ.get("CGALPHA_MIN_CAUSAL_ACCURACY", "0.55"))
+        self.min_efficiency = float(os.environ.get("CGALPHA_MIN_CAUSAL_EFFICIENCY", "0.40"))
         self.order_book_features_path = self.working_dir / "aipha_memory" / "operational" / "order_book_features.jsonl"
         self.prompt_template_dir = Path(__file__).resolve().parent / "templates"
         self.prompt_template_name = "deep_causal_prompt.j2"
@@ -99,26 +103,33 @@ class SimpleCausalAnalyzer:
         records = self._read_jsonl(log_path)
         order_book_index = self._load_order_book_feature_index()
         if not records:
+            empty_data_alignment = {
+                "order_book_features_path": str(self.order_book_features_path),
+                "order_book_features_loaded": bool(order_book_index.get("rows")),
+                "order_book_features_rows": order_book_index.get("rows", 0),
+                "order_book_coverage": 0.0,
+                "blind_test_count": 0,
+                "blind_test_ratio": 0.0,
+                "contains_blind_tests": False,
+                "nearest_match_avg_lag_ms": None,
+                "max_feature_join_lag_ms": self.max_feature_join_lag_ms,
+            }
+            empty_causal_metrics = self._empty_causal_metrics()
             return {
                 "source": str(log_path) if log_path else None,
                 "records_analyzed": 0,
                 "patterns": [],
                 "causal_hypotheses": [],
-                "causal_metrics": self._empty_causal_metrics(),
+                "causal_metrics": empty_causal_metrics,
                 "analysis_engine": "heuristic_fallback",
                 "llm_status": self._llm_status(),
                 "model_version": model_version,
-                "data_alignment": {
-                    "order_book_features_path": str(self.order_book_features_path),
-                    "order_book_features_loaded": bool(order_book_index.get("rows")),
-                    "order_book_features_rows": order_book_index.get("rows", 0),
-                    "order_book_coverage": 0.0,
-                    "blind_test_count": 0,
-                    "blind_test_ratio": 0.0,
-                    "contains_blind_tests": False,
-                    "nearest_match_avg_lag_ms": None,
-                    "max_feature_join_lag_ms": self.max_feature_join_lag_ms,
-                },
+                "data_alignment": empty_data_alignment,
+                "readiness_gates": self._build_readiness_gates(
+                    data_alignment=empty_data_alignment,
+                    causal_metrics=empty_causal_metrics,
+                    records_analyzed=0,
+                ),
                 "causal_inference": {
                     "hypothesis": "Sin datos historicos para inferencia causal.",
                     "recommended_action": "Safe Mode: mantener parametros actuales y recolectar mas contexto.",
@@ -136,6 +147,11 @@ class SimpleCausalAnalyzer:
         engine = "llm" if llm_hypotheses else "heuristic_fallback"
         hypotheses = llm_hypotheses or self._build_hypotheses(patterns)
         causal_metrics = self._compute_causal_metrics(snapshots, hypotheses)
+        readiness_gates = self._build_readiness_gates(
+            data_alignment=data_alignment,
+            causal_metrics=causal_metrics,
+            records_analyzed=len(records),
+        )
         self._last_hypotheses = hypotheses
 
         top = hypotheses[0] if hypotheses else {}
@@ -154,6 +170,7 @@ class SimpleCausalAnalyzer:
             "llm_status": self._llm_status(),
             "model_version": model_version,
             "data_alignment": data_alignment,
+            "readiness_gates": readiness_gates,
             "causal_inference": {
                 "hypothesis": hypothesis_text,
                 "recommended_action": recommended_action,
@@ -1141,6 +1158,44 @@ Return ONLY JSON:
             "signal_coverage": 0.0,
             "actionable_hypothesis_ratio": 0.0,
             "scored_hypotheses": 0,
+        }
+
+    def _build_readiness_gates(
+        self,
+        data_alignment: Dict[str, Any],
+        causal_metrics: Dict[str, Any],
+        records_analyzed: int,
+    ) -> Dict[str, Any]:
+        blind_ratio = self._coerce_float(data_alignment.get("blind_test_ratio")) or 0.0
+        avg_lag = self._coerce_float(data_alignment.get("nearest_match_avg_lag_ms"))
+        accuracy = self._coerce_float(causal_metrics.get("accuracy_causal")) or 0.0
+        efficiency = self._coerce_float(causal_metrics.get("efficiency")) or 0.0
+
+        data_quality = blind_ratio <= self.max_blind_test_ratio and (
+            avg_lag is None or avg_lag <= self.max_nearest_match_avg_lag_ms
+        )
+        causal_quality = accuracy >= self.min_causal_accuracy and efficiency >= self.min_efficiency
+        has_data = records_analyzed > 0
+        proceed = has_data and data_quality and causal_quality
+
+        return {
+            "proceed_v03": proceed,
+            "has_minimum_data": has_data,
+            "data_quality_pass": data_quality,
+            "causal_quality_pass": causal_quality,
+            "thresholds": {
+                "max_blind_test_ratio": round(self.max_blind_test_ratio, 3),
+                "max_nearest_match_avg_lag_ms": round(self.max_nearest_match_avg_lag_ms, 3),
+                "min_causal_accuracy": round(self.min_causal_accuracy, 3),
+                "min_efficiency": round(self.min_efficiency, 3),
+            },
+            "observed": {
+                "blind_test_ratio": round(blind_ratio, 3),
+                "nearest_match_avg_lag_ms": avg_lag,
+                "accuracy_causal": round(accuracy, 3),
+                "efficiency": round(efficiency, 3),
+                "records_analyzed": records_analyzed,
+            },
         }
 
     def _signal_present(self, snapshot: Dict[str, Any], signal: str) -> bool:

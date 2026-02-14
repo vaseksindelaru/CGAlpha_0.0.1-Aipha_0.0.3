@@ -1,4 +1,4 @@
-# Fase 7 - Ghost Architect v0.2 (Inferencia Causal)
+# Fase 7 - Ghost Architect v0.2.2 (Inferencia Causal Deep)
 
 ## Objetivo
 Evolucionar de un analisis reactivo (sintomas) a un analisis causal (causas raiz) sin reescribir la arquitectura.
@@ -17,6 +17,13 @@ cgalpha auto-analyze
 3. Metricas de calidad causal:
    - `accuracy_causal`
    - `efficiency`
+4. Enriquecimiento de microestructura:
+   - `order_book_features.jsonl` (join por `trade_id` o timestamp nearest)
+   - marcadores `ENRICHED_EXACT`, `ENRICHED_NEAREST`, `BLIND_TEST`, `LOCAL_ONLY`
+5. Gates de readiness para v0.3:
+   - `readiness_gates.proceed_v03`
+   - `data_quality_pass` (blind ratio + lag)
+   - `causal_quality_pass` (accuracy + efficiency)
 
 ## Fuente de Datos
 Fuente principal:
@@ -26,6 +33,9 @@ Fallbacks de lectura:
 - `aipha_memory/operational/action_history.jsonl`
 - `aipha_memory/evolutionary/bridge.jsonl`
 - `aipha/evolutionary/bridge.jsonl`
+
+Fuente de microestructura (si existe):
+- `aipha_memory/operational/order_book_features.jsonl`
 
 ## De Correlacion a Causalidad
 ### Aipha v0.1.4 (correlacion)
@@ -52,6 +62,15 @@ Fallbacks de lectura:
 6. Medir `accuracy_causal` y `efficiency`.
 7. Guardar reporte JSON en `aipha_memory/evolutionary/causal_reports/`.
 
+## Flujo v0.2.2 (Deep Causal incremental)
+1. Parsear logs principales (bridge/cognitive/action_history).
+2. Enriquecer snapshot por trade con `order_book_features.jsonl`.
+3. Si no hay match de microdatos dentro de ventana, marcar `BLIND_TEST` (no inventar evidencia).
+4. Construir prompt Deep Causal con evidencia microestructural.
+5. Ejecutar LLM o fallback heuristico.
+6. Calcular `causal_metrics` + `data_alignment`.
+7. Evaluar `readiness_gates` para decidir si se puede escalar a v0.3.
+
 ## Metricas
 ### `accuracy_causal`
 Precision promedio de hipotesis sobre subconjuntos donde la senal causal aparece en logs reales.
@@ -66,3 +85,4 @@ Combinacion de:
 - `auto-analyze` sigue operativo.
 - `analyze_logs()` mantiene compatibilidad y delega a `analyze_performance()`.
 - El sistema no depende 100% del LLM gracias al fallback heuristico.
+- No se requiere refactor total; evoluciona por capas incrementales.
