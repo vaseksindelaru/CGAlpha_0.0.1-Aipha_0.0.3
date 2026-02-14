@@ -88,6 +88,8 @@ def test_cgalpha_auto_analyze_cli_end_to_end(tmp_path):
     assert "CGAlpha Performance Analysis" in result.output
     assert "Detected Issues" in result.output
     assert "Generated Proposals" in result.output
+    assert "Deep Causal Gate:" in result.output
+    assert "Decision:" in result.output
     assert "Report saved:" in result.output
 
     reports_dir = tmp_path / "aipha_memory" / "evolutionary" / "causal_reports"

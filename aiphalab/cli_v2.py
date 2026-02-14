@@ -256,6 +256,8 @@ def auto_analyze(working_dir: str, min_confidence: float, log_file: str, cleanup
     insights = result["insights"][:5]
     proposals = result["proposals"][:5]
     causal_metrics = analysis.get("causal_metrics", {})
+    data_alignment = analysis.get("data_alignment", {})
+    readiness_gates = analysis.get("readiness_gates", {})
 
     click.echo("🔍 CGAlpha Performance Analysis")
     click.echo("📊 Detected Issues:")
@@ -276,6 +278,25 @@ def auto_analyze(working_dir: str, min_confidence: float, log_file: str, cleanup
         click.echo("Causal Metrics:")
         click.echo(f"- Accuracy Causal: {causal_metrics.get('accuracy_causal', 0):.2f}")
         click.echo(f"- Efficiency: {causal_metrics.get('efficiency', 0):.2f}")
+
+    if data_alignment:
+        click.echo("")
+        click.echo("Data Alignment:")
+        click.echo(f"- Order book coverage: {data_alignment.get('order_book_coverage', 0):.2f}")
+        click.echo(f"- Blind test ratio: {data_alignment.get('blind_test_ratio', 0):.2f}")
+        lag_ms = data_alignment.get("nearest_match_avg_lag_ms")
+        click.echo(f"- Nearest match avg lag (ms): {lag_ms if lag_ms is not None else 'n/a'}")
+
+    if readiness_gates:
+        click.echo("")
+        click.echo("Deep Causal Gate:")
+        click.echo(f"- Data quality pass: {readiness_gates.get('data_quality_pass', False)}")
+        click.echo(f"- Causal quality pass: {readiness_gates.get('causal_quality_pass', False)}")
+        click.echo(f"- Has minimum data: {readiness_gates.get('has_minimum_data', False)}")
+        proceed = bool(readiness_gates.get("proceed_v03", False))
+        click.echo(f"- Decision: {'PROCEED_V03' if proceed else 'HOLD_V03'}")
+        if not proceed:
+            click.echo("- Enforcement: Live/Hybrid blocked by constitution gate. Paper-only until readiness passes.")
 
     click.echo("")
     click.echo("💡 Generated Proposals:")
