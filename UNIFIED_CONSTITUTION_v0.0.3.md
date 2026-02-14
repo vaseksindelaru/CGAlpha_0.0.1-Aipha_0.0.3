@@ -3177,6 +3177,25 @@ Execution Engine es quién **transforma predicciones en operaciones reales.**
 **Input:** Signal desde Oracle (BUY/SELL con confidence)
 **Output:** Orden ejecutada contra Binance + Posición abierta + Monitoreo
 
+## 🚧 Precondición obligatoria para Live/Hybrid (Deep Causal Gate)
+
+Antes de habilitar **Modo Live** o **Modo Hybrid**, el sistema debe validar:
+
+1. Fuente de microestructura disponible:
+   - `aipha_memory/operational/order_book_features.jsonl`
+2. Reporte causal reciente generado por `cgalpha auto-analyze` con:
+   - `data_alignment`
+   - `causal_metrics`
+   - `readiness_gates`
+3. Gates mínimos en `readiness_gates`:
+   - `data_quality_pass = true`
+   - `causal_quality_pass = true`
+   - `proceed_v03 = true`
+
+Si cualquiera falla:
+- **Live y Hybrid quedan bloqueados**.
+- Solo se permite **Paper Trading** hasta corregir calidad de datos o inferencia causal.
+
 ## 🔀 Dos Modos de Operación
 
 ### Modo 1: Paper Trading (Dinero Ficticio)
