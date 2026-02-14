@@ -1,0 +1,2 @@
+class Config:
+    threshold = 0.70
