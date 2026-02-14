@@ -53,3 +53,6 @@ Se considera Fase 8 completada cuando:
 ## Cierre
 Este capítulo no busca “reinventar” CGAlpha.  
 Busca convertir una base sólida en un motor causal más preciso, con control de riesgo y trazabilidad.
+
+## Capítulo Siguiente
+- Continuidad operacional: `bible/codecraft_sage/chapter10_execution_engine.md`
