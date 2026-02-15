@@ -16,7 +16,7 @@ class TestPotentialCaptureEngine:
     @pytest.fixture
     def sample_data(self):
         """Genera datos OHLC de prueba."""
-        dates = pd.date_range(start="2025-01-01", periods=100, freq="H")
+        dates = pd.date_range(start="2025-01-01", periods=100, freq="h")
         
         # Simular precios con tendencia alcista y algo de ruido
         np.random.seed(42)

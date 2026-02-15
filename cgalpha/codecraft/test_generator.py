@@ -34,6 +34,8 @@ class TestGenerator:
     - Verificar cobertura de código
     - Reportar estado global de validación
     """
+    # Evita que pytest intente recolectar esta clase de aplicación como suite de tests.
+    __test__ = False
     
     def __init__(self, template_dir: str = "cgalpha/codecraft/templates/", working_dir: str = "."):
         """
