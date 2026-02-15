@@ -36,6 +36,7 @@ Status legend:
 | `data_postprocessor/docs/data_postprocessor_construction_guide.md` | FULL | Merged into `data_postprocessor/README.md`; archived at `docs/archive/module_guides/data_postprocessor_construction_guide.md` |
 | `oracle/docs/oracle_construction_guide.md` | FULL | Merged into `oracle/README.md`; archived at `docs/archive/module_guides/oracle_construction_guide.md` |
 | `trading_manager/TRIPLE_COINCIDENCIA_GUIDE.md` | FULL | Merged into `trading_manager/README.md`; archived at `docs/archive/module_guides/triple_coincidencia_guide.md` |
+| `V03 daily operation routine` | FULL | `docs/guides/RUTINA_DIARIA_V03.md` |
 | `ROADMAP_v0.1.0_FINAL.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 
 ## Gap List (Still in Source Docs)

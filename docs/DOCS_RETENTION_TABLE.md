@@ -27,6 +27,7 @@
 | `docs/reference/constitution_core.md` | KEEP | Short operational constitution core | Keep synced with governance updates |
 | `docs/reference/gates.md` | KEEP | Deep Causal readiness gates and thresholds | Keep synced with gate policy |
 | `docs/reference/parameters.md` | KEEP | Critical parameter quick reference | Keep synced with config policy |
+| `docs/guides/RUTINA_DIARIA_V03.md` | KEEP | Practical runbook for daily V03 readiness tracking | Keep synced with gates and analyzer behavior |
 | `bible/codecraft_sage/phase7_ghost_architect.md` | KEEP | Active Ghost Architect baseline and policies | Keep as active phase reference |
 | `bible/codecraft_sage/phase8_deep_causal_v03.md` | KEEP | Active Deep Causal target architecture | Keep as active phase reference |
 | `bible/codecraft_sage/chapter10_execution_engine.md` | KEEP | Execution Engine constraints and gates | Keep as active phase reference |

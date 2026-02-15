@@ -99,6 +99,14 @@ class DocsCommand(BaseCommand):
                 "path": "docs/reference/README.md",
                 "description": "Index for modular reference documentation",
             },
+            "rutina_v03": {
+                "path": "docs/guides/RUTINA_DIARIA_V03.md",
+                "description": "Daily operating routine for Deep Causal v0.3 readiness",
+            },
+            "daily_v03": {
+                "path": "docs/guides/RUTINA_DIARIA_V03.md",
+                "description": "Short alias for daily V03 routine guide",
+            },
             "phase7": {
                 "path": "bible/codecraft_sage/phase7_ghost_architect.md",
                 "description": "Ghost Architect phase baseline and goals",

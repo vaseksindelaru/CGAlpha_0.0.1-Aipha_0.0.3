@@ -44,6 +44,7 @@ Important:
 - `docs/reference/constitution_core.md`: operational constitution core (short form).
 - `docs/reference/gates.md`: readiness gates and thresholds for Deep Causal.
 - `docs/reference/parameters.md`: critical parameters quick reference.
+- `docs/guides/RUTINA_DIARIA_V03.md`: practical 10-15 min daily runbook for V03 readiness.
 
 ## CLI Access
 
@@ -66,6 +67,8 @@ cgalpha docs show constitution_core
 cgalpha docs show gates
 cgalpha docs show parameters
 cgalpha docs show reference
+cgalpha docs show rutina_v03
+cgalpha docs show daily_v03
 cgalpha docs path constitution
 cgalpha d show master
 ```
