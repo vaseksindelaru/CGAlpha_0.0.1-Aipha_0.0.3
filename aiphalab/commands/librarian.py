@@ -119,6 +119,12 @@ class LibrarianCommand(BaseCommand):
     def build_context(self, question: str, max_files: int = 6, max_chars: int = 1200) -> str:
         """Collect high-level context snippets from key project files."""
         candidates: List[Path] = [
+            self.working_dir / "docs" / "CGALPHA_MASTER_DOCUMENTATION.md",
+            self.working_dir / "docs" / "CONSTITUTION_RELEVANT_COMPANION.md",
+            self.working_dir / "docs" / "DOCS_COVERAGE_MATRIX.md",
+            self.working_dir / "docs" / "DOCS_INDEX.md",
+            self.working_dir / "docs" / "CGALPHA_SYSTEM_GUIDE.md",
+            self.working_dir / "docs" / "LLM_LOCAL_OPERATIONS.md",
             self.working_dir / "README.md",
             self.working_dir / "UNIFIED_CONSTITUTION_v0.0.3.md",
             self.working_dir / "aiphalab" / "cli_v2.py",

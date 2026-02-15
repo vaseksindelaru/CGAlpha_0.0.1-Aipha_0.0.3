@@ -23,6 +23,7 @@ from .history import history_group
 from .debug import debug_group
 from .codecraft import codecraft_group
 from .librarian import ask_command, ask_health_command, ask_requirements_command, ask_setup_command
+from .docs import docs_group
 
 __all__ = [
     "BaseCommand",
@@ -32,6 +33,7 @@ __all__ = [
     "history_group",
     "debug_group",
     "codecraft_group",
+    "docs_group",
     "ask_command",
     "ask_health_command",
     "ask_requirements_command",

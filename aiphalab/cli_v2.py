@@ -43,6 +43,7 @@ from aiphalab.commands import (
     history_group,
     debug_group,
     codecraft_group,
+    docs_group,
     ask_command,
     ask_health_command,
     ask_requirements_command,
@@ -102,6 +103,8 @@ cli.add_command(config_group)
 cli.add_command(history_group)
 cli.add_command(debug_group)
 cli.add_command(codecraft_group)
+cli.add_command(docs_group)
+cli.add_command(docs_group, name="d")
 cli.add_command(ask_command)
 cli.add_command(ask_health_command)
 cli.add_command(ask_requirements_command)
@@ -157,6 +160,9 @@ A modularized, production-ready CLI for Aipha.
   cgalpha config show          # Show configuration
   cgalpha history actions      # Show action history
   cgalpha debug check-deps     # Check dependencies
+  cgalpha docs list            # Documentation index
+  cgalpha d show master        # Short alias for docs
+  cgalpha docs show guide      # Read system guide in terminal
   cgalpha oracle test-model    # Test Oracle model
   cgalpha auto-analyze         # Ghost Architect causal analysis
   cgalpha ask "..."            # Local Librarian mentor

@@ -65,6 +65,12 @@ class TestCLIModularization:
         result = self.runner.invoke(cli, ['debug', '--help'])
         assert result.exit_code == 0
         assert 'debug' in result.output
+
+    def test_docs_group_exists(self):
+        """✓ Grupo docs está registrado"""
+        result = self.runner.invoke(cli, ['docs', '--help'])
+        assert result.exit_code == 0
+        assert 'docs' in result.output
     
     def test_dry_run_flag(self):
         """✓ Flag --dry-run funciona"""
@@ -100,6 +106,7 @@ class TestCommandStructure:
             config_group,
             history_group,
             debug_group,
+            docs_group,
         )
         
         assert status_group is not None
@@ -107,6 +114,7 @@ class TestCommandStructure:
         assert config_group is not None
         assert history_group is not None
         assert debug_group is not None
+        assert docs_group is not None
     
     def test_base_command_class_exists(self):
         """✓ Clase BaseCommand existe"""
