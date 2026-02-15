@@ -15,7 +15,7 @@ Status legend:
 
 | Source Document | Coverage in Hub | Where Covered |
 |---|---|---|
-| `UNIFIED_CONSTITUTION_v0.0.3.md` | PARTIAL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md` |
+| `UNIFIED_CONSTITUTION_v0.0.3.md` | PARTIAL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md`, `docs/reference/constitution_core.md`, `docs/reference/gates.md`, `docs/reference/parameters.md` |
 | `00_QUICKSTART.md` | FULL | Primary quick onboarding file (direct canonical source) |
 | `VERSION.md` | FULL | Primary version status file (direct canonical source) |
 | `README.md` | FULL | `docs/CGALPHA_SYSTEM_GUIDE.md`, `docs/CGALPHA_MASTER_DOCUMENTATION.md` |

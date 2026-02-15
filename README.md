@@ -115,6 +115,9 @@ python -m pytest tests/ -v
 - **[docs/CONSTITUTION_RELEVANT_COMPANION.md](docs/CONSTITUTION_RELEVANT_COMPANION.md)** - Actionable constitution checklist
 - **[docs/LLM_LOCAL_OPERATIONS.md](docs/LLM_LOCAL_OPERATIONS.md)** - Local LLM workflows and role contracts
 - **[VERSION.md](VERSION.md)** - Estado unificado de versiones declaradas
+- **[docs/reference/constitution_core.md](docs/reference/constitution_core.md)** - Reglas núcleo operativas
+- **[docs/reference/gates.md](docs/reference/gates.md)** - Gates de readiness v0.3
+- **[docs/reference/parameters.md](docs/reference/parameters.md)** - Parámetros críticos
 
 ### For DevOps/SRE
 - **[UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md)** - Governance and non-negotiable rules

@@ -18,9 +18,12 @@ Important:
 5. `VERSION.md`
 6. `docs/LLM_LOCAL_OPERATIONS.md`
 7. `docs/CODECRAFT_PHASES_1_6_COMPANION.md`
-8. `UNIFIED_CONSTITUTION_v0.0.3.md`
-9. `bible/codecraft_sage/phase7_ghost_architect.md`
-10. `bible/codecraft_sage/phase8_deep_causal_v03.md`
+8. `docs/reference/constitution_core.md`
+9. `docs/reference/gates.md`
+10. `docs/reference/parameters.md`
+11. `UNIFIED_CONSTITUTION_v0.0.3.md`
+12. `bible/codecraft_sage/phase7_ghost_architect.md`
+13. `bible/codecraft_sage/phase8_deep_causal_v03.md`
 
 ## Strategic Source Documents (Still Active)
 
@@ -37,6 +40,9 @@ Important:
 - `docs/CODECRAFT_PHASES_1_6_COMPANION.md`: merged operational guide for Code Craft Sage phases 1-6.
 - `00_QUICKSTART.md`: first-day onboarding in 5 minutes.
 - `VERSION.md`: single source for declared versions.
+- `docs/reference/constitution_core.md`: operational constitution core (short form).
+- `docs/reference/gates.md`: readiness gates and thresholds for Deep Causal.
+- `docs/reference/parameters.md`: critical parameters quick reference.
 
 ## CLI Access
 
@@ -55,6 +61,10 @@ cgalpha docs show retention
 cgalpha docs show codecraft_companion
 cgalpha docs show quickstart
 cgalpha docs show version
+cgalpha docs show constitution_core
+cgalpha docs show gates
+cgalpha docs show parameters
+cgalpha docs show reference
 cgalpha docs path constitution
 cgalpha d show master
 ```

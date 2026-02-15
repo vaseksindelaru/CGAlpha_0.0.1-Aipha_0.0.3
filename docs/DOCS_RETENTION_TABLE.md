@@ -22,6 +22,10 @@
 | `docs/DOCS_COVERAGE_MATRIX.md` | KEEP | Audit trail for migration completeness | Keep updated during consolidation |
 | `docs/DOCS_RETENTION_TABLE.md` | KEEP | Explicit cleanup policy and classification | Use as cleanup control sheet |
 | `docs/CODECRAFT_PHASES_1_6_COMPANION.md` | KEEP | Canonical merged guide for Builder phases 1-6 | Keep as canonical source for phases 1-6 |
+| `docs/reference/README.md` | KEEP | Index for reference-style docs | Keep aligned with reference structure |
+| `docs/reference/constitution_core.md` | KEEP | Short operational constitution core | Keep synced with governance updates |
+| `docs/reference/gates.md` | KEEP | Deep Causal readiness gates and thresholds | Keep synced with gate policy |
+| `docs/reference/parameters.md` | KEEP | Critical parameter quick reference | Keep synced with config policy |
 | `bible/codecraft_sage/phase7_ghost_architect.md` | KEEP | Active Ghost Architect baseline and policies | Keep as active phase reference |
 | `bible/codecraft_sage/phase8_deep_causal_v03.md` | KEEP | Active Deep Causal target architecture | Keep as active phase reference |
 | `bible/codecraft_sage/chapter10_execution_engine.md` | KEEP | Execution Engine constraints and gates | Keep as active phase reference |

@@ -9,6 +9,9 @@ It consolidates relevant content from:
 - Operating docs (`README.md`, `SYSTEM_STATUS.md`, `00_COMIENZA_AQUI.md`)
 - Phase documents under `bible/codecraft_sage/`
 
+Note:
+- Some source documents above are historical retired inputs now consolidated in `docs/`.
+
 Policy in force:
 - Legacy root reports were consolidated and removed after migration.
 - Canonical documentation now lives under `docs/`.
@@ -266,20 +269,19 @@ Current policy for this repository:
 
 Primary governance:
 - `UNIFIED_CONSTITUTION_v0.0.3.md`
+- `docs/reference/constitution_core.md`
+- `docs/reference/gates.md`
+- `docs/reference/parameters.md`
 
 Phase strategy:
 - `bible/codecraft_sage/phase7_ghost_architect.md`
 - `bible/codecraft_sage/phase8_deep_causal_v03.md`
 - `bible/codecraft_sage/chapter10_execution_engine.md`
 
-Audit and risk:
-- `AUDIT_REPORT_V2.md`
-- `AUDIT_DEEP_CAUSAL_V03.md`
-
 Operational baseline:
 - `README.md`
-- `SYSTEM_STATUS.md`
-- `00_COMIENZA_AQUI.md`
+- `00_QUICKSTART.md`
+- `VERSION.md`
 
 ## 15. Documentation Governance
 

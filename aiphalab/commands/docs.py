@@ -79,6 +79,26 @@ class DocsCommand(BaseCommand):
                 "path": "VERSION.md",
                 "description": "Single source of declared version status",
             },
+            "constitution_core": {
+                "path": "docs/reference/constitution_core.md",
+                "description": "Operational constitution core (short form)",
+            },
+            "core_rules": {
+                "path": "docs/reference/constitution_core.md",
+                "description": "Short alias for operational constitution core",
+            },
+            "gates": {
+                "path": "docs/reference/gates.md",
+                "description": "Readiness gates and thresholds for Deep Causal",
+            },
+            "parameters": {
+                "path": "docs/reference/parameters.md",
+                "description": "Critical parameter reference for operation",
+            },
+            "reference": {
+                "path": "docs/reference/README.md",
+                "description": "Index for modular reference documentation",
+            },
             "phase7": {
                 "path": "bible/codecraft_sage/phase7_ghost_architect.md",
                 "description": "Ghost Architect phase baseline and goals",
