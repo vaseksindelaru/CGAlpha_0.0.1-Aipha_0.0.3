@@ -106,6 +106,7 @@ python -m pytest tests/ -v
 ## 📖 Essential Documentation
 
 ### For All Users
+- **[00_QUICKSTART.md](00_QUICKSTART.md)** - Inicio rápido en 5 minutos
 - **[docs/CGALPHA_MASTER_DOCUMENTATION.md](docs/CGALPHA_MASTER_DOCUMENTATION.md)** - Canonical operational and architecture manual
 - **[docs/CGALPHA_SYSTEM_GUIDE.md](docs/CGALPHA_SYSTEM_GUIDE.md)** - High-level orientation guide
 - **[docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)** - Documentation entrypoint and reading order
@@ -113,6 +114,7 @@ python -m pytest tests/ -v
 ### For Developers
 - **[docs/CONSTITUTION_RELEVANT_COMPANION.md](docs/CONSTITUTION_RELEVANT_COMPANION.md)** - Actionable constitution checklist
 - **[docs/LLM_LOCAL_OPERATIONS.md](docs/LLM_LOCAL_OPERATIONS.md)** - Local LLM workflows and role contracts
+- **[VERSION.md](VERSION.md)** - Estado unificado de versiones declaradas
 
 ### For DevOps/SRE
 - **[UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md)** - Governance and non-negotiable rules

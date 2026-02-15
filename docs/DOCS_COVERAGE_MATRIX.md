@@ -16,6 +16,8 @@ Status legend:
 | Source Document | Coverage in Hub | Where Covered |
 |---|---|---|
 | `UNIFIED_CONSTITUTION_v0.0.3.md` | PARTIAL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md` |
+| `00_QUICKSTART.md` | FULL | Primary quick onboarding file (direct canonical source) |
+| `VERSION.md` | FULL | Primary version status file (direct canonical source) |
 | `README.md` | FULL | `docs/CGALPHA_SYSTEM_GUIDE.md`, `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 | `SYSTEM_STATUS.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 | `00_COMIENZA_AQUI.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |

@@ -71,6 +71,14 @@ class DocsCommand(BaseCommand):
                 "path": "UNIFIED_CONSTITUTION_v0.0.3.md",
                 "description": "Unified constitution and non-negotiable rules",
             },
+            "quickstart": {
+                "path": "00_QUICKSTART.md",
+                "description": "5-minute onboarding runbook",
+            },
+            "version": {
+                "path": "VERSION.md",
+                "description": "Single source of declared version status",
+            },
             "phase7": {
                 "path": "bible/codecraft_sage/phase7_ghost_architect.md",
                 "description": "Ghost Architect phase baseline and goals",

@@ -47,7 +47,7 @@ Para garantizar la estabilidad operativa mientras se desarrolla inteligencia art
 #### Componentes Clave (Arquitectura de 5 Capas):
 
 ##### **Capa 1: Infraestructura y Sistema Nervioso**
-- **`aiphalab` (CLI):** Interfaz de línea de comandos. Ver **[GUIA_CLI_PANEL_CONTROL.md](./GUIA_CLI_PANEL_CONTROL.md)**. Es el "teclado" del sistema.
+- **`aiphalab` (CLI):** Interfaz de línea de comandos. Ver **[docs/CGALPHA_SYSTEM_GUIDE.md](docs/CGALPHA_SYSTEM_GUIDE.md)**. Es el "teclado" del sistema.
 - **`core` (Orquestación):** El director de orquesta. Coordina el flujo de información entre capas, gestiona el ciclo de vida de las operaciones.
 - **`aipha_memory` (Persistencia ACID/JSONL):** Sistema de memoria inmutable organizada en tres capas: operacional (Aipha), evolutivo (CGAlpha), y testing. Ver **[bible/memory_system.md](bible/memory_system.md)** para detalles de arquitectura y políticas de retención.
 - **`redis_infrastructure` (Cache & Colas):** Capa de infraestructura determinista para estado volátil, colas de tareas y comunicación pub/sub. Ver **[bible/infrastructure/redis_integration.md](bible/infrastructure/redis_integration.md)**.
@@ -979,7 +979,7 @@ Esta aproximación garantiza:
 ---
 
 ## PARTE 3: MANUAL OPERATIVO
-> Absorbiendo: GUIA_CLI_PANEL_CONTROL.md y ENHANCED_DIAGNOSTIC_SYSTEM.md
+> Absorbiendo: docs/CGALPHA_SYSTEM_GUIDE.md y ENHANCED_DIAGNOSTIC_SYSTEM.md
 
 ### 3.1 GUÍA DE COMANDOS CLI
 # 🎛️ GUÍA COMPLETA: CLI COMO PANEL DE CONTROL DE AIPHA
@@ -2717,7 +2717,7 @@ Aipha_0.0.2/
 ### Actualizaciones Pendientes:
 - [ ] `ARCHITECTURE.md` - Requiere diagrama de arquitectura dual
 - [ ] `tests/` - Tests para nuevos componentes
-- [ ] `GUIA_CLI_PANEL_CONTROL.md` - Nuevos comandos CGAlpha
+- [ ] `docs/CGALPHA_SYSTEM_GUIDE.md` - Nuevos comandos CGAlpha
 
 ---
 
@@ -2766,7 +2766,7 @@ Ver [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) Fase 3.
 4. **DOCUMENTATION_INDEX.md** - Índice de navegación
 5. **RESUMEN_EJECUTIVO_v0.0.3.md** - Métricas actuales
 6. **IMPLEMENTATION_PLAN.md** - Roadmap futuro
-7. **GUIA_CLI_PANEL_CONTROL.md** - Manual de usuario CLI
+7. **docs/CGALPHA_SYSTEM_GUIDE.md** - Manual de usuario CLI
 
 ---
 
@@ -2837,7 +2837,7 @@ Ver [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) Fase 3.
 - ✅ **DOCUMENTATION_INDEX.md** - Guía de navegación
 
 ### Documentación Operativa
-- ✅ **GUIA_CLI_PANEL_CONTROL.md** - Manual de usuario CLI
+- ✅ **docs/CGALPHA_SYSTEM_GUIDE.md** - Manual de usuario CLI
 - ⚠️ **ENHANCED_DIAGNOSTIC_SYSTEM.md** - Sistema de diagnóstico (pendiente validación)
 
 ### Scripts y Herramientas
@@ -2923,7 +2923,7 @@ Total archivos mantenidos: 7-8
 📘 RESUMEN_EJECUTIVO_v0.0.3.md
 📘 IMPLEMENTATION_PLAN.md
 📘 DOCUMENTATION_INDEX.md
-📘 GUIA_CLI_PANEL_CONTROL.md
+📘 docs/CGALPHA_SYSTEM_GUIDE.md
 📘 ENHANCED_DIAGNOSTIC_SYSTEM.md
 📘 CLEANUP_REPORT.md (este documento)
 ```

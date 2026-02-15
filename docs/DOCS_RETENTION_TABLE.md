@@ -11,6 +11,8 @@
 | Path | Category | Why | Next Action |
 |---|---|---|---|
 | `README.md` | KEEP | Main entrypoint for setup and daily commands | Maintain and update on operational changes |
+| `00_QUICKSTART.md` | KEEP | First-day operator onboarding in minimal steps | Keep aligned with real CLI workflow |
+| `VERSION.md` | KEEP | Single source for declared version status | Update first on version changes |
 | `UNIFIED_CONSTITUTION_v0.0.3.md` | KEEP | Primary governance and non-negotiable rules | Keep as source of truth |
 | `docs/CGALPHA_MASTER_DOCUMENTATION.md` | KEEP | Canonical operational map | Keep as top reference |
 | `docs/CONSTITUTION_RELEVANT_COMPANION.md` | KEEP | Constitution in practical checklist format | Keep aligned with constitution updates |

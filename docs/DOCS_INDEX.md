@@ -14,11 +14,13 @@ Important:
 1. `docs/CGALPHA_MASTER_DOCUMENTATION.md`
 2. `docs/CONSTITUTION_RELEVANT_COMPANION.md`
 3. `docs/CGALPHA_SYSTEM_GUIDE.md`
-4. `docs/LLM_LOCAL_OPERATIONS.md`
-5. `docs/CODECRAFT_PHASES_1_6_COMPANION.md`
-6. `UNIFIED_CONSTITUTION_v0.0.3.md`
-7. `bible/codecraft_sage/phase7_ghost_architect.md`
-8. `bible/codecraft_sage/phase8_deep_causal_v03.md`
+4. `00_QUICKSTART.md`
+5. `VERSION.md`
+6. `docs/LLM_LOCAL_OPERATIONS.md`
+7. `docs/CODECRAFT_PHASES_1_6_COMPANION.md`
+8. `UNIFIED_CONSTITUTION_v0.0.3.md`
+9. `bible/codecraft_sage/phase7_ghost_architect.md`
+10. `bible/codecraft_sage/phase8_deep_causal_v03.md`
 
 ## Strategic Source Documents (Still Active)
 
@@ -33,6 +35,8 @@ Important:
 - `docs/DOCS_COVERAGE_MATRIX.md`: migration audit of old docs into the new hub.
 - `docs/DOCS_RETENTION_TABLE.md`: KEEP/MERGE/ARCHIVE policy and cleanup classification.
 - `docs/CODECRAFT_PHASES_1_6_COMPANION.md`: merged operational guide for Code Craft Sage phases 1-6.
+- `00_QUICKSTART.md`: first-day onboarding in 5 minutes.
+- `VERSION.md`: single source for declared versions.
 
 ## CLI Access
 
@@ -49,6 +53,8 @@ cgalpha docs show llm
 cgalpha docs show coverage
 cgalpha docs show retention
 cgalpha docs show codecraft_companion
+cgalpha docs show quickstart
+cgalpha docs show version
 cgalpha docs path constitution
 cgalpha d show master
 ```
