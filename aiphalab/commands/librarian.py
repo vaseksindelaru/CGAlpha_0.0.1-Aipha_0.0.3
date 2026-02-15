@@ -22,6 +22,21 @@ from .base import BaseCommand
 
 DEFAULT_MODEL = "qwen2.5:1.5b"
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
+PROFILE_MENTOR = "mentor"
+PROFILE_REQUIREMENTS = "requirements"
+DEFAULT_RESPONSE_FORMAT = "markdown"
+
+DEFAULT_RUNTIME_OPTIONS = {
+    "model": DEFAULT_MODEL,
+    "profile": PROFILE_MENTOR,
+    "response_format": DEFAULT_RESPONSE_FORMAT,
+    "max_files": 2,
+    "max_chars": 450,
+    "timeout_s": 300,
+    "num_predict": 120,
+    "temperature": 0.2,
+    "num_ctx": 1536,
+}
 
 
 class LibrarianCommand(BaseCommand):
@@ -32,6 +47,74 @@ class LibrarianCommand(BaseCommand):
         self.working_dir = Path(working_dir).resolve()
         self.host = host.rstrip("/")
         self.history_path = self.working_dir / "aipha_memory" / "operational" / "librarian_history.jsonl"
+
+    def _read_librarian_config(self) -> Dict[str, Any]:
+        raw = self.config.get("Librarian", {})
+        return raw if isinstance(raw, dict) else {}
+
+    def _normalize_profile(self, value: Any, fallback: str = PROFILE_MENTOR) -> str:
+        if isinstance(value, str) and value in {PROFILE_MENTOR, PROFILE_REQUIREMENTS}:
+            return value
+        return fallback
+
+    def _normalize_response_format(self, value: Any, fallback: str = DEFAULT_RESPONSE_FORMAT) -> str:
+        if isinstance(value, str) and value in {"markdown", "json"}:
+            return value
+        return fallback
+
+    def get_runtime_options(self, overrides: Dict[str, Any], force_profile: Optional[str] = None) -> Dict[str, Any]:
+        cfg = self._read_librarian_config()
+        merged: Dict[str, Any] = dict(DEFAULT_RUNTIME_OPTIONS)
+        merged.update(cfg)
+
+        if force_profile:
+            merged["profile"] = force_profile
+            if force_profile == PROFILE_REQUIREMENTS:
+                merged["response_format"] = "json"
+                merged["timeout_s"] = 900
+                merged["num_predict"] = 260
+                merged["temperature"] = 0.1
+                merged["max_chars"] = max(int(merged.get("max_chars", 450) or 450), 500)
+
+        for key, value in overrides.items():
+            if value is not None:
+                merged[key] = value
+
+        merged["profile"] = self._normalize_profile(merged.get("profile"), fallback=PROFILE_MENTOR)
+        merged["response_format"] = self._normalize_response_format(
+            merged.get("response_format"),
+            fallback="json" if merged["profile"] == PROFILE_REQUIREMENTS else DEFAULT_RESPONSE_FORMAT,
+        )
+        merged["model"] = str(merged.get("model") or DEFAULT_MODEL)
+
+        int_keys = ("max_files", "max_chars", "timeout_s", "num_predict", "num_ctx")
+        for key in int_keys:
+            try:
+                merged[key] = int(merged.get(key, DEFAULT_RUNTIME_OPTIONS[key]))
+            except Exception:
+                merged[key] = DEFAULT_RUNTIME_OPTIONS[key]
+
+        try:
+            merged["temperature"] = float(merged.get("temperature", DEFAULT_RUNTIME_OPTIONS["temperature"]))
+        except Exception:
+            merged["temperature"] = DEFAULT_RUNTIME_OPTIONS["temperature"]
+
+        return merged
+
+    def save_runtime_defaults(self, runtime: Dict[str, Any]):
+        keys = (
+            "model",
+            "profile",
+            "response_format",
+            "max_files",
+            "max_chars",
+            "timeout_s",
+            "num_predict",
+            "temperature",
+            "num_ctx",
+        )
+        for key in keys:
+            self.config.set(f"Librarian.{key}", runtime.get(key))
 
     def build_context(self, question: str, max_files: int = 6, max_chars: int = 1200) -> str:
         """Collect high-level context snippets from key project files."""
@@ -75,12 +158,21 @@ class LibrarianCommand(BaseCommand):
         )
         return architecture_hint + "\n\n" + "\n\n".join(snippets)
 
-    def save_history(self, question: str, answer: str, model: str):
+    def save_history(
+        self,
+        question: str,
+        answer: str,
+        model: str,
+        profile: str = PROFILE_MENTOR,
+        response_format: str = "markdown",
+    ):
         self.history_path.parent.mkdir(parents=True, exist_ok=True)
         row = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "agent": "librarian_local",
             "model": model,
+            "profile": profile,
+            "response_format": response_format,
             "question": question,
             "answer": answer,
         }
@@ -172,23 +264,146 @@ Pregunta del usuario:
 """.strip()
 
 
+def _build_requirements_prompt(question: str, context: str, response_format: str) -> str:
+    output_rule = (
+        "Devuelve JSON valido exclusivamente."
+        if response_format == "json"
+        else "Devuelve Markdown estructurado y concreto."
+    )
+    return f"""
+Eres "Requirements Architect Local", Ingeniero de Requisitos Senior.
+
+Mision:
+- Traducir ideas vagas a especificaciones tecnicas accionables.
+- Actuar como Critico/Traductor en un workflow Actor-Critic.
+- NO escribir codigo.
+
+Reglas estrictas:
+1) No propongas refactor total del sistema.
+2) No inventes archivos ni datos inexistentes.
+3) Prioriza seguridad, mantenibilidad y alcance incremental.
+4) Si la idea es ambigua, explicita supuestos y riesgos.
+5) Incluye criterios de aceptacion verificables.
+6) {output_rule}
+
+Entrega minima:
+- problem_statement
+- scope_in / scope_out
+- assumptions
+- functional_requirements
+- non_functional_requirements
+- acceptance_criteria
+- risks_and_mitigations
+- execution_plan
+- prompt_for_coding_llm
+
+Contexto del proyecto:
+{context}
+
+Solicitud del usuario:
+{question}
+""".strip()
+
+
+def _build_prompt(profile: str, question: str, context: str, response_format: str) -> str:
+    if profile == PROFILE_REQUIREMENTS:
+        return _build_requirements_prompt(question, context, response_format=response_format)
+    return _build_mentor_prompt(question, context)
+
+
+def _run_once_query(
+    cmd: LibrarianCommand,
+    q: str,
+    profile: str,
+    response_format: str,
+    model: str,
+    host: str,
+    max_files: int,
+    max_chars: int,
+    timeout_s: int,
+    num_predict: int,
+    temperature: float,
+    num_ctx: int,
+):
+    q = (q or "").strip()
+    if not q:
+        return
+
+    context = cmd.build_context(q, max_files=max_files, max_chars=max_chars)
+    prompt = _build_prompt(profile=profile, question=q, context=context, response_format=response_format)
+    try:
+        result = _query_ollama(
+            prompt=prompt,
+            model=model,
+            host=host,
+            timeout_s=timeout_s,
+            num_predict=num_predict,
+            temperature=temperature,
+            num_ctx=num_ctx,
+        )
+    except error.URLError as exc:
+        cmd.print_error(f"No se pudo consultar Ollama: {exc}")
+        raise click.Abort()
+    except (TimeoutError, socket.timeout):
+        cmd.print_error(
+            "Timeout consultando el modelo local. "
+            "Prueba: --max-files 2 --max-chars 400 --num-predict 120 --timeout 600"
+        )
+        raise click.Abort()
+    except (RemoteDisconnected, ConnectionResetError):
+        cmd.print_error(
+            "Ollama cerró la conexión durante la respuesta. "
+            "Reinicia servicio: systemctl --user restart ollama-local.service"
+        )
+        raise click.Abort()
+    except json.JSONDecodeError:
+        cmd.print_error("Respuesta inválida del modelo local.")
+        raise click.Abort()
+
+    answer = result.get("response") or "(Sin respuesta)"
+    cmd.print(f"\n[bold cyan]Librarian ({result.get('model', model)}):[/bold cyan]\n{answer}\n")
+    cmd.save_history(
+        q,
+        answer,
+        str(result.get("model", model)),
+        profile=profile,
+        response_format=response_format,
+    )
+
+
 @click.command(name="ask")
 @click.argument("question", required=False)
 @click.option("--working-dir", type=str, default=".", help="Raíz del proyecto")
-@click.option("--model", type=str, default=DEFAULT_MODEL, help="Modelo local Ollama")
+@click.option("--model", type=str, default=None, help="Modelo local Ollama")
 @click.option("--host", type=str, default=DEFAULT_OLLAMA_HOST, help="Host Ollama")
+@click.option(
+    "--profile",
+    type=click.Choice([PROFILE_MENTOR, PROFILE_REQUIREMENTS]),
+    default=None,
+    help="Perfil de rol para la respuesta",
+)
+@click.option(
+    "--response-format",
+    type=click.Choice(["markdown", "json"]),
+    default=None,
+    help="Formato deseado de la respuesta",
+)
 @click.option("--no-remote/--allow-remote", default=True, show_default=True, help="Mantener operación 100% local")
-@click.option("--max-files", type=int, default=2, show_default=True, help="Cantidad de archivos de contexto")
-@click.option("--max-chars", type=int, default=450, show_default=True, help="Máximo chars por archivo")
-@click.option("--timeout", "timeout_s", type=int, default=300, show_default=True, help="Timeout en segundos")
-@click.option("--num-predict", type=int, default=120, show_default=True, help="Tokens máximos a generar")
-@click.option("--temperature", type=float, default=0.2, show_default=True, help="Creatividad del modelo")
-@click.option("--num-ctx", type=int, default=1536, show_default=True, help="Ventana de contexto")
+@click.option("--max-files", type=int, default=None, help="Cantidad de archivos de contexto")
+@click.option("--max-chars", type=int, default=None, help="Máximo chars por archivo")
+@click.option("--timeout", "timeout_s", type=int, default=None, help="Timeout en segundos")
+@click.option("--num-predict", type=int, default=None, help="Tokens máximos a generar")
+@click.option("--temperature", type=float, default=None, help="Creatividad del modelo")
+@click.option("--num-ctx", type=int, default=None, help="Ventana de contexto")
+@click.option("--select", is_flag=True, default=False, help="Abrir selector guiado (modelo/rol/formato)")
+@click.option("--save-defaults", is_flag=True, default=False, help="Guardar selección como predeterminada")
 def ask_command(
     question: Optional[str],
     working_dir: str,
     model: str,
     host: str,
+    profile: str,
+    response_format: str,
     no_remote: bool,
     max_files: int,
     max_chars: int,
@@ -196,6 +411,8 @@ def ask_command(
     num_predict: int,
     temperature: float,
     num_ctx: int,
+    select: bool,
+    save_defaults: bool,
 ):
     """
     📚 Librarian Local: mentor técnico local para entender CGAlpha.
@@ -216,53 +433,201 @@ def ask_command(
         )
         raise click.Abort()
 
-    def run_once(q: str):
-        q = (q or "").strip()
-        if not q:
-            return
-        context = cmd.build_context(q, max_files=max_files, max_chars=max_chars)
-        prompt = _build_mentor_prompt(q, context)
-        try:
-            result = _query_ollama(
-                prompt=prompt,
-                model=model,
-                host=host,
-                timeout_s=timeout_s,
-                num_predict=num_predict,
-                temperature=temperature,
-                num_ctx=num_ctx,
-            )
-        except error.URLError as exc:
-            cmd.print_error(f"No se pudo consultar Ollama: {exc}")
-            raise click.Abort()
-        except (TimeoutError, socket.timeout):
-            cmd.print_error(
-                "Timeout consultando el modelo local. "
-                "Prueba: --max-files 2 --max-chars 400 --num-predict 120 --timeout 600"
-            )
-            raise click.Abort()
-        except (RemoteDisconnected, ConnectionResetError):
-            cmd.print_error(
-                "Ollama cerró la conexión durante la respuesta. "
-                "Reinicia servicio: systemctl --user restart ollama-local.service"
-            )
-            raise click.Abort()
-        except json.JSONDecodeError:
-            cmd.print_error("Respuesta inválida del modelo local.")
-            raise click.Abort()
+    runtime = cmd.get_runtime_options(
+        overrides={
+            "model": model,
+            "profile": profile,
+            "response_format": response_format,
+            "max_files": max_files,
+            "max_chars": max_chars,
+            "timeout_s": timeout_s,
+            "num_predict": num_predict,
+            "temperature": temperature,
+            "num_ctx": num_ctx,
+        }
+    )
 
-        answer = result.get("response") or "(Sin respuesta)"
-        cmd.print(f"\n[bold cyan]Librarian ({result.get('model', model)}):[/bold cyan]\n{answer}\n")
-        cmd.save_history(q, answer, str(result.get("model", model)))
+    if select:
+        models = _list_ollama_models(host)
+        if models:
+            default_model = runtime["model"] if runtime["model"] in models else models[0]
+            runtime["model"] = click.prompt(
+                "Modelo",
+                type=click.Choice(models, case_sensitive=False),
+                default=default_model,
+                show_default=True,
+            )
+        runtime["profile"] = click.prompt(
+            "Rol",
+            type=click.Choice([PROFILE_MENTOR, PROFILE_REQUIREMENTS], case_sensitive=False),
+            default=runtime["profile"],
+            show_default=True,
+        )
+        runtime["response_format"] = click.prompt(
+            "Formato",
+            type=click.Choice(["markdown", "json"], case_sensitive=False),
+            default=runtime["response_format"],
+            show_default=True,
+        )
+        if save_defaults:
+            cmd.save_runtime_defaults(runtime)
+            cmd.print_success("Preferencias Librarian guardadas en config.")
+    elif save_defaults:
+        cmd.save_runtime_defaults(runtime)
+        cmd.print_success("Preferencias Librarian guardadas en config.")
+
+    def run_once(q: str):
+        _run_once_query(
+            cmd=cmd,
+            q=q,
+            profile=runtime["profile"],
+            response_format=runtime["response_format"],
+            model=runtime["model"],
+            host=host,
+            max_files=runtime["max_files"],
+            max_chars=runtime["max_chars"],
+            timeout_s=runtime["timeout_s"],
+            num_predict=runtime["num_predict"],
+            temperature=runtime["temperature"],
+            num_ctx=runtime["num_ctx"],
+        )
 
     if question:
         run_once(question)
         return
 
+    cmd.print_info(
+        f"Modelo={runtime['model']} | Rol={runtime['profile']} | Formato={runtime['response_format']}"
+    )
     cmd.print("[bold]Modo interactivo Librarian[/bold] (escribe 'exit' para salir)")
     while True:
         try:
             q = input("ask> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            cmd.print("\nSaliendo.")
+            break
+        if q.lower() in {"exit", "quit", "q"}:
+            break
+        run_once(q)
+
+
+@click.command(name="ask-requirements")
+@click.argument("request_text", required=False)
+@click.option("--working-dir", type=str, default=".", help="Raíz del proyecto")
+@click.option("--model", type=str, default=None, help="Modelo local Ollama")
+@click.option("--host", type=str, default=DEFAULT_OLLAMA_HOST, help="Host Ollama")
+@click.option(
+    "--response-format",
+    type=click.Choice(["json", "markdown"]),
+    default=None,
+    help="Formato de salida para especificaciones",
+)
+@click.option("--no-remote/--allow-remote", default=True, show_default=True, help="Mantener operación 100% local")
+@click.option("--max-files", type=int, default=None, help="Cantidad de archivos de contexto")
+@click.option("--max-chars", type=int, default=None, help="Máximo chars por archivo")
+@click.option("--timeout", "timeout_s", type=int, default=None, help="Timeout en segundos")
+@click.option("--num-predict", type=int, default=None, help="Tokens máximos a generar")
+@click.option("--temperature", type=float, default=None, help="Creatividad del modelo")
+@click.option("--num-ctx", type=int, default=None, help="Ventana de contexto")
+@click.option("--select", is_flag=True, default=False, help="Abrir selector guiado (modelo/formato)")
+@click.option("--save-defaults", is_flag=True, default=False, help="Guardar selección como predeterminada")
+def ask_requirements_command(
+    request_text: Optional[str],
+    working_dir: str,
+    model: str,
+    host: str,
+    response_format: str,
+    no_remote: bool,
+    max_files: int,
+    max_chars: int,
+    timeout_s: int,
+    num_predict: int,
+    temperature: float,
+    num_ctx: int,
+    select: bool,
+    save_defaults: bool,
+):
+    """
+    📐 Requirements Architect: traduce ideas vagas a especificaciones accionables.
+
+    Uso:
+      cgalpha ask-requirements "Quiero un flujo actor-critic para PR review"
+      cgalpha ask-requirements
+    """
+    cmd = LibrarianCommand(working_dir=working_dir, host=host)
+
+    if not no_remote:
+        cmd.print_warning("Modo remoto no soportado en Librarian local; continuando en modo local.")
+
+    if not _ollama_alive(host):
+        cmd.print_error(
+            "Ollama no responde en 127.0.0.1:11434. "
+            "Inicia con: systemctl --user start ollama-local.service"
+        )
+        raise click.Abort()
+
+    runtime = cmd.get_runtime_options(
+        overrides={
+            "model": model,
+            "response_format": response_format,
+            "max_files": max_files,
+            "max_chars": max_chars,
+            "timeout_s": timeout_s,
+            "num_predict": num_predict,
+            "temperature": temperature,
+            "num_ctx": num_ctx,
+        },
+        force_profile=PROFILE_REQUIREMENTS,
+    )
+
+    if select:
+        models = _list_ollama_models(host)
+        if models:
+            default_model = runtime["model"] if runtime["model"] in models else models[0]
+            runtime["model"] = click.prompt(
+                "Modelo",
+                type=click.Choice(models, case_sensitive=False),
+                default=default_model,
+                show_default=True,
+            )
+        runtime["response_format"] = click.prompt(
+            "Formato",
+            type=click.Choice(["json", "markdown"], case_sensitive=False),
+            default=runtime["response_format"],
+            show_default=True,
+        )
+
+    if save_defaults:
+        cmd.save_runtime_defaults(runtime)
+        cmd.print_success("Preferencias Librarian guardadas en config.")
+
+    def run_once(q: str):
+        _run_once_query(
+            cmd=cmd,
+            q=q,
+            profile=PROFILE_REQUIREMENTS,
+            response_format=runtime["response_format"],
+            model=runtime["model"],
+            host=host,
+            max_files=runtime["max_files"],
+            max_chars=runtime["max_chars"],
+            timeout_s=runtime["timeout_s"],
+            num_predict=runtime["num_predict"],
+            temperature=runtime["temperature"],
+            num_ctx=runtime["num_ctx"],
+        )
+
+    if request_text:
+        run_once(request_text)
+        return
+
+    cmd.print_info(
+        f"Modelo={runtime['model']} | Rol={PROFILE_REQUIREMENTS} | Formato={runtime['response_format']}"
+    )
+    cmd.print("[bold]Modo interactivo Requirements Architect[/bold] (escribe 'exit' para salir)")
+    while True:
+        try:
+            q = input("req> ").strip()
         except (EOFError, KeyboardInterrupt):
             cmd.print("\nSaliendo.")
             break
@@ -343,3 +708,67 @@ def ask_health_command(
         raise click.Abort()
 
     cmd.print_success("Librarian local operativo.")
+
+
+@click.command(name="ask-setup")
+@click.option("--working-dir", type=str, default=".", help="Raíz del proyecto")
+@click.option("--host", type=str, default=DEFAULT_OLLAMA_HOST, help="Host Ollama")
+def ask_setup_command(working_dir: str, host: str):
+    """
+    ⚙️ Asistente de configuración del Librarian Local.
+
+    Permite elegir modelo, rol y formato por defecto sin usar flags largos.
+    """
+    cmd = LibrarianCommand(working_dir=working_dir, host=host)
+
+    if not _ollama_alive(host):
+        cmd.print_error(
+            "Ollama no responde en 127.0.0.1:11434. "
+            "Inicia con: systemctl --user start ollama-local.service"
+        )
+        raise click.Abort()
+
+    runtime = cmd.get_runtime_options(overrides={})
+    models = _list_ollama_models(host)
+
+    cmd.print("[bold]Configuración guiada: Librarian Local[/bold]")
+    if models:
+        default_model = runtime["model"] if runtime["model"] in models else models[0]
+        runtime["model"] = click.prompt(
+            "Modelo por defecto",
+            type=click.Choice(models, case_sensitive=False),
+            default=default_model,
+            show_default=True,
+        )
+    else:
+        runtime["model"] = click.prompt("Modelo por defecto", default=runtime["model"], show_default=True)
+
+    runtime["profile"] = click.prompt(
+        "Rol por defecto",
+        type=click.Choice([PROFILE_MENTOR, PROFILE_REQUIREMENTS], case_sensitive=False),
+        default=runtime["profile"],
+        show_default=True,
+    )
+    runtime["response_format"] = click.prompt(
+        "Formato por defecto",
+        type=click.Choice(["markdown", "json"], case_sensitive=False),
+        default=runtime["response_format"],
+        show_default=True,
+    )
+    runtime["max_files"] = click.prompt("max_files", type=int, default=runtime["max_files"], show_default=True)
+    runtime["max_chars"] = click.prompt("max_chars", type=int, default=runtime["max_chars"], show_default=True)
+    runtime["timeout_s"] = click.prompt("timeout", type=int, default=runtime["timeout_s"], show_default=True)
+    runtime["num_predict"] = click.prompt("num_predict", type=int, default=runtime["num_predict"], show_default=True)
+    runtime["temperature"] = click.prompt(
+        "temperature",
+        type=float,
+        default=runtime["temperature"],
+        show_default=True,
+    )
+    runtime["num_ctx"] = click.prompt("num_ctx", type=int, default=runtime["num_ctx"], show_default=True)
+
+    cmd.save_runtime_defaults(runtime)
+    cmd.print_success("Configuración guardada.")
+    cmd.print_info(
+        f"Modelo={runtime['model']} | Rol={runtime['profile']} | Formato={runtime['response_format']}"
+    )

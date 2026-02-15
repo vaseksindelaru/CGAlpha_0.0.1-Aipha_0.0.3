@@ -45,6 +45,8 @@ from aiphalab.commands import (
     codecraft_group,
     ask_command,
     ask_health_command,
+    ask_requirements_command,
+    ask_setup_command,
 )
 from cgalpha.orchestrator import CGAlphaOrchestrator
 
@@ -102,6 +104,8 @@ cli.add_command(debug_group)
 cli.add_command(codecraft_group)
 cli.add_command(ask_command)
 cli.add_command(ask_health_command)
+cli.add_command(ask_requirements_command)
+cli.add_command(ask_setup_command)
 
 
 @cli.command()
@@ -156,6 +160,8 @@ A modularized, production-ready CLI for Aipha.
   cgalpha oracle test-model    # Test Oracle model
   cgalpha auto-analyze         # Ghost Architect causal analysis
   cgalpha ask "..."            # Local Librarian mentor
+  cgalpha ask-requirements "..." # Local Requirements Architect
+  cgalpha ask-setup            # Configure model/role defaults (guided)
   cgalpha ask-health           # Local Librarian health check
 
 For more: cgalpha --help
