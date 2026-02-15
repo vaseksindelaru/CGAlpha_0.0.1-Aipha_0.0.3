@@ -28,7 +28,8 @@ Important:
 ## Strategic Source Documents (Still Active)
 
 - `README.md`: project setup and usage baseline.
-- `UNIFIED_CONSTITUTION_v0.0.3.md`: policy and constraints.
+- `UNIFIED_CONSTITUTION_v0.0.3.md`: compact policy and constraints.
+- `docs/archive/constitution/UNIFIED_CONSTITUTION_v0.0.3_FULL_LEGACY.md`: full historical constitution snapshot.
 - `bible/`: phase-by-phase technical evolution.
 
 ## New Canonical Hub Files

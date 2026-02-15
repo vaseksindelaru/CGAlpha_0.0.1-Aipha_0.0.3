@@ -14,6 +14,7 @@
 | `00_QUICKSTART.md` | KEEP | First-day operator onboarding in minimal steps | Keep aligned with real CLI workflow |
 | `VERSION.md` | KEEP | Single source for declared version status | Update first on version changes |
 | `UNIFIED_CONSTITUTION_v0.0.3.md` | KEEP | Primary governance and non-negotiable rules | Keep as source of truth |
+| `docs/archive/constitution/UNIFIED_CONSTITUTION_v0.0.3_FULL_LEGACY.md` | ARCHIVE | Full historical monolith preserved for traceability | Keep archived; do not use as daily source |
 | `docs/CGALPHA_MASTER_DOCUMENTATION.md` | KEEP | Canonical operational map | Keep as top reference |
 | `docs/CONSTITUTION_RELEVANT_COMPANION.md` | KEEP | Constitution in practical checklist format | Keep aligned with constitution updates |
 | `docs/CGALPHA_SYSTEM_GUIDE.md` | KEEP | High-level architecture guide for humans and local LLM | Keep current after architecture changes |
