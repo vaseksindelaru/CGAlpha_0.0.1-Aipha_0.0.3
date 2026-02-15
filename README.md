@@ -93,11 +93,9 @@ cgalpha auto-analyze
 ```
 
 **Documentación:**
-- **[Fase 1: Fundamentals](bible/codecraft_sage/phase1_fundamentals.md)** - ProposalParser
-- **[Fase 2: AST Modifier](bible/codecraft_sage/phase2_ast_modifier.md)** - Modificador de código
-- **[Fase 3: Test Generator](bible/codecraft_sage/phase3_test_generator.md)** - Generador de tests
-- **[Fase 4: Git Automator](bible/codecraft_sage/phase4_git_automator.md)** - Control de versiones
-- **[Fase 5: CLI Integration](bible/codecraft_sage/phase5_cli_integration.md)** - Integración CLI
+- **[Code Craft Sage Companion (Fase 1-6)](docs/CODECRAFT_PHASES_1_6_COMPANION.md)** - Guía consolidada del pipeline Builder
+- **[Fase 7: Ghost Architect](bible/codecraft_sage/phase7_ghost_architect.md)** - Capa de estrategia causal
+- **[Fase 8: Deep Causal v0.3](bible/codecraft_sage/phase8_deep_causal_v03.md)** - Evolución microestructural
 
 # Run all tests
 python -m pytest tests/ -v

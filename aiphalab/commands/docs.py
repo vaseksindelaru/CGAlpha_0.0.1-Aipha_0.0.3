@@ -43,9 +43,25 @@ class DocsCommand(BaseCommand):
                 "path": "docs/DOCS_COVERAGE_MATRIX.md",
                 "description": "Coverage matrix of legacy docs into the new hub",
             },
+            "retention": {
+                "path": "docs/DOCS_RETENTION_TABLE.md",
+                "description": "KEEP/MERGE/ARCHIVE classification for markdown cleanup",
+            },
+            "cleanup": {
+                "path": "docs/DOCS_RETENTION_TABLE.md",
+                "description": "Short alias for docs retention and cleanup table",
+            },
             "guide": {
                 "path": "docs/CGALPHA_SYSTEM_GUIDE.md",
                 "description": "Complete high-level orientation guide for CGAlpha",
+            },
+            "codecraft_companion": {
+                "path": "docs/CODECRAFT_PHASES_1_6_COMPANION.md",
+                "description": "Merged operational guide for Code Craft Sage phases 1-6",
+            },
+            "codecraft": {
+                "path": "docs/CODECRAFT_PHASES_1_6_COMPANION.md",
+                "description": "Short alias for Code Craft phases 1-6 companion",
             },
             "llm": {
                 "path": "docs/LLM_LOCAL_OPERATIONS.md",

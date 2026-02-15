@@ -108,6 +108,10 @@ Expected phase discipline:
 4. Documentation update.
 5. Validation/quality barrier before merge.
 
+Operational companion:
+- `docs/CODECRAFT_PHASES_1_6_COMPANION.md` is now the canonical merged guide for Builder phases 1-6.
+- historical phase markdown files were archived to reduce documentation fragmentation.
+
 ### 6.3 Part 10: Execution Engine (paper-first, live-gated)
 
 Live/Hybrid preconditions:

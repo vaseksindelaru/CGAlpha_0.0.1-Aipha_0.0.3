@@ -24,6 +24,16 @@ Status legend:
 | `bible/codecraft_sage/phase7_ghost_architect.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CGALPHA_SYSTEM_GUIDE.md` |
 | `bible/codecraft_sage/phase8_deep_causal_v03.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CGALPHA_SYSTEM_GUIDE.md` |
 | `bible/codecraft_sage/chapter10_execution_engine.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md` |
+| `bible/codecraft_sage/phase1_fundamentals.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase1_fundamentals.md` |
+| `bible/codecraft_sage/phase2_ast_modifier.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase2_ast_modifier.md` |
+| `bible/codecraft_sage/phase3_test_generator.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase3_test_generator.md` |
+| `bible/codecraft_sage/phase4_git_automator.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase4_git_automator.md` |
+| `bible/codecraft_sage/phase5_cli_integration.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase5_cli_integration.md` |
+| `bible/codecraft_sage/phase6_automatic_proposals.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase6_automatic_proposals.md` |
+| `data_processor/docs/Documentación  data_system.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
+| `data_postprocessor/docs/data_postprocessor_construction_guide.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
+| `oracle/docs/oracle_construction_guide.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
+| `trading_manager/TRIPLE_COINCIDENCIA_GUIDE.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
 | `ROADMAP_v0.1.0_FINAL.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 
 ## Gap List (Still in Source Docs)

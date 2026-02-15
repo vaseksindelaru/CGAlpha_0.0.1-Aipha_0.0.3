@@ -15,9 +15,10 @@ Important:
 2. `docs/CONSTITUTION_RELEVANT_COMPANION.md`
 3. `docs/CGALPHA_SYSTEM_GUIDE.md`
 4. `docs/LLM_LOCAL_OPERATIONS.md`
-5. `UNIFIED_CONSTITUTION_v0.0.3.md`
-6. `bible/codecraft_sage/phase7_ghost_architect.md`
-7. `bible/codecraft_sage/phase8_deep_causal_v03.md`
+5. `docs/CODECRAFT_PHASES_1_6_COMPANION.md`
+6. `UNIFIED_CONSTITUTION_v0.0.3.md`
+7. `bible/codecraft_sage/phase7_ghost_architect.md`
+8. `bible/codecraft_sage/phase8_deep_causal_v03.md`
 
 ## Strategic Source Documents (Still Active)
 
@@ -30,6 +31,8 @@ Important:
 - `docs/CGALPHA_MASTER_DOCUMENTATION.md`: detailed canonical orientation and runbook.
 - `docs/CONSTITUTION_RELEVANT_COMPANION.md`: actionable constitutional checklist.
 - `docs/DOCS_COVERAGE_MATRIX.md`: migration audit of old docs into the new hub.
+- `docs/DOCS_RETENTION_TABLE.md`: KEEP/MERGE/ARCHIVE policy and cleanup classification.
+- `docs/CODECRAFT_PHASES_1_6_COMPANION.md`: merged operational guide for Code Craft Sage phases 1-6.
 
 ## CLI Access
 
@@ -44,6 +47,8 @@ cgalpha docs show companion
 cgalpha docs show guide
 cgalpha docs show llm
 cgalpha docs show coverage
+cgalpha docs show retention
+cgalpha docs show codecraft_companion
 cgalpha docs path constitution
 cgalpha d show master
 ```
