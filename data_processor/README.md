@@ -64,7 +64,7 @@ graph TD
 data_processor/
 ├── data_system/     # Código fuente (Módulo Python)
 ├── tests/           # Pruebas (Ver test_integration.py para ejemplo de uso)
-├── docs/            # Documentación técnica y guías
+├── docs/            # Reservado para documentación nueva del módulo
 ├── data/            # DuckDB, Caché de descargas y Templates JSON
 ├── requirements.txt # Dependencias (requests, pandas, duckdb)
 └── logging_config.py# Configuración centralizada de logs
@@ -76,3 +76,14 @@ Para validar que todo el sistema funciona correctamente, ejecuta el test de inte
 python3 data_processor/tests/data_system/test_integration.py
 ```
 Este test simula el flujo completo desde la descarga hasta la persistencia en DuckDB.
+
+## ✅ Notas de Construcción (Consolidadas)
+
+Este README absorbe la guía técnica histórica del módulo (`data_system`), incluyendo:
+- arquitectura plana del core (`client`, `fetcher`, `templates`, `storage`, `main`),
+- contrato de templates con serialización y registro automático,
+- persistencia DuckDB + JSON de templates,
+- prueba de integración como validación end-to-end.
+
+La guía histórica se conserva únicamente como archivo de referencia en:
+- `docs/archive/module_guides/data_processor_data_system.md`

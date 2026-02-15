@@ -30,10 +30,10 @@ Status legend:
 | `bible/codecraft_sage/phase4_git_automator.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase4_git_automator.md` |
 | `bible/codecraft_sage/phase5_cli_integration.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase5_cli_integration.md` |
 | `bible/codecraft_sage/phase6_automatic_proposals.md` | FULL | Merged into `docs/CODECRAFT_PHASES_1_6_COMPANION.md`; archived at `docs/archive/codecraft_sage/phase6_automatic_proposals.md` |
-| `data_processor/docs/Documentación  data_system.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
-| `data_postprocessor/docs/data_postprocessor_construction_guide.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
-| `oracle/docs/oracle_construction_guide.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
-| `trading_manager/TRIPLE_COINCIDENCIA_GUIDE.md` | PARTIAL | Pending consolidation plan in `docs/DOCS_RETENTION_TABLE.md` |
+| `data_processor/docs/Documentación  data_system.md` | FULL | Merged into `data_processor/README.md`; archived at `docs/archive/module_guides/data_processor_data_system.md` |
+| `data_postprocessor/docs/data_postprocessor_construction_guide.md` | FULL | Merged into `data_postprocessor/README.md`; archived at `docs/archive/module_guides/data_postprocessor_construction_guide.md` |
+| `oracle/docs/oracle_construction_guide.md` | FULL | Merged into `oracle/README.md`; archived at `docs/archive/module_guides/oracle_construction_guide.md` |
+| `trading_manager/TRIPLE_COINCIDENCIA_GUIDE.md` | FULL | Merged into `trading_manager/README.md`; archived at `docs/archive/module_guides/triple_coincidencia_guide.md` |
 | `ROADMAP_v0.1.0_FINAL.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 
 ## Gap List (Still in Source Docs)

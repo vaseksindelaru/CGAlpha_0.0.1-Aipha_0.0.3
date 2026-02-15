@@ -16,7 +16,7 @@ oracle/
 │   ├── train_proof_oracle.py # Script de entrenamiento
 │   └── proof_strategy_v2.py  # Estrategia filtrada por IA
 ├── models/               # Modelos entrenados (.joblib)
-├── docs/                 # Guías técnicas
+├── docs/                 # Reservado para documentación nueva del módulo
 └── README.md             # Este archivo
 ```
 
@@ -43,3 +43,22 @@ En la verificación inicial con datos de BTCUSDT (1h):
 ## 🚀 Cómo entrenar y ejecutar
 1. **Entrenar**: `python3 oracle/strategies/train_proof_oracle.py`
 2. **Ejecutar**: `python3 oracle/strategies/proof_strategy_v2.py`
+
+## ⚠️ Validación Responsable del Modelo
+
+Para evitar sobreajuste (overfitting), el ciclo recomendado es:
+1. entrenar con ventana temporal amplia,
+2. validar con `TimeSeriesSplit` o equivalente temporal,
+3. probar en periodo fuera de muestra (OOS),
+4. solo promover a producción si la degradación es controlada.
+
+Buenas prácticas:
+- priorizar estabilidad OOS sobre métricas in-sample extremas,
+- versionar modelos con metadata de entrenamiento,
+- usar `predict_proba()` y umbral de confianza mínimo cuando aplique.
+
+## ✅ Notas de Construcción (Consolidadas)
+
+La guía técnica histórica del Oracle fue consolidada en este README.
+Se conserva solo como referencia en:
+- `docs/archive/module_guides/oracle_construction_guide.md`

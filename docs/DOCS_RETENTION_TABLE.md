@@ -35,10 +35,10 @@
 | `docs/archive/codecraft_sage/phase4_git_automator.md` | ARCHIVE | Historical phase file already merged | Keep archived for historical traceability |
 | `docs/archive/codecraft_sage/phase5_cli_integration.md` | ARCHIVE | Historical phase file already merged | Keep archived for historical traceability |
 | `docs/archive/codecraft_sage/phase6_automatic_proposals.md` | ARCHIVE | Historical phase file already merged | Keep archived for historical traceability |
-| `data_processor/docs/Documentación  data_system.md` | MERGE | Deep implementation narrative is useful but fragmented | Condense into module canonical guide, then archive |
-| `data_postprocessor/docs/data_postprocessor_construction_guide.md` | MERGE | Deep implementation narrative is useful but fragmented | Condense into module canonical guide, then archive |
-| `oracle/docs/oracle_construction_guide.md` | MERGE | Deep implementation narrative is useful but fragmented | Condense into module canonical guide, then archive |
-| `trading_manager/TRIPLE_COINCIDENCIA_GUIDE.md` | MERGE | Valuable concept document but isolated from hub | Merge summary into `trading_manager/README.md`, then archive |
+| `docs/archive/module_guides/data_processor_data_system.md` | ARCHIVE | Historical module guide already merged | Keep archived for historical traceability |
+| `docs/archive/module_guides/data_postprocessor_construction_guide.md` | ARCHIVE | Historical module guide already merged | Keep archived for historical traceability |
+| `docs/archive/module_guides/oracle_construction_guide.md` | ARCHIVE | Historical module guide already merged | Keep archived for historical traceability |
+| `docs/archive/module_guides/triple_coincidencia_guide.md` | ARCHIVE | Historical module guide already merged | Keep archived for historical traceability |
 
 ## Cleanup Rule
 

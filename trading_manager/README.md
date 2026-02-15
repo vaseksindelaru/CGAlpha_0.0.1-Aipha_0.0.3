@@ -17,7 +17,7 @@ trading_manager/
 │   └── signal_combiner.py # Combinador de señales para Triple Coincidencia
 ├── strategies/           # Ensamblaje de bloques en flujos completos
 │   └── proof_strategy.py # Estrategia de prueba con Triple Coincidencia en 5m
-├── docs/                 # Guías detalladas de construcción
+├── docs/                 # Reservado para documentación nueva del módulo
 └── README.md             # Este archivo
 ```
 
@@ -156,3 +156,21 @@ Modifica estos valores para ajustar la sensibilidad de los detectores.
 - [ ] Backtesting con múltiples pares de criptomonedas
 - [ ] Optimización de hiperparámetros usando CGAlpha Labs
 - [ ] Modo "Paper Trading" para validación en vivo
+
+## 🧭 Operación Rápida de Triple Coincidencia
+
+Secuencia corta recomendada:
+1. descargar datos 5m,
+2. ejecutar `proof_strategy.py`,
+3. revisar señales detectadas, win rate y distribución TP/SL/Neutral.
+
+Interpretación mínima:
+- pocas señales con calidad alta es preferible a muchas señales ruidosas,
+- win rate debe analizarse junto con contexto de barreras (no solo porcentaje bruto),
+- si no hay coincidencias, revisar parámetros de `SignalCombiner` y detectores.
+
+## ✅ Notas de Construcción (Consolidadas)
+
+La guía operativa histórica de Triple Coincidencia fue consolidada en este README.
+Se conserva solo como referencia en:
+- `docs/archive/module_guides/triple_coincidencia_guide.md`

@@ -74,7 +74,7 @@ Implementan la **Triple Coincidencia** en temporalidad de 5 minutos. **ESTADO: C
 
 **Archivos Clave (Implementados Feb 2026):**
 - `trading_manager/strategies/proof_strategy.py` - Estrategia completa 5m con descarga automática
-- `trading_manager/TRIPLE_COINCIDENCIA_GUIDE.md` - Guía operativa para usuarios
+- `trading_manager/README.md` - Guía operativa consolidada para usuarios
 - `data_processor/acquire_data.py` - Descarga automática de datos 5m desde Binance
 
 **Detectores:**
