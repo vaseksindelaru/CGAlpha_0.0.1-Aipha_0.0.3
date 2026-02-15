@@ -30,3 +30,14 @@ oracle/models/*.joblib
 
 # Autonomous Intelligence Memory
 autonomous_intelligence/memory/backups/
+
+# CGAlpha runtime artifacts
+aipha.egg-info/
+tests/generated/
+aipha_memory/temporary/ast_backups/
+aipha_memory/temporary/task_buffer.db
+aipha_memory/operational/librarian_history.jsonl
+memory/backups/config_backup_*.json
+memory/*.jsonl
+memory/operational/*.jsonl
+memory/operational/*.json
