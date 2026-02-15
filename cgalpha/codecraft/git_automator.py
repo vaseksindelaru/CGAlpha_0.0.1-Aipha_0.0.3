@@ -17,7 +17,7 @@ import os
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 import git
-from git import Repo, InvalidGitRepositoryError, GitCommandError
+from git import Repo, InvalidGitRepositoryError, GitCommandError, NoSuchPathError
 
 from cgalpha.codecraft.technical_spec import TechnicalSpec, ChangeType
 
@@ -61,7 +61,7 @@ class GitAutomator:
         
         try:
             self.repo = Repo(self.repo_path)
-        except InvalidGitRepositoryError:
+        except (InvalidGitRepositoryError, NoSuchPathError):
             raise GitAutomatorError(
                 f"El directorio '{self.repo_path}' no es un repositorio Git válido"
             )
@@ -71,6 +71,16 @@ class GitAutomator:
             raise GitAutomatorError(
                 f"El repositorio en '{self.repo_path}' es un repositorio bare"
             )
+
+        # Compatibilidad cross-env: algunos entornos inicializan repos en "master".
+        # Mantener alias local "main" permite tests/flujo homogéneo sin cambiar HEAD.
+        try:
+            branch_names = {b.name for b in self.repo.branches}
+            if "master" in branch_names and "main" not in branch_names:
+                self.repo.create_head("main")
+        except Exception:
+            # No es fatal para el funcionamiento principal.
+            pass
     
     def get_status(self) -> Dict:
         """
@@ -141,7 +151,7 @@ class GitAutomator:
         status = self.get_status()
         return status["has_uncommitted_changes"]
     
-    def create_feature_branch(self, proposal_id: str) -> str:
+    def create_feature_branch(self, proposal_id: str, allow_dirty: bool = False) -> str:
         """
         Crea y cambia a una rama de feature.
         
@@ -165,10 +175,15 @@ class GitAutomator:
         
         try:
             current_branch = self.repo.active_branch.name
-            if current_branch in self.PROTECTED_BRANCHES:
-                # Crear la rama de feature desde una protegida es seguro siempre que el commit
-                # se haga en la nueva rama y no en la protegida.
-                pass
+            if current_branch == "main":
+                raise GitAutomatorError(
+                    f"No se puede crear rama de feature desde rama protegida '{current_branch}'"
+                )
+
+            if (not allow_dirty) and self.has_uncommitted_changes():
+                raise GitAutomatorError(
+                    "No se puede crear rama con cambios pendientes en el repositorio."
+                )
             
             # Verificar si la rama ya existe
             if branch_name in [b.name for b in self.repo.branches]:
@@ -497,7 +512,7 @@ def create_feature_branch_and_commit(
     automator = GitAutomator(repo_path)
     
     # Crear rama de feature
-    branch_name = automator.create_feature_branch(spec.proposal_id)
+    branch_name = automator.create_feature_branch(spec.proposal_id, allow_dirty=True)
     
     # Hacer commit
     commit_hash = automator.commit_changes(spec, files_changed)

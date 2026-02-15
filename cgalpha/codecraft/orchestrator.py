@@ -254,7 +254,10 @@ class CodeCraftOrchestrator:
             if validation_result.get("new_test_path"):
                 files_changed.append(validation_result["new_test_path"])
 
-            branch_name = self.git_automator.create_feature_branch(proposal_id)
+            branch_name = self.git_automator.create_feature_branch(
+                proposal_id,
+                allow_dirty=True,
+            )
             commit_hash = self.git_automator.commit_changes(spec, files_changed)
 
             timing["phase4_git"] = time.time() - phase_start

@@ -108,17 +108,17 @@ python -m pytest tests/ -v
 ## 📖 Essential Documentation
 
 ### For All Users
-- **[RELEASE_NOTES_v0.1.0.md](RELEASE_NOTES_v0.1.0.md)** - What's new in this release
-- **[SYSTEM_STATUS.md](SYSTEM_STATUS.md)** - Quick reference status
-- **[UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md)** - Complete system architecture
+- **[docs/CGALPHA_MASTER_DOCUMENTATION.md](docs/CGALPHA_MASTER_DOCUMENTATION.md)** - Canonical operational and architecture manual
+- **[docs/CGALPHA_SYSTEM_GUIDE.md](docs/CGALPHA_SYSTEM_GUIDE.md)** - High-level orientation guide
+- **[docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)** - Documentation entrypoint and reading order
 
 ### For Developers
-- **[STATIC_ANALYSIS_REPORT.md](STATIC_ANALYSIS_REPORT.md)** - Type hints & code quality
-- **[PERFORMANCE_BASELINE_v0.1.0.md](PERFORMANCE_BASELINE_v0.1.0.md)** - Performance metrics & baselines
+- **[docs/CONSTITUTION_RELEVANT_COMPANION.md](docs/CONSTITUTION_RELEVANT_COMPANION.md)** - Actionable constitution checklist
+- **[docs/LLM_LOCAL_OPERATIONS.md](docs/LLM_LOCAL_OPERATIONS.md)** - Local LLM workflows and role contracts
 
 ### For DevOps/SRE
-- **[ROADMAP_v0.1.0_FINAL.md](ROADMAP_v0.1.0_FINAL.md)** - Technical roadmap & future plans
-- **[VALIDATION_REPORT_POST_CLEANUP.md](VALIDATION_REPORT_POST_CLEANUP.md)** - System validation report
+- **[UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md)** - Governance and non-negotiable rules
+- **[docs/DOCS_COVERAGE_MATRIX.md](docs/DOCS_COVERAGE_MATRIX.md)** - Legacy-to-canonical coverage tracking
 
 ---
 
@@ -214,7 +214,7 @@ cgalpha cycle execute
 ```
 
 ### Systemd Service (Linux)
-See [UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md) for systemd service configuration.
+See [docs/CGALPHA_MASTER_DOCUMENTATION.md](docs/CGALPHA_MASTER_DOCUMENTATION.md) and [UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md).
 
 ---
 
@@ -237,7 +237,7 @@ Contributions welcome! Please:
 
 ## 🆘 Support
 
-- **Documentation:** [UNIFIED_CONSTITUTION_v0.0.3.md](UNIFIED_CONSTITUTION_v0.0.3.md)
+- **Documentation Hub:** [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)
 - **Issues:** GitHub Issues
 - **Discussions:** GitHub Discussions
 

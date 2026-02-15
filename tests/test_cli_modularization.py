@@ -154,10 +154,16 @@ class TestCLIReduction:
         if cli_v2_path.exists() and cli_original_path.exists():
             cli_v2_lines = len(cli_v2_path.read_text().split('\n'))
             cli_original_lines = len(cli_original_path.read_text().split('\n'))
-            
-            # CLI v2 debe ser ≤ 60% del original
-            assert cli_v2_lines <= cli_original_lines * 0.6, \
-                f"CLI v2 ({cli_v2_lines} lines) no es suficientemente más pequeño que original ({cli_original_lines} lines)"
+
+            # En versión actual, `aiphalab/cli.py` puede ser un shim de compatibilidad
+            # de pocas líneas, por lo que esta comparación histórica deja de aplicar.
+            if cli_original_lines < 50:
+                assert cli_v2_lines < 500, \
+                    f"CLI v2 ({cli_v2_lines} lines) excede el límite esperado actual"
+            else:
+                # CLI v2 debe ser ≤ 60% del original legacy.
+                assert cli_v2_lines <= cli_original_lines * 0.6, \
+                    f"CLI v2 ({cli_v2_lines} lines) no es suficientemente más pequeño que original ({cli_original_lines} lines)"
 
 
 class TestCommandImports:

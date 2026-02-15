@@ -10,8 +10,8 @@ It consolidates relevant content from:
 - Phase documents under `bible/codecraft_sage/`
 
 Policy in force:
-- Existing `.md` files are preserved.
-- No historical file is removed in this phase.
+- Legacy root reports were consolidated and removed after migration.
+- Canonical documentation now lives under `docs/`.
 - This master document is the operational map to reduce navigation friction.
 
 ## 2. Executive State (Current)

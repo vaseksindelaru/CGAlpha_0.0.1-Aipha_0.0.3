@@ -9,6 +9,7 @@ Status legend:
 - `FULL`: key concepts and operating constraints are integrated.
 - `PARTIAL`: major ideas covered; some deep detail still only in source doc.
 - `REFERENCE`: kept as source-of-truth archive, summarized but not fully duplicated.
+- `RETIRED`: legacy source removed after consolidation into canonical docs.
 
 ## Coverage Table
 
@@ -16,14 +17,14 @@ Status legend:
 |---|---|---|
 | `UNIFIED_CONSTITUTION_v0.0.3.md` | PARTIAL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md` |
 | `README.md` | FULL | `docs/CGALPHA_SYSTEM_GUIDE.md`, `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
-| `SYSTEM_STATUS.md` | FULL | `docs/CGALPHA_SYSTEM_GUIDE.md`, `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
-| `00_COMIENZA_AQUI.md` | PARTIAL | `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
-| `AUDIT_REPORT_V2.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
-| `AUDIT_DEEP_CAUSAL_V03.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md` |
+| `SYSTEM_STATUS.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
+| `00_COMIENZA_AQUI.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
+| `AUDIT_REPORT_V2.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
+| `AUDIT_DEEP_CAUSAL_V03.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 | `bible/codecraft_sage/phase7_ghost_architect.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CGALPHA_SYSTEM_GUIDE.md` |
 | `bible/codecraft_sage/phase8_deep_causal_v03.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CGALPHA_SYSTEM_GUIDE.md` |
 | `bible/codecraft_sage/chapter10_execution_engine.md` | FULL | `docs/CGALPHA_MASTER_DOCUMENTATION.md`, `docs/CONSTITUTION_RELEVANT_COMPANION.md` |
-| `ROADMAP_v0.1.0_FINAL.md` | PARTIAL | `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
+| `ROADMAP_v0.1.0_FINAL.md` | RETIRED | Consolidated into `docs/CGALPHA_MASTER_DOCUMENTATION.md` |
 
 ## Gap List (Still in Source Docs)
 

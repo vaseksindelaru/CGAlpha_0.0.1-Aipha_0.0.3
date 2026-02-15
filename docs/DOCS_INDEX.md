@@ -5,8 +5,8 @@ This folder is the new documentation hub for both:
 - Local LLM assistants (mentor and requirements roles).
 
 Important:
-- Existing `.md` files in root and `bible/` are preserved.
-- This hub does not replace old files yet.
+- Legacy root reports were consolidated into canonical docs in `docs/`.
+- This hub is now the primary documentation source.
 - It creates a stable reading order and a single entry point from CLI.
 
 ## Quick Start Reading Order
@@ -19,12 +19,9 @@ Important:
 6. `bible/codecraft_sage/phase7_ghost_architect.md`
 7. `bible/codecraft_sage/phase8_deep_causal_v03.md`
 
-## Existing Strategic Documents (Preserved)
+## Strategic Source Documents (Still Active)
 
-- `00_COMIENZA_AQUI.md`: historical onboarding.
 - `README.md`: project setup and usage baseline.
-- `AUDIT_REPORT_V2.md`: security and architecture audit snapshot.
-- `AUDIT_DEEP_CAUSAL_V03.md`: deep causal architecture audit.
 - `UNIFIED_CONSTITUTION_v0.0.3.md`: policy and constraints.
 - `bible/`: phase-by-phase technical evolution.
 

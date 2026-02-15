@@ -1,3 +1,0 @@
-class TestClass:
-    def __init__(self):
-        self.confidence_threshold = 0.70

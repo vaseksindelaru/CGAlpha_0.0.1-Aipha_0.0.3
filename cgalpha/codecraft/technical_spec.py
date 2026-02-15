@@ -53,7 +53,7 @@ class TechnicalSpec:
     change_type: ChangeType
     
     # Ubicación en código
-    file_path: str
+    file_path: str = ""
     class_name: Optional[str] = None
     attribute_name: Optional[str] = None
     method_name: Optional[str] = None
