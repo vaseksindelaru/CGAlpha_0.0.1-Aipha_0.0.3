@@ -494,14 +494,362 @@ cgalpha commit                     # Commit guiado
 
 ---
 
-## 9. PREGUNTAS PARA TI
+## 9. PERFIL DEL ESTUDIANTE
 
-1. **¿Cuál es tu nivel actual de Python?** (Beginner/Intermediate/Advanced)
-2. **¿Qué conceptos matemáticos dominas?** (Probabilidad, estadística, vectores, etc.)
-3. **¿Qué sabes de trading?** (Nada, básico, intermedio)
-4. **¿Prefieres empezar con Python puro o "aprender haciendo"?**
-5. **¿Tienes acceso a LLM avanzado (Claude/GPT-4) para el rol de ARCHITECT?**
+**Nivel**: Básico
+**Preferencia**: Aprender haciendo
+**Objetivo**: Programar Python mientras construye CGAlpha v2
 
 ---
 
-**Este plan te prepara para ser un colaborador valioso en la reconstrucción de CGAlpha. Cada día que practicas, te acercas más a "entrar al equipo".**
+## 10. RUTINA DIARIA DETALLADA (Nivel Básico - Aprender Haciendo)
+
+### Estructura de Clase: 45-60 minutos
+
+```
++---------------------------------------------------------------+
+|  MIN 0-5: WARM-UP                                             |
+|  +-- Ejecutar: ./scripts/check_phase7.sh --with-analyze      |
+|  +-- Ver métricas: blind_test_ratio, order_book_coverage     |
+|  +-- Pensar: "¿Qué significa HOLD_V03 hoy?"                  |
++---------------------------------------------------------------+
+|  MIN 5-20: CODE READING (15 min)                              |
+|  +-- Abrir 1 archivo de cgalpha_v2/                          |
+|  +-- Leer en voz alta (o mentalmente)                        |
+|  +-- Subrayar lo que NO entiendes                            |
+|  +-- Preguntar al LLM: "¿Qué significa X?"                   |
++---------------------------------------------------------------+
+|  MIN 20-45: HANDS-ON (25 min)                                 |
+|  +-- Ejercicio pequeño relacionado con el archivo            |
+|  +-- Escribir código, ejecutar, ver errores                  |
+|  +-- Corregir, intentar de nuevo                             |
+|  +-- Celebrar cuando funcione                                |
++---------------------------------------------------------------+
+|  MIN 45-60: WRAP-UP (15 min)                                  |
+|  +-- Guardar progreso en daily_log.jsonl                     |
+|  +-- Escribir: "Hoy aprendí..."                              |
+|  +-- Commit (si hay código nuevo)                            |
++---------------------------------------------------------------+
+```
+
+### Ejemplo de Clase Día 1
+
+**MIN 0-5: WARM-UP**
+```bash
+./scripts/check_phase7.sh --with-analyze
+# Observa: blind_test_ratio = 1.0, order_book_coverage = 0.0
+# Conclusión: HOLD_V03 - falta data de order book
+```
+
+**MIN 5-20: CODE READING**
+```python
+# Abrir: cgalpha_v2/domain/models/signal.py
+
+# Leer línea por línea:
+@dataclass(frozen=True)  # ¿Qué es @dataclass? ¿Qué es frozen?
+class Signal:            # ¿Qué es una clase?
+    symbol: str          # ¿Qué es str?
+    direction: SignalDirection  # ¿De dónde viene esto?
+    confidence: float    # ¿Por qué float y no int?
+    
+# Preguntas para el LLM:
+# - "¿Qué es @dataclass?"
+# - "¿Por qué frozen=True?"
+# - "¿Qué significa symbol: str?"
+```
+
+**MIN 20-45: HANDS-ON**
+```python
+# Ejercicio: Crear tu primer dataclass
+
+# Paso 1: Abrir archivo nuevo
+# cgalpha_v2/learning/exercises/mi_primer_dataclass.py
+
+# Paso 2: Escribir (copiar y modificar)
+from dataclasses import dataclass
+
+@dataclass
+class MiSenal:
+    simbolo: str
+    precio: float
+
+# Paso 3: Ejecutar
+python cgalpha_v2/learning/exercises/mi_primer_dataclass.py
+
+# Paso 4: Añadir frozen=True y ver qué pasa
+@dataclass(frozen=True)
+class MiSenal:
+    simbolo: str
+    precio: float
+
+# Paso 5: Intentar modificar y ver error
+s = MiSenal("BTC", 65000)
+s.precio = 66000  # ¡Error! ¿Por qué?
+```
+
+**MIN 45-60: WRAP-UP**
+```jsonl
+{"date": "2026-02-17", "day": 1, "warmup": {"phase7": "HOLD_V03", "metrics": {"blind_test_ratio": 1.0, "order_book_coverage": 0.0}}, "code_reading": {"file": "signal.py", "lines_read": 50, "concepts_found": ["dataclass", "frozen", "class"]}, "questions_asked": ["¿Qué es @dataclass?", "¿Por qué frozen=True?"], "hands_on": {"exercise": "mi_primer_dataclass.py", "completed": true, "errors_encountered": ["FrozenInstanceError"], "learnings": ["frozen hace el objeto inmutable", "no puedo modificar atributos de dataclass frozen"]}, "next_day": "Aprender sobre Enum y SignalDirection"}
+```
+
+### Plan Semanal (Semana 1)
+
+| Día | Archivo a Leer | Concepto Python | Ejercicio |
+|-----|----------------|-----------------|-----------|
+| 1 | `signal.py` | `@dataclass` | Crear `MiSenal` |
+| 2 | `signal.py` | `frozen=True` | Intentar modificar frozen |
+| 3 | `types.py` | `Enum` | Crear `MiDireccion` (LONG/SHORT) |
+| 4 | `signal.py` | Tipos (`str`, `float`, `int`) | Añadir tipos correctos |
+| 5 | `trade.py` | Repaso + Quiz | Mini-test de la semana |
+
+---
+
+## 11. FORMATO TRANSFERIBLE A CUALQUIER LLM
+
+### Estructura de Datos para Transferencia
+
+```
+.context/
+├── learning_progress.json     # Progreso general (machine-readable)
+├── daily_logs/
+│   └── daily_log.jsonl        # Logs diarios (append-only)
+├── exercises/
+│   ├── completed/             # Ejercicios completados
+│   └── pending/               # Ejercicios pendientes
+└── questions/
+    └── questions.jsonl        # Preguntas hechas + respuestas
+```
+
+### learning_progress.json
+
+```json
+{
+  "student": {
+    "level": "beginner",
+    "start_date": "2026-02-17",
+    "current_week": 1,
+    "current_day": 1
+  },
+  "python_skills": {
+    "dataclass": {"status": "learning", "exercises_completed": 0, "confidence": 0},
+    "enum": {"status": "pending", "exercises_completed": 0, "confidence": 0},
+    "protocol": {"status": "pending", "exercises_completed": 0, "confidence": 0},
+    "exceptions": {"status": "pending", "exercises_completed": 0, "confidence": 0}
+  },
+  "math_skills": {
+    "probability": {"status": "pending", "confidence": 0},
+    "statistics": {"status": "pending", "confidence": 0},
+    "vectors": {"status": "pending", "confidence": 0}
+  },
+  "trading_skills": {
+    "signals": {"status": "pending", "confidence": 0},
+    "atr": {"status": "pending", "confidence": 0},
+    "trends": {"status": "pending", "confidence": 0}
+  },
+  "cgalpha_comprehension": {
+    "signal_detection": {"files_read": [], "understood": false},
+    "oracle": {"files_read": [], "understood": false},
+    "causal_analysis": {"files_read": [], "understood": false}
+  },
+  "last_updated": "2026-02-17T00:00:00Z"
+}
+```
+
+### questions.jsonl
+
+```jsonl
+{"timestamp": "2026-02-17T12:30:00Z", "question": "¿Qué es @dataclass?", "context": "signal.py:15", "answer": "Un decorador que genera automáticamente __init__, __repr__, etc.", "understood": true}
+{"timestamp": "2026-02-17T12:35:00Z", "question": "¿Por qué frozen=True?", "context": "signal.py:15", "answer": "Hace la clase inmutable. No se pueden modificar atributos después de crear.", "understood": true}
+```
+
+### Cualquier LLM puede continuar:
+
+```bash
+# Prompt para nuevo LLM:
+"Lee .context/learning_progress.json y .context/daily_logs/daily_log.jsonl.
+ El estudiante está en día X, semana Y.
+ Continúa la enseñanza desde donde se quedó.
+ Sigue el formato establecido en LEARNING_PLAN.md."
+```
+
+---
+
+## 12. TRANSFORMACIÓN CLI → PÁGINA WEB
+
+### Arquitectura Propuesta
+
+```
++-------------------+         +-------------------+         +-------------------+
+|   CLI (Actual)    |         |   API Layer       |         |   Web Page        |
++-------------------+         +-------------------+         +-------------------+
+| cgalpha learn     |  ---->  | FastAPI/Flask     |  ---->  | React/Vue/Svelte  |
+| cgalpha ask       |         |                   |         |                   |
+| cgalpha eval      |         | REST endpoints    |         | Dashboard UI      |
+| cgalpha daily     |         | JSON responses    |         | Progress charts   |
++-------------------+         +-------------------+         +-------------------+
+          |                           |                           |
+          +---------------------------+---------------------------+
+                                      |
+                             +--------v--------+
+                             | .context/ (data)|
+                             +-----------------+
+```
+
+### Endpoints API Propuestos
+
+```python
+# api/learning.py
+
+@app.get("/api/progress")
+async def get_progress():
+    """Retorna learning_progress.json"""
+    return load_json(".context/learning_progress.json")
+
+@app.get("/api/daily-log")
+async def get_daily_log(date: str = None):
+    """Retorna entradas del daily log"""
+    return load_jsonl(".context/daily_logs/daily_log.jsonl", date)
+
+@app.post("/api/ask")
+async def ask_agent(agent: str, question: str):
+    """Envía pregunta a agente IA"""
+    # PYTHON_TUTOR, MATH_TUTOR, TRADING_EXPERT
+    return {"answer": agent_response}
+
+@app.post("/api/complete-exercise")
+async def complete_exercise(exercise_id: str, code: str):
+    """Marca ejercicio como completado"""
+    # Actualiza learning_progress.json
+    return {"status": "completed"}
+
+@app.get("/api/next-lesson")
+async def get_next_lesson():
+    """Retorna la siguiente lección basada en progreso"""
+    return {"file": "signal.py", "concept": "Enum", "exercise": "create_direction_enum"}
+```
+
+### Diseño de Página Web (Prompt para Vibe Coding)
+
+```markdown
+# Prompt para crear página web de aprendizaje CGAlpha
+
+Crea una página web de dashboard para el plan de aprendizaje de CGAlpha.
+
+## Datos de entrada (JSON)
+- learning_progress.json: Progreso del estudiante
+- daily_log.jsonl: Historial de actividades
+- questions.jsonl: Preguntas y respuestas
+
+## Páginas requeridas
+
+### 1. Dashboard Principal
+- Tarjeta con nivel actual (Beginner/Intermediate/Advanced)
+- Barra de progreso de Python skills
+- Última actividad
+- Botón "Continuar lección"
+
+### 2. Página de Lección
+- Código a leer (syntax highlighting)
+- Explicación del concepto
+- Editor de código para ejercicio
+- Botón "Ejecutar" (envía a API)
+- Feedback del agente
+
+### 3. Página de Progreso
+- Gráfico de progreso por semana
+- Lista de ejercicios completados
+- Métricas: archivos leídos, preguntas hechas, ejercicios
+
+### 4. Página de Preguntas
+- Historial de preguntas
+- Filtrar por agente (Python/Math/Trading)
+- Buscar en preguntas
+
+## Estilo
+- Tema oscuro (estilo VS Code)
+- Colores: verde para éxito, rojo para error, azul para info
+- Fuente monospace para código
+- Responsive (mobile-first)
+
+## Tech stack sugerido
+- Svelte + Vite (simple y rápido)
+- Chart.js para gráficos
+- Monaco Editor para código
+- Tailwind CSS para estilos
+```
+
+### Estructura de Archivos Web
+
+```
+cgalpha_web/
+├── src/
+│   ├── routes/
+│   │   ├── +page.svelte          # Dashboard
+│   │   ├── lesson/
+│   │   │   └── +page.svelte      # Lección del día
+│   │   ├── progress/
+│   │   │   └── +page.svelte      # Progreso
+│   │   └── questions/
+│   │       └── +page.svelte      # Historial preguntas
+│   ├── lib/
+│   │   ├── api.ts                # Llamadas a API
+│   │   └── stores.ts             # Estado global
+│   └── app.html
+├── static/
+│   └── favicon.png
+└── package.json
+```
+
+### Beneficios de la Web
+
+| Aspecto | CLI | Web |
+|---------|-----|-----|
+| Visualización | Texto | Gráficos, charts |
+| Código | Editor externo | Monaco editor integrado |
+| Historial | cat archivo | Búsqueda, filtros |
+| Progreso | JSON crudo | Barras, círculos |
+| Accesibilidad | Terminal | Cualquier dispositivo |
+| Compartir | No | Sí (URL) |
+
+---
+
+## 13. PRÓXIMOS PASOS INMEDIATOS
+
+### Hoy (Día 1)
+
+1. **Crear estructura de archivos**:
+   ```bash
+   mkdir -p .context/daily_logs
+   mkdir -p .context/exercises/{completed,pending}
+   mkdir -p .context/questions
+   touch .context/learning_progress.json
+   touch .context/daily_logs/daily_log.jsonl
+   touch .context/questions/questions.jsonl
+   ```
+
+2. **Inicializar learning_progress.json**:
+   ```bash
+   # Copiar el JSON de la sección 11
+   ```
+
+3. **Primera clase**:
+   - Leer `cgalpha_v2/domain/models/signal.py`
+   - Preguntar: "¿Qué es @dataclass?"
+   - Ejercicio: Crear `mi_primer_dataclass.py`
+
+### Mañana (Día 2)
+
+- Continuar con `signal.py`
+- Concepto: `frozen=True`
+- Ejercicio: Intentar modificar dataclass frozen
+
+### Esta Semana
+
+- Completar Semana 1 del plan
+- 5 días de ejercicios
+- 1 archivo de CGAlpha leído por día
+- 1 concepto de Python por día
+
+---
+
+**Este plan está diseñado para ser transferible a cualquier LLM. Solo necesitas compartir los archivos en `.context/` y el nuevo LLM puede continuar exactamente donde dejaste.**

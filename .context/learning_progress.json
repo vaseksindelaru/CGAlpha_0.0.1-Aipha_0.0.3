@@ -1,0 +1,45 @@
+{
+  "student": {
+    "level": "beginner",
+    "start_date": "2026-02-17",
+    "current_week": 1,
+    "current_day": 1,
+    "preference": "learn_by_doing"
+  },
+  "python_skills": {
+    "dataclass": {"status": "learning", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "enum": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "protocol": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "exceptions": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "typing": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "classes": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "list_comprehensions": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""},
+    "generators": {"status": "pending", "exercises_completed": 0, "confidence": 0, "notes": ""}
+  },
+  "math_skills": {
+    "probability": {"status": "pending", "confidence": 0, "notes": ""},
+    "statistics": {"status": "pending", "confidence": 0, "notes": ""},
+    "vectors": {"status": "pending", "confidence": 0, "notes": ""},
+    "time_series": {"status": "pending", "confidence": 0, "notes": ""},
+    "linear_algebra": {"status": "pending", "confidence": 0, "notes": ""}
+  },
+  "trading_skills": {
+    "signals": {"status": "pending", "confidence": 0, "notes": ""},
+    "atr": {"status": "pending", "confidence": 0, "notes": ""},
+    "trends": {"status": "pending", "confidence": 0, "notes": ""},
+    "accumulation_zones": {"status": "pending", "confidence": 0, "notes": ""},
+    "risk_management": {"status": "pending", "confidence": 0, "notes": ""}
+  },
+  "cgalpha_comprehension": {
+    "signal_detection": {"files_read": [], "understood": false, "notes": ""},
+    "oracle": {"files_read": [], "understood": false, "notes": ""},
+    "causal_analysis": {"files_read": [], "understood": false, "notes": ""},
+    "codecraft": {"files_read": [], "understood": false, "notes": ""}
+  },
+  "v1_operations": {
+    "phase7_checks": 0,
+    "last_status": null,
+    "metrics_history": []
+  },
+  "last_updated": "2026-02-17T00:00:00Z"
+}
