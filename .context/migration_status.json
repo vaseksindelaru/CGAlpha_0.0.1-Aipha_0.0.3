@@ -1,0 +1,238 @@
+{
+  "version": "0.2.0-alpha",
+  "last_updated": "2026-02-16T20:27:00Z",
+  "reconstruction_started": "2026-02-16T14:00:00Z",
+  
+  "phases": {
+    "2.1": {
+      "name": "Foundation",
+      "status": "COMPLETE",
+      "started": "2026-02-16T14:00:00Z",
+      "completed": "2026-02-16T19:30:00Z",
+      "components": {
+        "domain_models": {
+          "status": "done",
+          "files": 7,
+          "tests": 0,
+          "files_list": [
+            "cgalpha_v2/domain/models/signal.py",
+            "cgalpha_v2/domain/models/trade.py",
+            "cgalpha_v2/domain/models/prediction.py",
+            "cgalpha_v2/domain/models/analysis.py",
+            "cgalpha_v2/domain/models/proposal.py",
+            "cgalpha_v2/domain/models/health.py",
+            "cgalpha_v2/domain/models/config.py"
+          ]
+        },
+        "domain_ports": {
+          "status": "done",
+          "files": 5,
+          "tests": 0,
+          "files_list": [
+            "cgalpha_v2/domain/ports/data_port.py",
+            "cgalpha_v2/domain/ports/prediction_port.py",
+            "cgalpha_v2/domain/ports/memory_port.py",
+            "cgalpha_v2/domain/ports/llm_port.py",
+            "cgalpha_v2/domain/ports/config_port.py"
+          ]
+        },
+        "config": {
+          "status": "done",
+          "files": 3,
+          "tests": 0,
+          "files_list": [
+            "cgalpha_v2/config/paths.py",
+            "cgalpha_v2/config/settings.py",
+            "cgalpha_v2/config/__init__.py"
+          ]
+        },
+        "shared": {
+          "status": "done",
+          "files": 2,
+          "tests": 0,
+          "files_list": [
+            "cgalpha_v2/shared/exceptions.py",
+            "cgalpha_v2/shared/types.py"
+          ]
+        },
+        "bootstrap": {
+          "status": "done",
+          "files": 1,
+          "tests": 0,
+          "files_list": ["cgalpha_v2/bootstrap.py"]
+        }
+      }
+    },
+    "2.2": {
+      "name": "Signal Detection",
+      "status": "PENDING",
+      "blocked_by": [],
+      "source_location": "trading_manager/building_blocks/detectors/",
+      "components": {
+        "accumulation_zone_detector": {
+          "status": "pending",
+          "source": "trading_manager/building_blocks/detectors/accumulation_zone_detector.py",
+          "target": "cgalpha_v2/domain/services/accumulation_zone_detector.py"
+        },
+        "trend_detector": {
+          "status": "pending",
+          "source": "trading_manager/building_blocks/detectors/trend_detector.py",
+          "target": "cgalpha_v2/domain/services/trend_detector.py"
+        },
+        "key_candle_detector": {
+          "status": "pending",
+          "source": "trading_manager/building_blocks/detectors/key_candle_detector.py",
+          "target": "cgalpha_v2/domain/services/key_candle_detector.py"
+        },
+        "signal_combiner": {
+          "status": "pending",
+          "source": "trading_manager/building_blocks/signal_combiner.py",
+          "target": "cgalpha_v2/domain/services/signal_combiner.py"
+        },
+        "atr_labeler": {
+          "status": "pending",
+          "source": "trading_manager/building_blocks/labelers/potential_capture_engine.py",
+          "target": "cgalpha_v2/domain/services/atr_labeler.py"
+        }
+      }
+    },
+    "2.3": {
+      "name": "Prediction (Oracle)",
+      "status": "PENDING",
+      "blocked_by": [],
+      "source_location": "oracle/",
+      "components": {
+        "oracle_engine": {
+          "status": "pending",
+          "source": "oracle/building_blocks/oracles/oracle_engine.py",
+          "target": "cgalpha_v2/infrastructure/ml/sklearn_oracle.py"
+        },
+        "feature_engineer": {
+          "status": "pending",
+          "source": "oracle/building_blocks/features/feature_engineer.py",
+          "target": "cgalpha_v2/infrastructure/ml/feature_pipeline.py"
+        }
+      }
+    },
+    "2.4": {
+      "name": "Causal Analysis",
+      "status": "PENDING",
+      "blocked_by": ["2.2", "2.3"],
+      "source_location": "cgalpha/ghost_architect/",
+      "critical": true,
+      "note": "SimpleCausalAnalyzer (1460 LOC) must be decomposed into 6 focused classes",
+      "components": {
+        "trade_log_reader": {
+          "status": "pending",
+          "source": "cgalpha/ghost_architect/simple_causal_analyzer.py",
+          "target": "cgalpha_v2/domain/services/trade_log_reader.py"
+        },
+        "snapshot_extractor": {
+          "status": "pending",
+          "source": "cgalpha/ghost_architect/simple_causal_analyzer.py",
+          "target": "cgalpha_v2/domain/services/snapshot_extractor.py"
+        },
+        "pattern_detector": {
+          "status": "pending",
+          "source": "cgalpha/ghost_architect/simple_causal_analyzer.py",
+          "target": "cgalpha_v2/domain/services/pattern_detector.py"
+        },
+        "hypothesis_builder": {
+          "status": "pending",
+          "source": "cgalpha/ghost_architect/simple_causal_analyzer.py",
+          "target": "cgalpha_v2/domain/services/hypothesis_builder.py"
+        },
+        "causal_inference_engine": {
+          "status": "pending",
+          "source": "cgalpha/ghost_architect/simple_causal_analyzer.py",
+          "target": "cgalpha_v2/domain/services/causal_inference_engine.py"
+        },
+        "analysis_reporter": {
+          "status": "pending",
+          "source": "cgalpha/ghost_architect/simple_causal_analyzer.py",
+          "target": "cgalpha_v2/domain/services/analysis_reporter.py"
+        }
+      }
+    },
+    "2.5": {
+      "name": "Code Evolution",
+      "status": "PENDING",
+      "blocked_by": ["2.4"],
+      "source_location": "cgalpha/codecraft/",
+      "components": {
+        "proposal_parser": {
+          "status": "pending",
+          "source": "cgalpha/codecraft/proposal_parser.py",
+          "target": "cgalpha_v2/application/proposal_parser.py"
+        },
+        "ast_modifier": {
+          "status": "pending",
+          "source": "cgalpha/codecraft/ast_modifier.py",
+          "target": "cgalpha_v2/infrastructure/code_modification/ast_modifier.py"
+        },
+        "test_generator": {
+          "status": "pending",
+          "source": "cgalpha/codecraft/test_generator.py",
+          "target": "cgalpha_v2/infrastructure/code_modification/test_generator.py"
+        },
+        "git_automator": {
+          "status": "pending",
+          "source": "cgalpha/codecraft/git_automator.py",
+          "target": "cgalpha_v2/infrastructure/vcs/git_adapter.py"
+        }
+      }
+    },
+    "2.6": {
+      "name": "System Operations",
+      "status": "PENDING",
+      "blocked_by": [],
+      "source_location": "core/",
+      "components": {
+        "health_monitor": {
+          "status": "pending",
+          "source": "core/health_monitor.py",
+          "target": "cgalpha_v2/application/health_monitor.py"
+        },
+        "config_manager": {
+          "status": "pending",
+          "source": "core/config_manager.py",
+          "target": "cgalpha_v2/infrastructure/persistence/config_file_manager.py"
+        },
+        "execution_queue": {
+          "status": "pending",
+          "source": "core/execution_queue.py",
+          "target": "cgalpha_v2/application/execution_queue.py"
+        }
+      }
+    },
+    "2.7": {
+      "name": "Interfaces (CLI)",
+      "status": "PENDING",
+      "blocked_by": ["2.2", "2.3", "2.4", "2.5", "2.6"],
+      "source_location": "aiphalab/",
+      "components": {
+        "cli_app": {
+          "status": "pending",
+          "source": "aiphalab/cli_v2.py",
+          "target": "cgalpha_v2/interfaces/cli/app.py"
+        }
+      }
+    }
+  },
+  
+  "metrics": {
+    "total_files_migrated": 18,
+    "total_files_remaining": 35,
+    "total_loc_migrated": 45000,
+    "total_loc_remaining": 80000,
+    "tests_passing_legacy": 256,
+    "tests_passing_v2": 0
+  },
+  
+  "verification": {
+    "mypy_strict": true,
+    "legacy_tests_pass": true,
+    "v2_tests_pass": false,
+    "no_circular_imports": true
+  }
+}
