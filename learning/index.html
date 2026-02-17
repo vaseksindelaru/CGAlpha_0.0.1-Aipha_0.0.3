@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGAlpha Learning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        h1 {
+            color: #00d4aa;
+            font-size: 1.5rem;
+        }
+        
+        .help-btn {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .help-btn:hover {
+            background: #444;
+        }
+        
+        /* HITO ACTUAL */
+        .hito-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00d4aa;
+        }
+        
+        .hito-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        
+        .hito-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            background: #333;
+        }
+        
+        .hito-status.pendiente {
+            background: #f39c12;
+            color: #000;
+        }
+        
+        .hito-status.completado {
+            background: #27ae60;
+            color: #fff;
+        }
+        
+        /* PROBLEMAS */
+        .problemas-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .problemas-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #00d4aa;
+        }
+        
+        .problema {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 3px solid;
+        }
+        
+        .problema.python { border-color: #3498db; }
+        .problema.math { border-color: #9b59b6; }
+        .problema.trading { border-color: #e74c3c; }
+        .problema.architect { border-color: #f39c12; }
+        
+        .problema-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .problema-icon {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+        
+        .problema-agent {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .problema.python .problema-agent { color: #3498db; }
+        .problema.math .problema-agent { color: #9b59b6; }
+        .problema.trading .problema-agent { color: #e74c3c; }
+        .problema.architect .problema-agent { color: #f39c12; }
+        
+        .problema-text {
+            color: #ccc;
+            font-style: italic;
+        }
+        
+        /* ACCIONES */
+        .acciones-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .acciones-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #00d4aa;
+        }
+        
+        .acciones-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .accion-btn {
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .accion-btn:hover {
+            background: #00d4aa;
+            color: #000;
+            border-color: #00d4aa;
+        }
+        
+        .accion-btn.primary {
+            background: #00d4aa;
+            color: #000;
+            border-color: #00d4aa;
+        }
+        
+        .accion-btn.primary:hover {
+            background: #00b894;
+        }
+        
+        /* PROGRESO */
+        .progreso-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .progreso-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #00d4aa;
+        }
+        
+        .progreso-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .progreso-item {
+            text-align: center;
+        }
+        
+        .progreso-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .progreso-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .progreso-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .progreso-fill.python { background: #3498db; }
+        .progreso-fill.math { background: #9b59b6; }
+        .progreso-fill.trading { background: #e74c3c; }
+        .progreso-fill.architect { background: #f39c12; }
+        
+        .progreso-pct {
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+        
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 50px 20px;
+        }
+        
+        .modal-content {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d4aa;
+        }
+        
+        .modal-body {
+            line-height: 1.6;
+        }
+        
+        .modal-body h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #00d4aa;
+        }
+        
+        .modal-body ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+        
+        .modal-body code {
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .modal-body pre {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        /* TEXTAREAS */
+        .textarea-container {
+            margin: 15px 0;
+        }
+        
+        .textarea-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+        
+        .textarea-input {
+            width: 100%;
+            min-height: 200px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            color: #fff;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        .textarea-input:focus {
+            outline: none;
+            border-color: #00d4aa;
+        }
+        
+        /* ESTUDIOS */
+        .estudio-content {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .estudio-content h2 {
+            color: #00d4aa;
+            margin-bottom: 15px;
+        }
+        
+        .estudio-content h3 {
+            color: #3498db;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .estudio-content pre {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        
+        /* NOTIFICACIÓN */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .notification.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            .acciones-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .progreso-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <h1>CGAlpha Learning</h1>
+            <button class="help-btn" onclick="showHelp()">? HELP</button>
+        </header>
+        
+        <!-- HITO ACTUAL -->
+        <div class="hito-card">
+            <div class="hito-title">
+                HITO ACTUAL: <span id="hito-nombre">Enum</span> (Día <span id="hito-dia">1</span>)
+            </div>
+            <span class="hito-status pendiente" id="hito-status">Pendiente</span>
+        </div>
+        
+        <!-- PROBLEMAS -->
+        <div class="problemas-card">
+            <div class="problemas-title">4 PROBLEMAS DEL HITO:</div>
+            
+            <div class="problema python">
+                <div class="problema-header">
+                    <span class="problema-icon">snake</span>
+                    <span class="problema-agent">PYTHON_TUTOR:</span>
+                </div>
+                <div class="problema-text">"¿Qué es Enum y cómo se declara en Python?"</div>
+            </div>
+            
+            <div class="problema math">
+                <div class="problema-header">
+                    <span class="problema-icon">triangle</span>
+                    <span class="problema-agent">MATH_TUTOR:</span>
+                </div>
+                <div class="problema-text">"¿Cómo se relaciona Enum con conjuntos en matemáticas?"</div>
+            </div>
+            
+            <div class="problema trading">
+                <div class="problema-header">
+                    <span class="problema-icon">chart</span>
+                    <span class="problema-agent">TRADING_EXPERT:</span>
+                </div>
+                <div class="problema-text">"¿Por qué usar Enum para LONG/SHORT en lugar de strings?"</div>
+            </div>
+            
+            <div class="problema architect">
+                <div class="problema-header">
+                    <span class="problema-icon">building</span>
+                    <span class="problema-agent">ARCHITECT:</span>
+                </div>
+                <div class="problema-text">"¿Dónde debe vivir SignalDirection en la arquitectura?"</div>
+            </div>
+        </div>
+        
+        <!-- ACCIONES -->
+        <div class="acciones-card">
+            <div class="acciones-title">ACCIONES:</div>
+            <div class="acciones-grid">
+                <button class="accion-btn primary" onclick="crearClase()">1. CREAR CLASE</button>
+                <button class="accion-btn" onclick="incluirMD()">2. INCLUIR .MD</button>
+                <button class="accion-btn" onclick="leerClase()">3. LEER CLASE</button>
+                <button class="accion-btn" onclick="anadirExtra()">4. AÑADIR EXTRA</button>
+                <button class="accion-btn" onclick="completarHito()">5. COMPLETAR</button>
+                <button class="accion-btn" onclick="verHistorial()">6. HISTORIAL</button>
+            </div>
+        </div>
+        
+        <!-- PROGRESO -->
+        <div class="progreso-card">
+            <div class="progreso-title">PROGRESO POR AGENTE:</div>
+            <div class="progreso-grid">
+                <div class="progreso-item">
+                    <div class="progreso-label">PYTHON</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill python" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+                <div class="progreso-item">
+                    <div class="progreso-label">MATH</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill math" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+                <div class="progreso-item">
+                    <div class="progreso-label">TRADING</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill trading" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+                <div class="progreso-item">
+                    <div class="progreso-label">ARCHITECT</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill architect" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="modal-title" id="modal-title">Título</div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+    
+    <!-- NOTIFICACIÓN -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Estado actual (simulado - en producción vendría de archivos)
+        let estado = {
+            hitoActual: 'Enum',
+            dia: 1,
+            semana: 1,
+            estado: 'pendiente',
+            progreso: {
+                python: 0,
+                math: 0,
+                trading: 0,
+                architect: 0
+            }
+        };
+        
+        // Prompt para crear clase
+        const promptCrearClase = `Lee los siguientes archivos de la carpeta learning/:
+1. PROMPT_INICIAL.md - Instrucciones para ti
+2. RUTA.md - Plan de aprendizaje
+3. PROGRESS.md - Estado actual del estudiante
+4. HISTORY.md - Resumen de lo ya aprendido
+5. guiones/python_tutor.md - Guión para Python
+6. guiones/math_tutor.md - Guión para Matemáticas
+7. guiones/trading_expert.md - Guión para Trading
+8. guiones/architect.md - Guión para Arquitectura
+
+Genera una clase completa para el hito actual siguiendo las instrucciones de PROMPT_INICIAL.md.
+Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
+
+        // Mostrar ayuda
+        function showHelp() {
+            const helpContent = `
+                <h3>CÓMO USAR ESTA INTERFAZ</h3>
+                
+                <h3>PASO 1: CREAR CLASE</h3>
+                <ol>
+                    <li>Clic en <strong>[CREAR CLASE]</strong></li>
+                    <li>Se muestra un prompt para copiar</li>
+                    <li>Copia el prompt y pégalo en tu LLM avanzado (Claude, GPT-4, etc.)</li>
+                    <li>El LLM genera el archivo <code>clase.md</code></li>
+                </ol>
+                
+                <h3>PASO 2: INCLUIR .MD</h3>
+                <ol>
+                    <li>Clic en <strong>[INCLUIR .MD]</strong></li>
+                    <li>Pega el contenido del archivo generado por el LLM</li>
+                    <li>Se guarda en <code>learning/estudios/{fecha}_{hito}/clase.md</code></li>
+                </ol>
+                
+                <h3>PASO 3: LEER CLASE</h3>
+                <ol>
+                    <li>Clic en <strong>[LEER CLASE]</strong></li>
+                    <li>Se muestra el material de estudio</li>
+                    <li>Puedes hacer preguntas al LLM sobre el contenido</li>
+                </ol>
+                
+                <h3>PASO 4: AÑADIR EXTRA</h3>
+                <ol>
+                    <li>Si investigaste por tu cuenta, clic en <strong>[AÑADIR EXTRA]</strong></li>
+                    <li>Escribe lo que aprendiste adicional</li>
+                    <li>Se guarda en <code>extras.md</code> y se añade resumen a <code>HISTORY.md</code></li>
+                </ol>
+                
+                <h3>PASO 5: COMPLETAR</h3>
+                <ol>
+                    <li>Clic en <strong>[COMPLETAR]</strong></li>
+                    <li>Se marca el hito como completado en <code>PROGRESS.md</code></li>
+                    <li>Se añade entrada a <code>HISTORY.md</code></li>
+                    <li>Avanza al siguiente hito</li>
+                </ol>
+                
+                <h3>NOTA IMPORTANTE</h3>
+                <p>El LLM creador SOLO tiene acceso a <code>HISTORY.md</code> (resúmenes), NO al material completo de estudios.</p>
+                
+                <h3>ESTRUCTURA DE ARCHIVOS</h3>
+                <pre>learning/
+  PROMPT_INICIAL.md   - Instrucciones para LLM
+  RUTA.md             - Plan de 20 hitos
+  PROGRESS.md         - Estado actual
+  HISTORY.md          - Resumen de lo aprendido
+  guiones/            - Prompts por agente
+  estudios/           - Material generado</pre>
+            `;
+            
+            showModal('AYUDA', helpContent);
+        }
+        
+        // Crear clase
+        function crearClase() {
+            showModal('CREAR CLASE - Copia este prompt', `
+                <p>Copia el siguiente prompt y pégalo en tu LLM avanzado:</p>
+                <pre>${promptCrearClase}</pre>
+                <p style="margin-top: 15px;">Después de generar, usa <strong>[INCLUIR .MD]</strong> para guardar el resultado.</p>
+            `);
+        }
+        
+        // Incluir MD
+        function incluirMD() {
+            showModal('INCLUIR ARCHIVO .MD', `
+                <p>Pega el contenido generado por el LLM:</p>
+                <div class="textarea-container">
+                    <textarea class="textarea-input" id="md-content" placeholder="Pega aquí el contenido del archivo clase.md..."></textarea>
+                </div>
+                <button class="accion-btn primary" onclick="guardarMD()">GUARDAR</button>
+            `);
+        }
+        
+        // Guardar MD
+        function guardarMD() {
+            const content = document.getElementById('md-content').value;
+            if (content.trim()) {
+                // En producción, esto guardaría en el sistema de archivos
+                // Por ahora, guardamos en localStorage
+                const fecha = new Date().toISOString().split('T')[0];
+                const key = `clase_${fecha}_${estado.hitoActual}`;
+                localStorage.setItem(key, content);
+                showNotification('Archivo guardado. Usa LEER CLASE para visualizarlo.');
+                closeModal();
+            } else {
+                showNotification('El contenido está vacío.');
+            }
+        }
+        
+        // Leer clase
+        function leerClase() {
+            const fecha = new Date().toISOString().split('T')[0];
+            const key = `clase_${fecha}_${estado.hitoActual}`;
+            const content = localStorage.getItem(key);
+            
+            if (content) {
+                // Convertir markdown básico a HTML
+                let html = content
+                    .replace(/^## (.*)$/gm, '<h3>$1</h3>')
+                    .replace(/^# (.*)$/gm, '<h2>$1</h2>')
+                    .replace(/```python([\s\S]*?)```/g, '<pre>$1</pre>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\n/g, '<br>');
+                
+                showModal('CLASE: ' + estado.hitoActual, `<div class="estudio-content">${html}</div>`);
+            } else {
+                showNotification('No hay clase guardada. Usa CREAR CLASE primero.');
+            }
+        }
+        
+        // Añadir extra
+        function anadirExtra() {
+            showModal('AÑADIR MATERIAL EXTRA', `
+                <p>¿Qué aprendiste adicional por tu cuenta?</p>
+                <div class="textarea-container">
+                    <textarea class="textarea-input" id="extra-content" placeholder="Escribe lo que aprendiste adicional..."></textarea>
+                </div>
+                <button class="accion-btn primary" onclick="guardarExtra()">GUARDAR EN HISTORY</button>
+            `);
+        }
+        
+        // Guardar extra
+        function guardarExtra() {
+            const content = document.getElementById('extra-content').value;
+            if (content.trim()) {
+                const fecha = new Date().toISOString().split('T')[0];
+                const historyKey = 'learning_history';
+                const existing = localStorage.getItem(historyKey) || '';
+                const entry = `${fecha} | ${estado.hitoActual} | EXTRA | ${content}\n`;
+                localStorage.setItem(historyKey, existing + entry);
+                showNotification('Material extra guardado en HISTORY.md');
+                closeModal();
+            } else {
+                showNotification('El contenido está vacío.');
+            }
+        }
+        
+        // Completar hito
+        function completarHito() {
+            showModal('COMPLETAR HITO', `
+                <p>¿Estás seguro de que completaste el hito <strong>${estado.hitoActual}</strong>?</p>
+                <p style="margin: 15px 0;">Esto:</p>
+                <ol>
+                    <li>Marcará el hito como completado en PROGRESS.md</li>
+                    <li>Añadirá entradas a HISTORY.md</li>
+                    <li>Avanzará al siguiente hito</li>
+                </ol>
+                <button class="accion-btn primary" onclick="confirmarCompletar()">CONFIRMAR</button>
+            `);
+        }
+        
+        // Confirmar completar
+        function confirmarCompletar() {
+            estado.estado = 'completado';
+            
+            // Actualizar progreso (simulado)
+            estado.progreso.python += 5;
+            estado.progreso.math += 5;
+            estado.progreso.trading += 5;
+            estado.progreso.architect += 5;
+            
+            // Avanzar al siguiente hito
+            const hitos = ['Enum', '@dataclass', 'frozen=True', '__post_init__', 'NewType'];
+            const currentIndex = hitos.indexOf(estado.hitoActual);
+            if (currentIndex < hitos.length - 1) {
+                estado.hitoActual = hitos[currentIndex + 1];
+                estado.dia++;
+            }
+            
+            // Actualizar UI
+            document.getElementById('hito-nombre').textContent = estado.hitoActual;
+            document.getElementById('hito-dia').textContent = estado.dia;
+            document.getElementById('hito-status').textContent = 'Pendiente';
+            document.getElementById('hito-status').className = 'hito-status pendiente';
+            
+            // Actualizar barras de progreso
+            document.querySelectorAll('.progreso-fill').forEach((el, i) => {
+                const tipos = ['python', 'math', 'trading', 'architect'];
+                el.style.width = estado.progreso[tipos[i]] + '%';
+            });
+            document.querySelectorAll('.progreso-pct').forEach((el, i) => {
+                const tipos = ['python', 'math', 'trading', 'architect'];
+                el.textContent = estado.progreso[tipos[i]] + '%';
+            });
+            
+            showNotification('Hito completado. Avanzando al siguiente...');
+            closeModal();
+        }
+        
+        // Ver historial
+        function verHistorial() {
+            const history = localStorage.getItem('learning_history') || 'Aún no hay entradas en el historial.';
+            showModal('HISTORIAL DE APRENDIZAJE', `
+                <pre>${history}</pre>
+            `);
+        }
+        
+        // Mostrar modal
+        function showModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = content;
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        // Cerrar modal
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        // Mostrar notificación
+        function showNotification(message) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.classList.add('show');
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        }
+        
+        // Cerrar modal con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        // Cerrar modal clickeando fuera
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') closeModal();
+        });
+    </script>
+</body>
+</html>
