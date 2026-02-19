@@ -183,6 +183,23 @@
         .accion-btn.primary:hover {
             background: #00b894;
         }
+
+        .accion-btn.small {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .accion-btn.danger {
+            background: #7f1d1d;
+            border-color: #991b1b;
+            color: #fff;
+        }
+
+        .accion-btn.danger:hover {
+            background: #991b1b;
+            color: #fff;
+            border-color: #b91c1c;
+        }
         
         /* PROGRESO */
         .progreso-card {
@@ -265,6 +282,14 @@
             width: 100%;
             position: relative;
         }
+
+        .modal-content.fullscreen {
+            width: calc(100vw - 24px);
+            max-width: none;
+            height: calc(100vh - 24px);
+            border-radius: 8px;
+            padding: 22px;
+        }
         
         .modal-close {
             position: absolute;
@@ -276,6 +301,17 @@
             font-size: 24px;
             cursor: pointer;
         }
+
+        .modal-fullscreen {
+            position: absolute;
+            top: 15px;
+            right: 52px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
         
         .modal-title {
             font-size: 1.3rem;
@@ -285,6 +321,12 @@
         
         .modal-body {
             line-height: 1.6;
+        }
+
+        .modal-content.fullscreen .modal-body {
+            max-height: calc(100vh - 110px);
+            overflow-y: auto;
+            padding-right: 6px;
         }
         
         .modal-body h3 {
@@ -372,7 +414,139 @@
             padding: 15px;
             border-radius: 8px;
             overflow-x: auto;
+            color: #cfe8ff;
+            border: 1px solid #26476d;
         }
+
+        .estudio-content code.code-view {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            white-space: pre;
+            display: block;
+        }
+
+        .bracket {
+            font-weight: 700;
+            text-shadow: 0 0 4px rgba(0,0,0,0.55);
+            border-radius: 3px;
+            padding: 0 1px;
+        }
+
+        .bracket-depth-0 { color: #38bdf8; }
+        .bracket-depth-1 { color: #4ade80; }
+        .bracket-depth-2 { color: #facc15; }
+        .bracket-depth-3 { color: #f472b6; }
+        .bracket-depth-4 { color: #a78bfa; }
+        .bracket-depth-5 { color: #fb7185; }
+        .bracket-depth-6 { color: #22d3ee; }
+        .bracket-depth-7 { color: #bef264; }
+
+        .bracket-type-round { background: rgba(56,189,248,0.14); border-bottom: 1px solid rgba(56,189,248,0.75); }
+        .bracket-type-square { background: rgba(74,222,128,0.14); border-bottom: 1px solid rgba(74,222,128,0.75); }
+        .bracket-type-curly { background: rgba(250,204,21,0.16); border-bottom: 1px solid rgba(250,204,21,0.75); }
+        .bracket-type-angle { background: rgba(244,114,182,0.16); border-bottom: 1px solid rgba(244,114,182,0.75); }
+
+        .bracket-mismatch {
+            color: #ef4444 !important;
+            background: rgba(127, 29, 29, 0.45);
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        .md-paragraph {
+            margin: 10px 0;
+        }
+
+        /* FILE MANAGER */
+        .file-tools {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .file-tools input,
+        .file-tools select {
+            width: 100%;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            color: #fff;
+        }
+
+        .file-tools .full {
+            grid-column: 1 / -1;
+        }
+
+        .file-status {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .file-item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .file-name {
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .file-preview {
+            font-size: 13px;
+            color: #ddd;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .file-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .file-badge.class { background: #334155; color: #e2e8f0; }
+        .file-badge.python { background: #1e3a8a; color: #bfdbfe; }
+        .file-badge.math { background: #581c87; color: #e9d5ff; }
+        .file-badge.trading { background: #7f1d1d; color: #fecaca; }
+        .file-badge.architect { background: #78350f; color: #fde68a; }
         
         /* NOTIFICACIÓN */
         .notification {
@@ -405,6 +579,10 @@
             
             .progreso-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .file-tools {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -472,6 +650,7 @@
                 <button class="accion-btn" onclick="anadirExtra()">4. AÑADIR EXTRA</button>
                 <button class="accion-btn" onclick="completarHito()">5. COMPLETAR</button>
                 <button class="accion-btn" onclick="verHistorial()">6. HISTORIAL</button>
+                <button class="accion-btn" onclick="gestionarArchivos()">7. ARCHIVOS</button>
             </div>
         </div>
         
@@ -515,6 +694,7 @@
     <div class="modal" id="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">×</button>
+            <button class="modal-fullscreen" id="modal-fullscreen-btn" onclick="toggleModalFullscreen()" title="Pantalla completa">⛶</button>
             <div class="modal-title" id="modal-title">Título</div>
             <div class="modal-body" id="modal-body"></div>
         </div>
@@ -524,21 +704,26 @@
     <div class="notification" id="notification"></div>
 
     <script>
-        // Estado actual (simulado - en producción vendría de archivos)
+        const EXTRA_CATEGORIES = ['PYTHON_TUTOR', 'MATH_TUTOR', 'TRADING_EXPERT', 'ARCHITECT'];
+        const STORAGE_KEYS = {
+            state: 'learning_state_v2',
+            classes: 'learning_classes_v2',
+            extras: 'learning_extras_v2',
+            history: 'learning_history_v2',
+        };
+        const HITOS = ['Enum', '@dataclass', 'frozen=True', '__post_init__', 'NewType'];
+
         let estado = {
             hitoActual: 'Enum',
             dia: 1,
             semana: 1,
             estado: 'pendiente',
-            progreso: {
-                python: 0,
-                math: 0,
-                trading: 0,
-                architect: 0
-            }
+            progreso: { python: 0, math: 0, trading: 0, architect: 0 },
         };
-        
-        // Prompt para crear clase
+        let classRecords = [];
+        let extraRecords = [];
+        let fsRootHandle = null;
+
         const promptCrearClase = `Lee los siguientes archivos de la carpeta learning/:
 1. PROMPT_INICIAL.md - Instrucciones para ti
 2. RUTA.md - Plan de aprendizaje
@@ -552,237 +737,716 @@
 Genera una clase completa para el hito actual siguiendo las instrucciones de PROMPT_INICIAL.md.
 Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
 
-        // Mostrar ayuda
+        function nowDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function nowIso() {
+            return new Date().toISOString();
+        }
+
+        function makeId(prefix) {
+            return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function slugify(input) {
+            return String(input || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .toLowerCase() || 'item';
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function applyInlineMarkdown(line) {
+            let out = escapeHtml(line);
+            out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            out = out.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+            out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+            return out;
+        }
+
+        function markdownToHtml(md) {
+            const normalized = String(md || '').replace(/\r\n/g, '\n');
+            const codeBlocks = [];
+            let text = normalized.replace(/```([\s\S]*?)```/g, (_m, code) => {
+                const idx = codeBlocks.push(code) - 1;
+                return `@@CODEBLOCK_${idx}@@`;
+            });
+
+            const lines = text.split('\n');
+            const out = [];
+            let inUl = false;
+            let inOl = false;
+            let paragraph = [];
+
+            function flushParagraph() {
+                if (paragraph.length > 0) {
+                    out.push(`<p class="md-paragraph">${applyInlineMarkdown(paragraph.join(' '))}</p>`);
+                    paragraph = [];
+                }
+            }
+
+            function closeLists() {
+                if (inUl) {
+                    out.push('</ul>');
+                    inUl = false;
+                }
+                if (inOl) {
+                    out.push('</ol>');
+                    inOl = false;
+                }
+            }
+
+            for (const rawLine of lines) {
+                const line = rawLine.trimEnd();
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    flushParagraph();
+                    closeLists();
+                    continue;
+                }
+
+                const codeMatch = trimmed.match(/^@@CODEBLOCK_(\d+)@@$/);
+                if (codeMatch) {
+                    flushParagraph();
+                    closeLists();
+                    const code = codeBlocks[Number(codeMatch[1])] || '';
+                    out.push(`<pre><code class="code-view">${escapeHtml(code)}</code></pre>`);
+                    continue;
+                }
+
+                const h3 = trimmed.match(/^###\s+(.*)$/);
+                if (h3) {
+                    flushParagraph();
+                    closeLists();
+                    out.push(`<h3>${applyInlineMarkdown(h3[1])}</h3>`);
+                    continue;
+                }
+
+                const h2 = trimmed.match(/^##\s+(.*)$/);
+                if (h2) {
+                    flushParagraph();
+                    closeLists();
+                    out.push(`<h2>${applyInlineMarkdown(h2[1])}</h2>`);
+                    continue;
+                }
+
+                const h1 = trimmed.match(/^#\s+(.*)$/);
+                if (h1) {
+                    flushParagraph();
+                    closeLists();
+                    out.push(`<h2>${applyInlineMarkdown(h1[1])}</h2>`);
+                    continue;
+                }
+
+                const ulMatch = trimmed.match(/^[-*]\s+(.*)$/);
+                if (ulMatch) {
+                    flushParagraph();
+                    if (inOl) {
+                        out.push('</ol>');
+                        inOl = false;
+                    }
+                    if (!inUl) {
+                        out.push('<ul>');
+                        inUl = true;
+                    }
+                    out.push(`<li>${applyInlineMarkdown(ulMatch[1])}</li>`);
+                    continue;
+                }
+
+                const olMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+                if (olMatch) {
+                    flushParagraph();
+                    if (inUl) {
+                        out.push('</ul>');
+                        inUl = false;
+                    }
+                    if (!inOl) {
+                        out.push('<ol>');
+                        inOl = true;
+                    }
+                    out.push(`<li>${applyInlineMarkdown(olMatch[1])}</li>`);
+                    continue;
+                }
+
+                paragraph.push(trimmed);
+            }
+
+            flushParagraph();
+            closeLists();
+            return out.join('\n');
+        }
+
+        function colorizeBracketPairsInCode(container) {
+            const blocks = container.querySelectorAll('code');
+            const openToClose = {
+                '(': { close: ')', type: 'round' },
+                '[': { close: ']', type: 'square' },
+                '{': { close: '}', type: 'curly' },
+                '<': { close: '>', type: 'angle' },
+            };
+            const closeToOpen = { ')': '(', ']': '[', '}': '{', '>': '<' };
+
+            blocks.forEach((block) => {
+                if (block.dataset.bracketsColored === '1') return;
+                const raw = block.textContent || '';
+                const stack = [];
+                let html = '';
+
+                for (const ch of raw) {
+                    if (openToClose[ch]) {
+                        const depth = stack.length % 8;
+                        const type = openToClose[ch].type;
+                        html += `<span class="bracket bracket-depth-${depth} bracket-type-${type}">${escapeHtml(ch)}</span>`;
+                        stack.push({
+                            open: ch,
+                            expectedClose: openToClose[ch].close,
+                            depth,
+                            type,
+                        });
+                        continue;
+                    }
+
+                    if (closeToOpen[ch]) {
+                        const last = stack[stack.length - 1];
+                        if (last && last.expectedClose === ch) {
+                            html += `<span class="bracket bracket-depth-${last.depth} bracket-type-${last.type}">${escapeHtml(ch)}</span>`;
+                            stack.pop();
+                        } else {
+                            html += `<span class="bracket bracket-mismatch">${escapeHtml(ch)}</span>`;
+                        }
+                        continue;
+                    }
+
+                    html += escapeHtml(ch);
+                }
+
+                block.innerHTML = html;
+                block.dataset.bracketsColored = '1';
+            });
+        }
+
+        function enhanceModalContent() {
+            const body = document.getElementById('modal-body');
+            if (!body) return;
+            colorizeBracketPairsInCode(body);
+        }
+
+        function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+                reader.readAsText(file, 'utf-8');
+            });
+        }
+
+        async function loadFileToTextarea(fileInputId, textareaId, infoId) {
+            const input = document.getElementById(fileInputId);
+            const textarea = document.getElementById(textareaId);
+            const info = infoId ? document.getElementById(infoId) : null;
+            if (!input || !textarea || !input.files || input.files.length === 0) return false;
+            const file = input.files[0];
+            try {
+                const content = await readTextFile(file);
+                textarea.value = content;
+                if (info) info.textContent = `Archivo cargado: ${file.name}`;
+                return true;
+            } catch (_err) {
+                showNotification('Error leyendo el archivo.');
+                return false;
+            }
+        }
+
+        function saveAll() {
+            localStorage.setItem(STORAGE_KEYS.state, JSON.stringify(estado));
+            localStorage.setItem(STORAGE_KEYS.classes, JSON.stringify(classRecords));
+            localStorage.setItem(STORAGE_KEYS.extras, JSON.stringify(extraRecords));
+            localStorage.setItem(STORAGE_KEYS.history, buildHistoryText());
+        }
+
+        function loadAll() {
+            try {
+                const storedState = localStorage.getItem(STORAGE_KEYS.state);
+                const storedClasses = localStorage.getItem(STORAGE_KEYS.classes);
+                const storedExtras = localStorage.getItem(STORAGE_KEYS.extras);
+
+                if (storedState) estado = { ...estado, ...JSON.parse(storedState) };
+                if (storedClasses) classRecords = JSON.parse(storedClasses) || [];
+                if (storedExtras) extraRecords = JSON.parse(storedExtras) || [];
+            } catch (_err) {
+                classRecords = [];
+                extraRecords = [];
+            }
+        }
+
+        function refreshUI() {
+            document.getElementById('hito-nombre').textContent = estado.hitoActual;
+            document.getElementById('hito-dia').textContent = estado.dia;
+            const statusEl = document.getElementById('hito-status');
+            statusEl.textContent = estado.estado === 'completado' ? 'Completado' : 'Pendiente';
+            statusEl.className = `hito-status ${estado.estado === 'completado' ? 'completado' : 'pendiente'}`;
+
+            const tipos = ['python', 'math', 'trading', 'architect'];
+            document.querySelectorAll('.progreso-fill').forEach((el, i) => {
+                el.style.width = `${estado.progreso[tipos[i]] || 0}%`;
+            });
+            document.querySelectorAll('.progreso-pct').forEach((el, i) => {
+                el.textContent = `${estado.progreso[tipos[i]] || 0}%`;
+            });
+        }
+
+        function buildHistoryText() {
+            const classLines = classRecords.map((r) =>
+                `${r.date} | ${r.hito} | CLASS | ${r.fileName} | ${r.persistMode || 'memory'}`
+            );
+            const extraLines = extraRecords.map((r) =>
+                `${r.date} | ${r.hito} | ${r.category} | ${r.fileName}`
+            );
+            return [...classLines, ...extraLines].sort().join('\n');
+        }
+
+        function downloadMarkdown(fileName, content) {
+            const blob = new Blob([content.endsWith('\n') ? content : `${content}\n`], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function writeMarkdownToFs(fileName, content, relativeDir) {
+            if (!fsRootHandle) return false;
+            let target = fsRootHandle;
+            const parts = relativeDir.split('/').filter(Boolean);
+            for (const part of parts) {
+                target = await target.getDirectoryHandle(part, { create: true });
+            }
+            const fileHandle = await target.getFileHandle(fileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content.endsWith('\n') ? content : `${content}\n`);
+            await writable.close();
+            return true;
+        }
+
+        async function persistMarkdownFile(fileName, content, relativeDir) {
+            try {
+                const saved = await writeMarkdownToFs(fileName, content, relativeDir);
+                if (saved) {
+                    return { mode: 'filesystem', location: `${relativeDir}/${fileName}` };
+                }
+            } catch (_err) {
+                // fallback a descarga
+            }
+            downloadMarkdown(fileName, content);
+            return { mode: 'download', location: fileName };
+        }
+
+        async function configurarCarpetaMD() {
+            if (!window.showDirectoryPicker) {
+                showNotification('Tu navegador no soporta carpeta persistente. Se usará descarga .md.');
+                return;
+            }
+            try {
+                fsRootHandle = await window.showDirectoryPicker();
+                showNotification('Carpeta .md configurada para esta sesión.');
+                updateFsStatus();
+            } catch (_err) {
+                showNotification('Selección de carpeta cancelada.');
+            }
+        }
+
+        function updateFsStatus() {
+            const el = document.getElementById('fs-status');
+            if (!el) return;
+            if (fsRootHandle) {
+                el.textContent = 'Persistencia .md: carpeta local activa (esta sesión).';
+                return;
+            }
+            el.textContent = 'Persistencia .md: modo descarga automática (.md).';
+        }
+
         function showHelp() {
             const helpContent = `
                 <h3>CÓMO USAR ESTA INTERFAZ</h3>
-                
-                <h3>PASO 1: CREAR CLASE</h3>
                 <ol>
-                    <li>Clic en <strong>[CREAR CLASE]</strong></li>
-                    <li>Se muestra un prompt para copiar</li>
-                    <li>Copia el prompt y pégalo en tu LLM avanzado (Claude, GPT-4, etc.)</li>
-                    <li>El LLM genera el archivo <code>clase.md</code></li>
+                    <li><strong>Crear clase</strong> -> genera prompt para tu LLM.</li>
+                    <li><strong>Incluir .MD</strong> -> guarda clase y persiste markdown.</li>
+                    <li><strong>Añadir extra</strong> -> guarda extra en una categoría:
+                        <code>PYTHON_TUTOR</code>, <code>MATH_TUTOR</code>, <code>TRADING_EXPERT</code>, <code>ARCHITECT</code>.
+                    </li>
+                    <li><strong>Archivos</strong> -> buscar por categoría y texto, ver y eliminar contenido.</li>
                 </ol>
-                
-                <h3>PASO 2: INCLUIR .MD</h3>
-                <ol>
-                    <li>Clic en <strong>[INCLUIR .MD]</strong></li>
-                    <li>Pega el contenido del archivo generado por el LLM</li>
-                    <li>Se guarda en <code>learning/estudios/{fecha}_{hito}/clase.md</code></li>
-                </ol>
-                
-                <h3>PASO 3: LEER CLASE</h3>
-                <ol>
-                    <li>Clic en <strong>[LEER CLASE]</strong></li>
-                    <li>Se muestra el material de estudio</li>
-                    <li>Puedes hacer preguntas al LLM sobre el contenido</li>
-                </ol>
-                
-                <h3>PASO 4: AÑADIR EXTRA</h3>
-                <ol>
-                    <li>Si investigaste por tu cuenta, clic en <strong>[AÑADIR EXTRA]</strong></li>
-                    <li>Escribe lo que aprendiste adicional</li>
-                    <li>Se guarda en <code>extras.md</code> y se añade resumen a <code>HISTORY.md</code></li>
-                </ol>
-                
-                <h3>PASO 5: COMPLETAR</h3>
-                <ol>
-                    <li>Clic en <strong>[COMPLETAR]</strong></li>
-                    <li>Se marca el hito como completado en <code>PROGRESS.md</code></li>
-                    <li>Se añade entrada a <code>HISTORY.md</code></li>
-                    <li>Avanza al siguiente hito</li>
-                </ol>
-                
-                <h3>NOTA IMPORTANTE</h3>
-                <p>El LLM creador SOLO tiene acceso a <code>HISTORY.md</code> (resúmenes), NO al material completo de estudios.</p>
-                
-                <h3>ESTRUCTURA DE ARCHIVOS</h3>
-                <pre>learning/
-  PROMPT_INICIAL.md   - Instrucciones para LLM
-  RUTA.md             - Plan de 20 hitos
-  PROGRESS.md         - Estado actual
-  HISTORY.md          - Resumen de lo aprendido
-  guiones/            - Prompts por agente
-  estudios/           - Material generado</pre>
+                <h3>PERSISTENCIA .MD</h3>
+                <p>La app intenta guardar en carpeta local si la configuras. Si no, descarga archivos <code>.md</code> automáticamente.</p>
             `;
-            
             showModal('AYUDA', helpContent);
         }
-        
-        // Crear clase
+
         function crearClase() {
             showModal('CREAR CLASE - Copia este prompt', `
                 <p>Copia el siguiente prompt y pégalo en tu LLM avanzado:</p>
-                <pre>${promptCrearClase}</pre>
+                <pre>${escapeHtml(promptCrearClase)}</pre>
                 <p style="margin-top: 15px;">Después de generar, usa <strong>[INCLUIR .MD]</strong> para guardar el resultado.</p>
             `);
         }
-        
-        // Incluir MD
+
         function incluirMD() {
             showModal('INCLUIR ARCHIVO .MD', `
                 <p>Pega el contenido generado por el LLM:</p>
+                <div class="textarea-container">
+                    <label class="textarea-label">O subir archivo desde tu PC (.md/.txt)</label>
+                    <input type="file" id="md-file" accept=".md,.txt,.markdown,text/markdown,text/plain"
+                           class="textarea-input" style="min-height:auto;" onchange="loadFileToTextarea('md-file','md-content','md-file-info')">
+                    <div id="md-file-info" class="file-status" style="margin-top:6px;"></div>
+                </div>
                 <div class="textarea-container">
                     <textarea class="textarea-input" id="md-content" placeholder="Pega aquí el contenido del archivo clase.md..."></textarea>
                 </div>
                 <button class="accion-btn primary" onclick="guardarMD()">GUARDAR</button>
             `);
         }
-        
-        // Guardar MD
-        function guardarMD() {
-            const content = document.getElementById('md-content').value;
-            if (content.trim()) {
-                // En producción, esto guardaría en el sistema de archivos
-                // Por ahora, guardamos en localStorage
-                const fecha = new Date().toISOString().split('T')[0];
-                const key = `clase_${fecha}_${estado.hitoActual}`;
-                localStorage.setItem(key, content);
-                showNotification('Archivo guardado. Usa LEER CLASE para visualizarlo.');
-                closeModal();
-            } else {
+
+        async function guardarMD() {
+            const textarea = document.getElementById('md-content');
+            let content = textarea.value;
+            if (!content.trim()) {
+                await loadFileToTextarea('md-file', 'md-content', 'md-file-info');
+                content = textarea.value;
+            }
+            if (!content.trim()) {
                 showNotification('El contenido está vacío.');
+                return;
             }
+
+            const date = nowDate();
+            const safeHito = slugify(estado.hitoActual);
+            const fileName = `clase_${date}_${safeHito}.md`;
+            const relativeDir = `learning/estudios/${date}_${safeHito}`;
+            const persisted = await persistMarkdownFile(fileName, content, relativeDir);
+            const record = {
+                id: makeId('class'),
+                type: 'CLASS_CONTENT',
+                hito: estado.hitoActual,
+                date,
+                createdAt: nowIso(),
+                fileName,
+                content,
+                persistMode: persisted.mode,
+                persistLocation: persisted.location,
+            };
+
+            classRecords.push(record);
+            saveAll();
+            closeModal();
+            showNotification(`Clase guardada (${persisted.mode}).`);
         }
-        
-        // Leer clase
+
+        function getLatestClassForCurrentHito() {
+            const candidates = classRecords
+                .filter((r) => r.hito === estado.hitoActual)
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            if (candidates.length > 0) return candidates[0];
+            const any = classRecords.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            return any[0] || null;
+        }
+
         function leerClase() {
-            const fecha = new Date().toISOString().split('T')[0];
-            const key = `clase_${fecha}_${estado.hitoActual}`;
-            const content = localStorage.getItem(key);
-            
-            if (content) {
-                // Convertir markdown básico a HTML
-                let html = content
-                    .replace(/^## (.*)$/gm, '<h3>$1</h3>')
-                    .replace(/^# (.*)$/gm, '<h2>$1</h2>')
-                    .replace(/```python([\s\S]*?)```/g, '<pre>$1</pre>')
-                    .replace(/`([^`]+)`/g, '<code>$1</code>')
-                    .replace(/\n/g, '<br>');
-                
-                showModal('CLASE: ' + estado.hitoActual, `<div class="estudio-content">${html}</div>`);
-            } else {
-                showNotification('No hay clase guardada. Usa CREAR CLASE primero.');
+            const record = getLatestClassForCurrentHito();
+            if (!record) {
+                showNotification('No hay clase guardada. Usa CREAR CLASE e INCLUIR .MD.');
+                return;
             }
+            const html = markdownToHtml(record.content);
+            showModal(`CLASE: ${record.hito}`, `<div class="estudio-content">${html}</div>`);
         }
-        
-        // Añadir extra
+
         function anadirExtra() {
+            const options = EXTRA_CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
             showModal('AÑADIR MATERIAL EXTRA', `
-                <p>¿Qué aprendiste adicional por tu cuenta?</p>
+                <p>Guarda contenido adicional por categoría:</p>
                 <div class="textarea-container">
+                    <label class="textarea-label">Categoría</label>
+                    <select id="extra-category" class="textarea-input" style="min-height:auto;">
+                        ${options}
+                    </select>
+                </div>
+                <div class="textarea-container">
+                    <label class="textarea-label">O subir archivo desde tu PC (.md/.txt)</label>
+                    <input type="file" id="extra-file" accept=".md,.txt,.markdown,text/markdown,text/plain"
+                           class="textarea-input" style="min-height:auto;" onchange="loadFileToTextarea('extra-file','extra-content','extra-file-info')">
+                    <div id="extra-file-info" class="file-status" style="margin-top:6px;"></div>
+                </div>
+                <div class="textarea-container">
+                    <label class="textarea-label">Contenido extra</label>
                     <textarea class="textarea-input" id="extra-content" placeholder="Escribe lo que aprendiste adicional..."></textarea>
                 </div>
-                <button class="accion-btn primary" onclick="guardarExtra()">GUARDAR EN HISTORY</button>
+                <button class="accion-btn primary" onclick="guardarExtra()">GUARDAR EXTRA</button>
             `);
         }
-        
-        // Guardar extra
-        function guardarExtra() {
-            const content = document.getElementById('extra-content').value;
-            if (content.trim()) {
-                const fecha = new Date().toISOString().split('T')[0];
-                const historyKey = 'learning_history';
-                const existing = localStorage.getItem(historyKey) || '';
-                const entry = `${fecha} | ${estado.hitoActual} | EXTRA | ${content}\n`;
-                localStorage.setItem(historyKey, existing + entry);
-                showNotification('Material extra guardado en HISTORY.md');
-                closeModal();
-            } else {
-                showNotification('El contenido está vacío.');
+
+        async function guardarExtra() {
+            const category = document.getElementById('extra-category').value;
+            const textarea = document.getElementById('extra-content');
+            let content = textarea.value;
+            if (!content.trim()) {
+                await loadFileToTextarea('extra-file', 'extra-content', 'extra-file-info');
+                content = textarea.value;
             }
+            if (!content.trim()) {
+                showNotification('El contenido está vacío.');
+                return;
+            }
+            if (!EXTRA_CATEGORIES.includes(category)) {
+                showNotification('Categoría inválida.');
+                return;
+            }
+
+            const date = nowDate();
+            const safeHito = slugify(estado.hitoActual);
+            const fileName = `extra_${date}_${safeHito}_${category.toLowerCase()}.md`;
+            const relativeDir = `learning/estudios/${date}_${safeHito}/extras`;
+            const persisted = await persistMarkdownFile(fileName, content, relativeDir);
+            const record = {
+                id: makeId('extra'),
+                type: 'EXTRA_CONTENT',
+                hito: estado.hitoActual,
+                date,
+                createdAt: nowIso(),
+                category,
+                fileName,
+                content,
+                persistMode: persisted.mode,
+                persistLocation: persisted.location,
+            };
+
+            extraRecords.push(record);
+            saveAll();
+            closeModal();
+            showNotification(`Extra ${category} guardado (${persisted.mode}).`);
         }
-        
-        // Completar hito
+
         function completarHito() {
             showModal('COMPLETAR HITO', `
-                <p>¿Estás seguro de que completaste el hito <strong>${estado.hitoActual}</strong>?</p>
-                <p style="margin: 15px 0;">Esto:</p>
+                <p>¿Confirmas que completaste el hito <strong>${escapeHtml(estado.hitoActual)}</strong>?</p>
                 <ol>
-                    <li>Marcará el hito como completado en PROGRESS.md</li>
-                    <li>Añadirá entradas a HISTORY.md</li>
-                    <li>Avanzará al siguiente hito</li>
+                    <li>Se actualiza el progreso local.</li>
+                    <li>Puedes continuar al siguiente hito.</li>
                 </ol>
                 <button class="accion-btn primary" onclick="confirmarCompletar()">CONFIRMAR</button>
             `);
         }
-        
-        // Confirmar completar
+
         function confirmarCompletar() {
             estado.estado = 'completado';
-            
-            // Actualizar progreso (simulado)
-            estado.progreso.python += 5;
-            estado.progreso.math += 5;
-            estado.progreso.trading += 5;
-            estado.progreso.architect += 5;
-            
-            // Avanzar al siguiente hito
-            const hitos = ['Enum', '@dataclass', 'frozen=True', '__post_init__', 'NewType'];
-            const currentIndex = hitos.indexOf(estado.hitoActual);
-            if (currentIndex < hitos.length - 1) {
-                estado.hitoActual = hitos[currentIndex + 1];
-                estado.dia++;
+            estado.progreso.python = Math.min(100, estado.progreso.python + 5);
+            estado.progreso.math = Math.min(100, estado.progreso.math + 5);
+            estado.progreso.trading = Math.min(100, estado.progreso.trading + 5);
+            estado.progreso.architect = Math.min(100, estado.progreso.architect + 5);
+
+            const idx = HITOS.indexOf(estado.hitoActual);
+            if (idx >= 0 && idx < HITOS.length - 1) {
+                estado.hitoActual = HITOS[idx + 1];
+                estado.dia += 1;
+                estado.estado = 'pendiente';
             }
-            
-            // Actualizar UI
-            document.getElementById('hito-nombre').textContent = estado.hitoActual;
-            document.getElementById('hito-dia').textContent = estado.dia;
-            document.getElementById('hito-status').textContent = 'Pendiente';
-            document.getElementById('hito-status').className = 'hito-status pendiente';
-            
-            // Actualizar barras de progreso
-            document.querySelectorAll('.progreso-fill').forEach((el, i) => {
-                const tipos = ['python', 'math', 'trading', 'architect'];
-                el.style.width = estado.progreso[tipos[i]] + '%';
-            });
-            document.querySelectorAll('.progreso-pct').forEach((el, i) => {
-                const tipos = ['python', 'math', 'trading', 'architect'];
-                el.textContent = estado.progreso[tipos[i]] + '%';
-            });
-            
-            showNotification('Hito completado. Avanzando al siguiente...');
+
+            saveAll();
+            refreshUI();
             closeModal();
+            showNotification('Hito actualizado.');
         }
-        
-        // Ver historial
+
         function verHistorial() {
-            const history = localStorage.getItem('learning_history') || 'Aún no hay entradas en el historial.';
-            showModal('HISTORIAL DE APRENDIZAJE', `
-                <pre>${history}</pre>
+            const history = localStorage.getItem(STORAGE_KEYS.history) || 'Aún no hay entradas en el historial.';
+            showModal('HISTORIAL DE APRENDIZAJE', `<pre>${escapeHtml(history)}</pre>`);
+        }
+
+        function allRecords() {
+            const classes = classRecords.map((r) => ({ ...r, viewCategory: 'CLASS_CONTENT', badgeClass: 'class', typeKey: 'class' }));
+            const extras = extraRecords.map((r) => ({
+                ...r,
+                viewCategory: r.category,
+                badgeClass: categoryBadge(r.category),
+                typeKey: 'extra',
+            }));
+            return [...classes, ...extras].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        }
+
+        function categoryBadge(category) {
+            if (category === 'PYTHON_TUTOR') return 'python';
+            if (category === 'MATH_TUTOR') return 'math';
+            if (category === 'TRADING_EXPERT') return 'trading';
+            if (category === 'ARCHITECT') return 'architect';
+            return 'class';
+        }
+
+        function gestionarArchivos() {
+            showModal('GESTIONAR ARCHIVOS', `
+                <div class="file-tools">
+                    <button class="accion-btn primary full" onclick="configurarCarpetaMD()">CONFIGURAR CARPETA .MD (opcional)</button>
+                    <select id="file-category-filter" onchange="renderFileList()">
+                        <option value="ALL">TODAS</option>
+                        <option value="CLASS_CONTENT">CLASS_CONTENT</option>
+                        ${EXTRA_CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                    <input id="file-search-input" type="text" placeholder="Buscar por nombre, hito o contenido..." oninput="renderFileList()">
+                    <div id="fs-status" class="file-status full"></div>
+                </div>
+                <div id="file-list" class="file-list"></div>
+            `);
+            updateFsStatus();
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('file-list');
+            if (!container) return;
+
+            const category = document.getElementById('file-category-filter')?.value || 'ALL';
+            const q = (document.getElementById('file-search-input')?.value || '').toLowerCase().trim();
+            let records = allRecords();
+
+            if (category !== 'ALL') {
+                records = records.filter((r) => r.viewCategory === category);
+            }
+            if (q) {
+                records = records.filter((r) => {
+                    const haystack = `${r.fileName} ${r.hito} ${r.viewCategory} ${r.content}`.toLowerCase();
+                    return haystack.includes(q);
+                });
+            }
+
+            if (records.length === 0) {
+                container.innerHTML = '<div class="file-item">No hay archivos para ese filtro.</div>';
+                return;
+            }
+
+            container.innerHTML = records.map((r) => {
+                const preview = escapeHtml(r.content.slice(0, 180)).replace(/\n/g, ' ');
+                return `
+                    <div class="file-item">
+                        <div class="file-item-header">
+                            <span class="file-badge ${r.badgeClass}">${r.viewCategory}</span>
+                            <span class="file-name">${escapeHtml(r.fileName)}</span>
+                        </div>
+                        <div class="file-meta">${escapeHtml(r.date)} | Hito: ${escapeHtml(r.hito)} | Persistencia: ${escapeHtml(r.persistMode || 'memory')}</div>
+                        <div class="file-preview">${preview}${r.content.length > 180 ? '...' : ''}</div>
+                        <div class="file-actions">
+                            <button class="accion-btn small" onclick="verArchivo('${r.id}', '${r.typeKey}')">VER</button>
+                            <button class="accion-btn danger small" onclick="eliminarArchivo('${r.id}', '${r.typeKey}')">ELIMINAR</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function findRecord(id, type) {
+            if (type === 'class') {
+                return classRecords.find((r) => r.id === id) || null;
+            }
+            return extraRecords.find((r) => r.id === id) || null;
+        }
+
+        function verArchivo(id, type) {
+            const record = findRecord(id, type);
+            if (!record) {
+                showNotification('Archivo no encontrado.');
+                return;
+            }
+            showModal(`VER ARCHIVO: ${record.fileName}`, `
+                <div class="estudio-content">${markdownToHtml(record.content)}</div>
+                <div style="margin-top: 12px;">
+                    <button class="accion-btn danger" onclick="eliminarArchivo('${record.id}', '${type}')">ELIMINAR ESTE ARCHIVO</button>
+                </div>
             `);
         }
-        
-        // Mostrar modal
+
+        function eliminarArchivo(id, type) {
+            const msg = type === 'class'
+                ? '¿Eliminar este contenido de clase?'
+                : '¿Eliminar este contenido extra específico?';
+            if (!confirm(msg)) return;
+
+            if (type === 'class') {
+                classRecords = classRecords.filter((r) => r.id !== id);
+            } else {
+                extraRecords = extraRecords.filter((r) => r.id !== id);
+            }
+            saveAll();
+            if (document.getElementById('file-list')) {
+                renderFileList();
+            }
+            showNotification('Contenido eliminado.');
+        }
+
+        function toggleModalFullscreen() {
+            const modalContent = document.querySelector('#modal .modal-content');
+            const btn = document.getElementById('modal-fullscreen-btn');
+            if (!modalContent) return;
+            modalContent.classList.toggle('fullscreen');
+            if (btn) {
+                btn.textContent = modalContent.classList.contains('fullscreen') ? '🗗' : '⛶';
+                btn.title = modalContent.classList.contains('fullscreen')
+                    ? 'Salir de pantalla completa'
+                    : 'Pantalla completa';
+            }
+        }
+
         function showModal(title, content) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-body').innerHTML = content;
             document.getElementById('modal').classList.add('active');
+            const modalContent = document.querySelector('#modal .modal-content');
+            const btn = document.getElementById('modal-fullscreen-btn');
+            if (modalContent) modalContent.classList.remove('fullscreen');
+            if (btn) {
+                btn.textContent = '⛶';
+                btn.title = 'Pantalla completa';
+            }
+            enhanceModalContent();
         }
-        
-        // Cerrar modal
+
         function closeModal() {
             document.getElementById('modal').classList.remove('active');
+            const modalContent = document.querySelector('#modal .modal-content');
+            if (modalContent) modalContent.classList.remove('fullscreen');
         }
-        
-        // Mostrar notificación
+
         function showNotification(message) {
             const notif = document.getElementById('notification');
             notif.textContent = message;
             notif.classList.add('show');
             setTimeout(() => notif.classList.remove('show'), 3000);
         }
-        
-        // Cerrar modal con Escape
+
+        function init() {
+            loadAll();
+            refreshUI();
+            saveAll();
+        }
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModal();
         });
-        
-        // Cerrar modal clickeando fuera
+
         document.getElementById('modal').addEventListener('click', (e) => {
             if (e.target.id === 'modal') closeModal();
         });
+
+        init();
     </script>
 </body>
 </html>
