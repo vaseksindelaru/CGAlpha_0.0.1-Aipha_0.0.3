@@ -273,6 +273,11 @@
             align-items: flex-start;
             padding: 50px 20px;
         }
+
+        .modal.active.modal-fullscreen {
+            align-items: stretch;
+            padding: 0;
+        }
         
         .modal-content {
             background: #16213e;
@@ -284,11 +289,25 @@
         }
 
         .modal-content.fullscreen {
-            width: calc(100vw - 24px);
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            width: auto;
             max-width: none;
-            height: calc(100vh - 24px);
-            border-radius: 8px;
-            padding: 22px;
+            height: auto;
+            max-height: none;
+            margin: 0;
+            border-radius: 0;
+            padding: clamp(12px, 2vw, 22px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-content.fullscreen .modal-title {
+            padding-right: 80px;
+            flex: 0 0 auto;
         }
         
         .modal-close {
@@ -324,7 +343,9 @@
         }
 
         .modal-content.fullscreen .modal-body {
-            max-height: calc(100vh - 110px);
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
             overflow-y: auto;
             padding-right: 6px;
         }
@@ -397,6 +418,12 @@
             max-height: 400px;
             overflow-y: auto;
         }
+
+        .modal-content.fullscreen .estudio-content {
+            max-height: none;
+            height: 100%;
+            margin: 0;
+        }
         
         .estudio-content h2 {
             color: #00d4aa;
@@ -426,6 +453,16 @@
             display: block;
         }
 
+        .estudio-content .tok-keyword { color: #c792ea; }
+        .estudio-content .tok-string { color: #ecc48d; }
+        .estudio-content .tok-comment { color: #7f8c98; font-style: italic; }
+        .estudio-content .tok-number { color: #f78c6c; }
+        .estudio-content .tok-identifier { color: #82aaff; }
+        .estudio-content .tok-operator { color: #89ddff; }
+        .estudio-content .tok-function { color: #7dd3fc; }
+        .estudio-content .tok-type { color: #4ade80; }
+        .estudio-content .tok-decorator { color: #f472b6; }
+
         .bracket {
             font-weight: 700;
             text-shadow: 0 0 4px rgba(0,0,0,0.55);
@@ -442,10 +479,10 @@
         .bracket-depth-6 { color: #22d3ee; }
         .bracket-depth-7 { color: #bef264; }
 
-        .bracket-type-round { background: rgba(56,189,248,0.14); border-bottom: 1px solid rgba(56,189,248,0.75); }
-        .bracket-type-square { background: rgba(74,222,128,0.14); border-bottom: 1px solid rgba(74,222,128,0.75); }
-        .bracket-type-curly { background: rgba(250,204,21,0.16); border-bottom: 1px solid rgba(250,204,21,0.75); }
-        .bracket-type-angle { background: rgba(244,114,182,0.16); border-bottom: 1px solid rgba(244,114,182,0.75); }
+        .bracket-type-round { background: transparent; border-bottom: none; }
+        .bracket-type-square { background: transparent; border-bottom: none; }
+        .bracket-type-curly { background: transparent; border-bottom: none; }
+        .bracket-type-angle { background: transparent; border-bottom: none; }
 
         .bracket-mismatch {
             color: #ef4444 !important;
@@ -703,6 +740,15 @@
     <!-- NOTIFICACIÓN -->
     <div class="notification" id="notification"></div>
 
+    <script src="https://unpkg.com/prettier@3.3.3/standalone.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/babel.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/estree.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/html.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/markdown.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/postcss.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/typescript.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/yaml.js"></script>
+
     <script>
         const EXTRA_CATEGORIES = ['PYTHON_TUTOR', 'MATH_TUTOR', 'TRADING_EXPERT', 'ARCHITECT'];
         const STORAGE_KEYS = {
@@ -710,6 +756,7 @@
             classes: 'learning_classes_v2',
             extras: 'learning_extras_v2',
             history: 'learning_history_v2',
+            readerSettings: 'learning_reader_settings_v1',
         };
         const HITOS = ['Enum', '@dataclass', 'frozen=True', '__post_init__', 'NewType'];
 
@@ -723,6 +770,9 @@
         let classRecords = [];
         let extraRecords = [];
         let fsRootHandle = null;
+        let readerSettings = {
+            prettierOnRead: true,
+        };
 
         const promptCrearClase = `Lee los siguientes archivos de la carpeta learning/:
 1. PROMPT_INICIAL.md - Instrucciones para ti
@@ -778,8 +828,11 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
         function markdownToHtml(md) {
             const normalized = String(md || '').replace(/\r\n/g, '\n');
             const codeBlocks = [];
-            let text = normalized.replace(/```([\s\S]*?)```/g, (_m, code) => {
-                const idx = codeBlocks.push(code) - 1;
+            let text = normalized.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (_m, lang, code) => {
+                const idx = codeBlocks.push({
+                    lang: String(lang || '').trim().toLowerCase(),
+                    code,
+                }) - 1;
                 return `@@CODEBLOCK_${idx}@@`;
             });
 
@@ -821,8 +874,9 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
                 if (codeMatch) {
                     flushParagraph();
                     closeLists();
-                    const code = codeBlocks[Number(codeMatch[1])] || '';
-                    out.push(`<pre><code class="code-view">${escapeHtml(code)}</code></pre>`);
+                    const block = codeBlocks[Number(codeMatch[1])] || { lang: '', code: '' };
+                    const langClass = block.lang ? ` language-${escapeHtml(block.lang)}` : '';
+                    out.push(`<pre><code class="code-view${langClass}">${escapeHtml(block.code)}</code></pre>`);
                     continue;
                 }
 
@@ -888,8 +942,185 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             return out.join('\n');
         }
 
+        function inferLanguage(raw, lang) {
+            const declared = String(lang || '').toLowerCase();
+            if (declared) return declared;
+            const text = String(raw || '');
+            if (/^\s*#include\s+<|\bstd::\b|\bint\s+main\s*\(/m.test(text)) return 'cpp';
+            if (/^\s*from\s+\w+\s+import\s+|^\s*def\s+\w+\s*\(|^\s*class\s+\w+\s*\(|\bself\b/m.test(text)) return 'python';
+            if (/^\s*<\/?[a-z][\s\S]*>/mi.test(text)) return 'html';
+            if (/\b(const|let|var|function|=>|import\s+.+\s+from)\b/m.test(text)) return 'javascript';
+            return 'plain';
+        }
+
+        function tokenizeCode(raw, lang) {
+            const language = inferLanguage(raw, lang);
+            const pyKeywords = new Set([
+                'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif',
+                'else', 'except', 'False', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
+                'lambda', 'None', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'True', 'try', 'while',
+                'with', 'yield', 'match', 'case'
+            ]);
+            const jsKeywords = new Set([
+                'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do',
+                'else', 'export', 'extends', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof',
+                'let', 'new', 'return', 'super', 'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void',
+                'while', 'with', 'yield', 'async', 'await', 'true', 'false', 'null', 'undefined'
+            ]);
+
+            const tokens = [];
+            const len = raw.length;
+            let i = 0;
+
+            function push(type, text) {
+                if (!text) return;
+                tokens.push({ type, text });
+            }
+
+            while (i < len) {
+                const ch = raw[i];
+                const next = raw[i + 1] || '';
+
+                if (language.includes('python') && ch === '#') {
+                    let j = i + 1;
+                    while (j < len && raw[j] !== '\n') j += 1;
+                    push('tok-comment', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+                if ((language.includes('js') || language.includes('ts') || language.includes('json') || language.includes('css') || language.includes('html')) && ch === '/' && next === '/') {
+                    let j = i + 2;
+                    while (j < len && raw[j] !== '\n') j += 1;
+                    push('tok-comment', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+                if ((language.includes('js') || language.includes('ts') || language.includes('css') || language.includes('html')) && ch === '/' && next === '*') {
+                    let j = i + 2;
+                    while (j < len - 1 && !(raw[j] === '*' && raw[j + 1] === '/')) j += 1;
+                    j = Math.min(len, j + 2);
+                    push('tok-comment', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+
+                if (ch === '"' || ch === '\'' || ch === '`') {
+                    const q = ch;
+                    let j = i + 1;
+                    while (j < len) {
+                        if (raw[j] === '\\') {
+                            j += 2;
+                            continue;
+                        }
+                        if (raw[j] === q) {
+                            j += 1;
+                            break;
+                        }
+                        j += 1;
+                    }
+                    push('tok-string', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+
+                if (/\d/.test(ch)) {
+                    let j = i + 1;
+                    while (j < len && /[\d._]/.test(raw[j])) j += 1;
+                    push('tok-number', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+
+                if (/[A-Za-z_]/.test(ch)) {
+                    let j = i + 1;
+                    while (j < len && /[A-Za-z0-9_]/.test(raw[j])) j += 1;
+                    const word = raw.slice(i, j);
+                    const kw = language.includes('python') ? pyKeywords : jsKeywords;
+                    const nextSlice = raw.slice(j, j + 3);
+                    const prev = raw[i - 1] || '';
+
+                    if (word.startsWith('@')) {
+                        push('tok-decorator', word);
+                        i = j;
+                        continue;
+                    }
+                    if (kw.has(word)) {
+                        push('tok-keyword', word);
+                    } else if (/[A-Z]/.test(word[0])) {
+                        push('tok-type', word);
+                    } else if (/^\s*\(/.test(nextSlice) && prev !== '.') {
+                        push('tok-function', word);
+                    } else {
+                        push('tok-identifier', word);
+                    }
+                    i = j;
+                    continue;
+                }
+
+                if (/[=+\-*/%<>!&|^~?:.,;]/.test(ch)) {
+                    push('tok-operator', ch);
+                    i += 1;
+                    continue;
+                }
+
+                push('', ch);
+                i += 1;
+            }
+
+            return tokens;
+        }
+
+        function renderTokenWithBrackets(text, tokenClass, stack, openToClose, closeToOpen) {
+            let html = '';
+            let segment = '';
+
+            function flushSegment() {
+                if (!segment) return;
+                if (tokenClass) {
+                    html += `<span class="${tokenClass}">${escapeHtml(segment)}</span>`;
+                } else {
+                    html += escapeHtml(segment);
+                }
+                segment = '';
+            }
+
+            for (const ch of text) {
+                if (openToClose[ch]) {
+                    flushSegment();
+                    const depth = stack.length % 8;
+                    const type = openToClose[ch].type;
+                    const classes = ['bracket', `bracket-depth-${depth}`, `bracket-type-${type}`];
+                    if (tokenClass) classes.unshift(tokenClass);
+                    html += `<span class="${classes.join(' ')}">${escapeHtml(ch)}</span>`;
+                    stack.push({ expectedClose: openToClose[ch].close, depth, type });
+                    continue;
+                }
+
+                if (closeToOpen[ch]) {
+                    flushSegment();
+                    const last = stack[stack.length - 1];
+                    if (last && last.expectedClose === ch) {
+                        const classes = ['bracket', `bracket-depth-${last.depth}`, `bracket-type-${last.type}`];
+                        if (tokenClass) classes.unshift(tokenClass);
+                        html += `<span class="${classes.join(' ')}">${escapeHtml(ch)}</span>`;
+                        stack.pop();
+                    } else {
+                        const classes = ['bracket', 'bracket-mismatch'];
+                        if (tokenClass) classes.unshift(tokenClass);
+                        html += `<span class="${classes.join(' ')}">${escapeHtml(ch)}</span>`;
+                    }
+                    continue;
+                }
+
+                segment += ch;
+            }
+
+            flushSegment();
+            return html;
+        }
+
         function colorizeBracketPairsInCode(container) {
-            const blocks = container.querySelectorAll('code');
+            const blocks = container.querySelectorAll('code.code-view');
             const openToClose = {
                 '(': { close: ')', type: 'round' },
                 '[': { close: ']', type: 'square' },
@@ -901,35 +1132,15 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             blocks.forEach((block) => {
                 if (block.dataset.bracketsColored === '1') return;
                 const raw = block.textContent || '';
+                const lang = Array.from(block.classList)
+                    .find((c) => c.startsWith('language-'))
+                    ?.slice('language-'.length) || '';
+                const tokens = tokenizeCode(raw, lang);
                 const stack = [];
                 let html = '';
 
-                for (const ch of raw) {
-                    if (openToClose[ch]) {
-                        const depth = stack.length % 8;
-                        const type = openToClose[ch].type;
-                        html += `<span class="bracket bracket-depth-${depth} bracket-type-${type}">${escapeHtml(ch)}</span>`;
-                        stack.push({
-                            open: ch,
-                            expectedClose: openToClose[ch].close,
-                            depth,
-                            type,
-                        });
-                        continue;
-                    }
-
-                    if (closeToOpen[ch]) {
-                        const last = stack[stack.length - 1];
-                        if (last && last.expectedClose === ch) {
-                            html += `<span class="bracket bracket-depth-${last.depth} bracket-type-${last.type}">${escapeHtml(ch)}</span>`;
-                            stack.pop();
-                        } else {
-                            html += `<span class="bracket bracket-mismatch">${escapeHtml(ch)}</span>`;
-                        }
-                        continue;
-                    }
-
-                    html += escapeHtml(ch);
+                for (const token of tokens) {
+                    html += renderTokenWithBrackets(token.text, token.type, stack, openToClose, closeToOpen);
                 }
 
                 block.innerHTML = html;
@@ -969,6 +1180,55 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             }
         }
 
+        function detectPrettierParser(fileName, content) {
+            const name = String(fileName || '').toLowerCase();
+            if (name.endsWith('.md') || name.endsWith('.markdown') || name.endsWith('.mdx') || name.endsWith('.txt')) return 'markdown';
+            if (name.endsWith('.json')) return 'json';
+            if (name.endsWith('.js') || name.endsWith('.mjs') || name.endsWith('.cjs')) return 'babel';
+            if (name.endsWith('.ts') || name.endsWith('.tsx')) return 'typescript';
+            if (name.endsWith('.css') || name.endsWith('.scss') || name.endsWith('.less')) return 'css';
+            if (name.endsWith('.html') || name.endsWith('.htm')) return 'html';
+            if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'yaml';
+            if (/^\s*[\[{]/.test(content || '')) return 'json';
+            return 'markdown';
+        }
+
+        function getPrettierPlugins() {
+            const candidates = [
+                window.prettierPlugins?.babel,
+                window.prettierPlugins?.estree,
+                window.prettierPlugins?.html,
+                window.prettierPlugins?.markdown,
+                window.prettierPlugins?.postcss,
+                window.prettierPlugins?.typescript,
+                window.prettierPlugins?.yaml,
+            ];
+            return candidates.filter(Boolean);
+        }
+
+        async function formatWithPrettierForReader(fileName, content) {
+            if (!readerSettings.prettierOnRead) return content;
+            if (!window.prettier || typeof window.prettier.format !== 'function') return content;
+
+            const parser = detectPrettierParser(fileName, content);
+            const plugins = getPrettierPlugins();
+            if (plugins.length === 0) return content;
+
+            try {
+                const formatted = await window.prettier.format(String(content || ''), {
+                    parser,
+                    plugins,
+                    printWidth: 100,
+                    tabWidth: 2,
+                    useTabs: false,
+                    proseWrap: 'preserve',
+                });
+                return typeof formatted === 'string' ? formatted : content;
+            } catch (_err) {
+                return content;
+            }
+        }
+
         function saveAll() {
             localStorage.setItem(STORAGE_KEYS.state, JSON.stringify(estado));
             localStorage.setItem(STORAGE_KEYS.classes, JSON.stringify(classRecords));
@@ -981,14 +1241,22 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
                 const storedState = localStorage.getItem(STORAGE_KEYS.state);
                 const storedClasses = localStorage.getItem(STORAGE_KEYS.classes);
                 const storedExtras = localStorage.getItem(STORAGE_KEYS.extras);
+                const storedReaderSettings = localStorage.getItem(STORAGE_KEYS.readerSettings);
 
                 if (storedState) estado = { ...estado, ...JSON.parse(storedState) };
                 if (storedClasses) classRecords = JSON.parse(storedClasses) || [];
                 if (storedExtras) extraRecords = JSON.parse(storedExtras) || [];
+                if (storedReaderSettings) {
+                    readerSettings = { ...readerSettings, ...JSON.parse(storedReaderSettings) };
+                }
             } catch (_err) {
                 classRecords = [];
                 extraRecords = [];
             }
+        }
+
+        function saveReaderSettings() {
+            localStorage.setItem(STORAGE_KEYS.readerSettings, JSON.stringify(readerSettings));
         }
 
         function refreshUI() {
@@ -1163,13 +1431,14 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             return any[0] || null;
         }
 
-        function leerClase() {
+        async function leerClase() {
             const record = getLatestClassForCurrentHito();
             if (!record) {
                 showNotification('No hay clase guardada. Usa CREAR CLASE e INCLUIR .MD.');
                 return;
             }
-            const html = markdownToHtml(record.content);
+            const formatted = await formatWithPrettierForReader(record.fileName, record.content);
+            const html = markdownToHtml(formatted);
             showModal(`CLASE: ${record.hito}`, `<div class="estudio-content">${html}</div>`);
         }
 
@@ -1297,6 +1566,10 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             showModal('GESTIONAR ARCHIVOS', `
                 <div class="file-tools">
                     <button class="accion-btn primary full" onclick="configurarCarpetaMD()">CONFIGURAR CARPETA .MD (opcional)</button>
+                    <label class="file-status full" style="display:flex; gap:8px; align-items:center;">
+                        <input type="checkbox" id="toggle-prettier-read" onchange="togglePrettierRead(this.checked)">
+                        Aplicar Prettier Formatter al leer archivos
+                    </label>
                     <select id="file-category-filter" onchange="renderFileList()">
                         <option value="ALL">TODAS</option>
                         <option value="CLASS_CONTENT">CLASS_CONTENT</option>
@@ -1308,7 +1581,17 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
                 <div id="file-list" class="file-list"></div>
             `);
             updateFsStatus();
+            const toggle = document.getElementById('toggle-prettier-read');
+            if (toggle) toggle.checked = !!readerSettings.prettierOnRead;
             renderFileList();
+        }
+
+        function togglePrettierRead(checked) {
+            readerSettings.prettierOnRead = !!checked;
+            saveReaderSettings();
+            showNotification(readerSettings.prettierOnRead
+                ? 'Prettier activado para el lector.'
+                : 'Prettier desactivado para el lector.');
         }
 
         function renderFileList() {
@@ -1360,14 +1643,15 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             return extraRecords.find((r) => r.id === id) || null;
         }
 
-        function verArchivo(id, type) {
+        async function verArchivo(id, type) {
             const record = findRecord(id, type);
             if (!record) {
                 showNotification('Archivo no encontrado.');
                 return;
             }
+            const formatted = await formatWithPrettierForReader(record.fileName, record.content);
             showModal(`VER ARCHIVO: ${record.fileName}`, `
-                <div class="estudio-content">${markdownToHtml(record.content)}</div>
+                <div class="estudio-content">${markdownToHtml(formatted)}</div>
                 <div style="margin-top: 12px;">
                     <button class="accion-btn danger" onclick="eliminarArchivo('${record.id}', '${type}')">ELIMINAR ESTE ARCHIVO</button>
                 </div>
@@ -1393,10 +1677,14 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
         }
 
         function toggleModalFullscreen() {
+            const modal = document.getElementById('modal');
             const modalContent = document.querySelector('#modal .modal-content');
             const btn = document.getElementById('modal-fullscreen-btn');
             if (!modalContent) return;
             modalContent.classList.toggle('fullscreen');
+            if (modal) {
+                modal.classList.toggle('modal-fullscreen', modalContent.classList.contains('fullscreen'));
+            }
             if (btn) {
                 btn.textContent = modalContent.classList.contains('fullscreen') ? '🗗' : '⛶';
                 btn.title = modalContent.classList.contains('fullscreen')
@@ -1406,9 +1694,11 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
         }
 
         function showModal(title, content) {
+            const modal = document.getElementById('modal');
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-body').innerHTML = content;
-            document.getElementById('modal').classList.add('active');
+            modal.classList.add('active');
+            modal.classList.remove('modal-fullscreen');
             const modalContent = document.querySelector('#modal .modal-content');
             const btn = document.getElementById('modal-fullscreen-btn');
             if (modalContent) modalContent.classList.remove('fullscreen');
@@ -1420,7 +1710,9 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
         }
 
         function closeModal() {
-            document.getElementById('modal').classList.remove('active');
+            const modal = document.getElementById('modal');
+            modal.classList.remove('active');
+            modal.classList.remove('modal-fullscreen');
             const modalContent = document.querySelector('#modal .modal-content');
             if (modalContent) modalContent.classList.remove('fullscreen');
         }
@@ -1434,6 +1726,7 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
 
         function init() {
             loadAll();
+            saveReaderSettings();
             refreshUI();
             saveAll();
         }
