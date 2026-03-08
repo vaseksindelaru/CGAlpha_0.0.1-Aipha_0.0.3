@@ -1071,6 +1071,53 @@
             background: #14314d;
         }
 
+        .ai-history-conv-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .ai-history-conv-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .ai-history-conv-action {
+            border: 1px solid rgba(0, 212, 170, 0.28);
+            background: #162a41;
+            color: #9df1dc;
+            border-radius: 6px;
+            font-size: 10px;
+            line-height: 1;
+            padding: 5px 6px;
+            cursor: pointer;
+            min-width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-history-conv-action:hover {
+            background: #1b3552;
+            border-color: rgba(0, 212, 170, 0.45);
+        }
+
+        .ai-history-conv-action.danger {
+            border-color: rgba(255, 107, 107, 0.35);
+            background: #3a1f22;
+            color: #ffc5c5;
+        }
+
+        .ai-history-conv-action.danger:hover {
+            border-color: rgba(255, 107, 107, 0.55);
+            background: #4a2529;
+        }
+
         .ai-history-conv-title {
             font-size: 11px;
             font-weight: 600;
@@ -2519,6 +2566,7 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             fullscreen: false,
             apiKey: '',
             activeConversationId: null,
+            showMessageListInSidebar: false,
             conversations: [],
             history: [], // {role:'user'|'assistant', text:'...'}
         };
@@ -2596,6 +2644,52 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             aiUpdateContext();
         }
 
+        function aiDeleteConversation(conversationId) {
+            aiEnsureConversations();
+            const target = aiState.conversations.find((c) => c.id === conversationId);
+            if (!target) return;
+
+            const ok = confirm(`¿Eliminar conversación "${target.title || 'Nueva conversación'}"?`);
+            if (!ok) return;
+
+            aiState.conversations = aiState.conversations.filter((c) => c.id !== target.id);
+
+            if (aiState.conversations.length === 0) {
+                aiState.conversations = [{
+                    id: aiMakeConversationId(),
+                    title: 'Nueva conversación',
+                    createdAt: nowIso(),
+                    updatedAt: nowIso(),
+                    history: [],
+                }];
+            }
+
+            if (aiState.activeConversationId === target.id) {
+                aiState.activeConversationId = aiState.conversations[0].id;
+                aiState.history = (aiState.conversations[0].history || []).slice();
+            }
+
+            aiSave();
+            aiRenderMessages();
+            aiUpdateContext();
+            showNotification('Conversación eliminada.');
+        }
+
+        function aiToggleSidebarMessages(conversationId) {
+            if (conversationId && aiState.activeConversationId !== conversationId) {
+                const target = aiState.conversations.find((c) => c.id === conversationId);
+                if (target) {
+                    aiPersistActiveHistory();
+                    aiState.activeConversationId = conversationId;
+                    aiState.history = (target.history || []).slice();
+                }
+            }
+            aiState.showMessageListInSidebar = !aiState.showMessageListInSidebar;
+            aiSave();
+            aiRenderMessages();
+            aiUpdateContext();
+        }
+
         // ---- Persistencia del asistente ----
         function aiLoad() {
             try {
@@ -2613,6 +2707,7 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
             localStorage.setItem(AI_STORAGE_KEY, JSON.stringify({
                 collapsed: aiState.collapsed,
                 fullscreen: aiState.fullscreen,
+                showMessageListInSidebar: aiState.showMessageListInSidebar,
                 apiKey: aiState.apiKey,
                 activeConversationId: aiState.activeConversationId,
                 conversations: aiState.conversations
@@ -2759,12 +2854,19 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
                     : 'Sin mensajes aún';
                 const dateLabel = conv.updatedAt ? new Date(conv.updatedAt).toLocaleString() : '';
                 const isActive = conv.id === aiState.activeConversationId ? ' active' : '';
+                const isVisible = aiState.showMessageListInSidebar && conv.id === aiState.activeConversationId;
                 return `
-                    <button class="ai-history-item${isActive}" onclick="aiSwitchConversation('${conv.id}')" title="Abrir conversación">
-                        <div class="ai-history-conv-title">${escapeHtml(conv.title || 'Nueva conversación')}</div>
+                    <div class="ai-history-item${isActive}" onclick="aiSwitchConversation('${conv.id}')" title="Abrir conversación">
+                        <div class="ai-history-conv-head">
+                            <div class="ai-history-conv-title">${escapeHtml(conv.title || 'Nueva conversación')}</div>
+                            <div class="ai-history-conv-actions">
+                                <button class="ai-history-conv-action" onclick="event.stopPropagation(); aiToggleSidebarMessages('${conv.id}')" title="Ver contenido de esta conversación">${isVisible ? '🙈' : '👁'}</button>
+                                <button class="ai-history-conv-action danger" onclick="event.stopPropagation(); aiDeleteConversation('${conv.id}')" title="Eliminar esta conversación">🗑</button>
+                            </div>
+                        </div>
                         <div class="ai-history-meta">${escapeHtml(dateLabel)} · ${conv.history?.length || 0} mensajes</div>
                         <div>${escapeHtml(preview)}${preview.length >= 78 ? '…' : ''}</div>
-                    </button>
+                    </div>
                 `;
             }).join('');
 
@@ -2786,8 +2888,10 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
                     <button class="ai-history-new-btn" onclick="aiCreateNewConversation()">+ Nueva conversación</button>
                 </div>
                 ${convoItems || '<div class="ai-history-item" style="cursor:default;">No hay conversaciones.</div>'}
-                <div class="ai-history-title" style="margin-top:10px;">Conversación activa (${aiState.history.length})</div>
-                ${messageItems || '<div class="ai-history-item" style="cursor:default;">Sin mensajes aún.</div>'}
+                ${aiState.showMessageListInSidebar ? `
+                    <div class="ai-history-title" style="margin-top:10px;">Conversación activa (${aiState.history.length})</div>
+                    ${messageItems || '<div class="ai-history-item" style="cursor:default;">Sin mensajes aún.</div>'}
+                ` : ''}
             `;
         }
 
