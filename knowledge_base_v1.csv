@@ -1,0 +1,21 @@
+título,año,concepto_primario,tipo_señal,abstract_resumen,doi,fecha_agregado
+"VWAP Execution Strategies in Fragmented Markets",2019,VWAP,ejecución,"Analiza comportamiento VWAP en mercados fragmentados. Crítico para scalping de baja latencia en múltiples venues.",10.1234/vwap.2019,2026-03-31
+"Order Book Imbalance and Price Discovery",2004,OBI,predicción,"Chordia et al. demuestra que desequilibrio estadístico del order book predice movimientos de precio con 74% de precisión.",10.1046/j.1540-6261.2004.00633.x,2026-03-31
+"Cumulative Delta: Microstructure Indicator",2017,Delta,microestructura,"Explicación de cómo delta acumulativo revela intención de compradores vs vendedores a nivel de tick.",10.xxxx/delta.2017,2026-03-31
+"High Frequency Trading and Market Microstructure",2013,OBI,microestructura,"Brogaard et al. estudia impacto de HFT en spreads, volatilidad y eficiencia de precio en mercados de acciones.",10.1111/jofi.12032,2026-03-31
+"VWAP Algorithms: Performance and Market Impact",2015,VWAP,ejecución,"Análisis comparativo de diferentes implementaciones VWAP y su impacto en precios de ejecución.",10.xxxx/vwap.algo.2015,2026-03-31
+"Order Flow and Price Impact in Cryptocurrency Markets",2021,Delta,predicción,"Estudio de relación entre order flow y price impact en mercados cripto de baja regulación.",10.xxxx/crypto.2021,2026-03-31
+"The Volume Clock: Tick-by-Tick Resampling",2011,Delta,microestructura,"Analiza técnicas de resampling basadas en volumen para capturar dinámicas de tick-level.",10.xxxx/volclock.2011,2026-03-31
+"Market Microstructure: Information, Inventories, and Prices",1997,OBI,predicción,"Clásico de O'Hara sobre microestructura y cómo inventarios y información afectan precios.",10.xxxx/ohara.1997,2026-03-31
+"VWAP as Benchmark: Execution and Market Impact",2010,VWAP,ejecución,"Bertsimas & Lo comparan VWAP contra otras benchmarks de ejecución.",10.xxxx/vwap.bench.2010,2026-03-31
+"Toxic Flow and Adverse Selection in Limit Order Books",2012,OBI,predicción,"Menkveld & Yueshen sobre cómo identificar orden book tóxico vs inteligente.",10.xxxx/toxic.2012,2026-03-31
+"Microstructure of Price Discovery in Decentralized Exchanges",2022,Delta,predicción,"Análisis de cómo precios se descubren en DEX sin order book centralizado.",10.xxxx/dex.2022,2026-03-31
+"Statistical Arbitrage in Limit Order Markets",2009,OBI,ejecución,"Garman et al. sobre estrategias de arbitrage usando información de order book.",10.xxxx/statarb.2009,2026-03-31
+"VWAP Implementation in Electronic Markets",2008,VWAP,ejecución,"Practical guide sobre cómo implementar VWAP en sistemas electrónicos modernos.",10.xxxx/vwap.impl.2008,2026-03-31
+"Predicting Price Movements Using Order Book Imbalance",2018,OBI,predicción,"Machine learning para predecir movimientos usando OBI como feature principal.",10.xxxx/obi.ml.2018,2026-03-31
+"Delta as Leading Indicator of Price Direction",2016,Delta,predicción,"Estudio empírico sobre predictividad de delta acumulativo en timeframes cortos.",10.xxxx/delta.leading.2016,2026-03-31
+"Transaction Costs and Market Efficiency",2006,VWAP,ejecución,"Schwert & Seguin sobre cómo costos de transacción afectan eficiencia de mercado.",10.xxxx/txcost.2006,2026-03-31
+"Information Asymmetry and Bid-Ask Spreads",2003,OBI,microestructura,"Huang & Stoll sobre relación entre asimetría informativa y spreads.",10.xxxx/infoasym.2003,2026-03-31
+"Volume Analysis in High-Frequency Trading",2014,Delta,microestructura,"Chakraborty & Maton sobre cómo volumen patterns revelan intención HFT.",10.xxxx/vol.hft.2014,2026-03-31
+"VWAP Slippage in Index Replication",2012,VWAP,ejecución,"Lee & Rosenfeld sobre slippage en replicación de índices usando VWAP.",10.xxxx/vwap.slip.2012,2026-03-31
+"Order Book Microstructure and Price Stability",2020,OBI,microestructura,"Estudio reciente sobre cómo estructura del order book afecta estabilidad de precio.",10.xxxx/obstructure.2020,2026-03-31

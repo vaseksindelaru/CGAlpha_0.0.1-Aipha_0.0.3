@@ -1,0 +1,3396 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGAlpha/dashboard/learning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .view-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .view-container.active {
+            display: block;
+        }
+
+        .main-nav {
+            display: flex;
+            justify-content: center;
+            background: #16213e;
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-btn {
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 10px 25px;
+            margin: 0 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #333;
+        }
+
+        .nav-btn.active {
+            background: #00d4aa;
+            color: #000;
+            border-color: #00d4aa;
+        }
+
+
+        .nav-btn.dashboard {
+            background: #1a1a2e;
+            border: 2px solid #00d4aa;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 12px 28px;
+            box-shadow: 0 0 10px rgba(0, 212, 170, 0.4);
+            text-decoration: none;
+        }
+
+        .nav-btn.dashboard:hover {
+            background: #1a1a2e;
+            border-color: #00d4aa;
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.6);
+        }
+        .library-view {
+            padding: 20px;
+        }
+
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .library-title {
+            color: #00d4aa;
+            font-size: 1.8rem;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .library-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #00d4aa;
+        }
+
+        .library-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
+        }
+
+        .library-card-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .library-card-meta {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .library-card-preview {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .view-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .view-container.active {
+            display: block;
+        }
+
+        .main-nav {
+            display: flex;
+            justify-content: center;
+            background: #16213e;
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-btn {
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 10px 25px;
+            margin: 0 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #333;
+        }
+
+        .nav-btn.active {
+            background: #00d4aa;
+            color: #000;
+            border-color: #00d4aa;
+        }
+
+
+        .nav-btn.dashboard {
+            background: #1a1a2e;
+            border: 2px solid #00d4aa;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 12px 28px;
+            box-shadow: 0 0 10px rgba(0, 212, 170, 0.4);
+            text-decoration: none;
+        }
+
+        .nav-btn.dashboard:hover {
+            background: #1a1a2e;
+            border-color: #00d4aa;
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.6);
+        }
+        .library-view {
+            padding: 20px;
+        }
+
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .library-title {
+            color: #00d4aa;
+            font-size: 1.8rem;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .library-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #00d4aa;
+        }
+
+        .library-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
+        }
+
+        .library-card-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .library-card-meta {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .library-card-preview {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        body.ai-fullscreen-active {
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        h1 {
+            color: #00d4aa;
+            font-size: 1.5rem;
+        }
+
+        .help-btn {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .help-btn:hover {
+            background: #444;
+        }
+
+        /* HITO ACTUAL */
+        .hito-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00d4aa;
+        }
+
+        .hito-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .hito-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            background: #333;
+        }
+
+        .hito-status.pendiente {
+            background: #f39c12;
+            color: #000;
+        }
+
+        .hito-status.completado {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        /* PROBLEMAS */
+        .problemas-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .problemas-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #00d4aa;
+        }
+
+        .problema {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 3px solid;
+        }
+
+        .problema.python {
+            border-color: #3498db;
+        }
+
+        .problema.math {
+            border-color: #9b59b6;
+        }
+
+        .problema.trading {
+            border-color: #e74c3c;
+        }
+
+        .problema.architect {
+            border-color: #f39c12;
+        }
+
+        .problema-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .problema-icon {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+
+        .problema-agent {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .problema.python .problema-agent {
+            color: #3498db;
+        }
+
+        .problema.math .problema-agent {
+            color: #9b59b6;
+        }
+
+        .problema.trading .problema-agent {
+            color: #e74c3c;
+        }
+
+        .problema.architect .problema-agent {
+            color: #f39c12;
+        }
+
+        .problema-text {
+            color: #ccc;
+            font-style: italic;
+        }
+
+        /* ACCIONES */
+        .acciones-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .acciones-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #00d4aa;
+        }
+
+        .acciones-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .accion-btn {
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .accion-btn:hover {
+            background: #00d4aa;
+            color: #000;
+            border-color: #00d4aa;
+        }
+
+        .accion-btn.primary {
+            background: #00d4aa;
+            color: #000;
+            border-color: #00d4aa;
+        }
+
+        .accion-btn.primary:hover {
+            background: #00b894;
+        }
+
+        .accion-btn.small {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .accion-btn.danger {
+            background: #7f1d1d;
+            border-color: #991b1b;
+            color: #fff;
+        }
+
+        .accion-btn.danger:hover {
+            background: #991b1b;
+            color: #fff;
+            border-color: #b91c1c;
+        }
+
+        /* PROGRESO */
+        .progreso-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .progreso-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #00d4aa;
+        }
+
+        .progreso-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .progreso-item {
+            text-align: center;
+        }
+
+        .progreso-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .progreso-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .progreso-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .progreso-fill.python {
+            background: #3498db;
+        }
+
+        .progreso-fill.math {
+            background: #9b59b6;
+        }
+
+        .progreso-fill.trading {
+            background: #e74c3c;
+        }
+
+        .progreso-fill.architect {
+            background: #f39c12;
+        }
+
+        .progreso-pct {
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 50px 20px;
+        }
+
+        .modal.active.modal-fullscreen {
+            align-items: stretch;
+            padding: 0;
+        }
+
+        .modal-content {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            position: relative;
+        }
+
+        .modal-content.fullscreen {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            width: auto;
+            max-width: none;
+            height: auto;
+            max-height: none;
+            margin: 0;
+            border-radius: 0;
+            padding: clamp(12px, 2vw, 22px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-content.fullscreen .modal-title {
+            padding-right: 80px;
+            flex: 0 0 auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-fullscreen {
+            position: absolute;
+            top: 15px;
+            right: 52px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d4aa;
+        }
+
+        .modal-body {
+            line-height: 1.6;
+        }
+
+        .modal-content.fullscreen .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .modal-body h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #00d4aa;
+        }
+
+        .modal-body ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+
+        .modal-body code {
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .modal-body pre {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        /* TEXTAREAS */
+        .textarea-container {
+            margin: 15px 0;
+        }
+
+        .textarea-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+
+        .textarea-input {
+            width: 100%;
+            min-height: 200px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            color: #fff;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .textarea-input:focus {
+            outline: none;
+            border-color: #00d4aa;
+        }
+
+        /* ESTUDIOS */
+        .estudio-content {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-content.fullscreen .estudio-content {
+            max-height: none;
+            height: 100%;
+            margin: 0;
+        }
+
+        .estudio-content h2 {
+            color: #00d4aa;
+            margin-bottom: 15px;
+        }
+
+        .estudio-content h3 {
+            color: #3498db;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .estudio-content pre {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            color: #cfe8ff;
+            border: 1px solid #26476d;
+        }
+
+        .estudio-content code.code-view {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            white-space: pre;
+            display: block;
+        }
+
+        .estudio-content .tok-keyword {
+            color: #c792ea;
+        }
+
+        .estudio-content .tok-string {
+            color: #ecc48d;
+        }
+
+        .estudio-content .tok-comment {
+            color: #7f8c98;
+            font-style: italic;
+        }
+
+        .estudio-content .tok-number {
+            color: #f78c6c;
+        }
+
+        .estudio-content .tok-identifier {
+            color: #82aaff;
+        }
+
+        .estudio-content .tok-operator {
+            color: #89ddff;
+        }
+
+        .estudio-content .tok-function {
+            color: #7dd3fc;
+        }
+
+        .estudio-content .tok-type {
+            color: #4ade80;
+        }
+
+        .estudio-content .tok-decorator {
+            color: #f472b6;
+        }
+
+        .bracket {
+            font-weight: 700;
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+            border-radius: 3px;
+            padding: 0 1px;
+        }
+
+        .bracket-depth-0 {
+            color: #38bdf8;
+        }
+
+        .bracket-depth-1 {
+            color: #4ade80;
+        }
+
+        .bracket-depth-2 {
+            color: #facc15;
+        }
+
+        .bracket-depth-3 {
+            color: #f472b6;
+        }
+
+        .bracket-depth-4 {
+            color: #a78bfa;
+        }
+
+        .bracket-depth-5 {
+            color: #fb7185;
+        }
+
+        .bracket-depth-6 {
+            color: #22d3ee;
+        }
+
+        .bracket-depth-7 {
+            color: #bef264;
+        }
+
+        .bracket-type-round {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        .bracket-type-square {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        .bracket-type-curly {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        .bracket-type-angle {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        .bracket-mismatch {
+            color: #ef4444 !important;
+            background: rgba(127, 29, 29, 0.45);
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        .md-paragraph {
+            margin: 10px 0;
+        }
+
+        /* FILE MANAGER */
+        .file-tools {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .file-tools input,
+        .file-tools select {
+            width: 100%;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            color: #fff;
+        }
+
+        .file-tools .full {
+            grid-column: 1 / -1;
+        }
+
+        .file-status {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .file-item-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .file-name {
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .file-preview {
+            font-size: 13px;
+            color: #ddd;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .file-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .file-badge.class {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .file-badge.python {
+            background: #1e3a8a;
+            color: #bfdbfe;
+        }
+
+        .file-badge.math {
+            background: #581c87;
+            color: #e9d5ff;
+        }
+
+        .file-badge.trading {
+            background: #7f1d1d;
+            color: #fecaca;
+        }
+
+        .file-badge.architect {
+            background: #78350f;
+            color: #fde68a;
+        }
+
+        /* NOTIFICACIÓN */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1001;
+        }
+
+        .notification.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================================
+           AGENTE ASISTENTE FLOTANTE
+           ============================================================ */
+        #ai-assistant {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            width: 370px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 212, 170, 0.18);
+            z-index: 2000;
+            transition: width 0.3s, box-shadow 0.3s;
+            background: #0f1b2d;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #ai-assistant.collapsed {
+            width: 62px;
+            border-radius: 50px;
+        }
+
+        #ai-assistant.fullscreen {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            max-width: none;
+            border-radius: 0;
+            z-index: 3000;
+        }
+
+        .ai-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #00c897 0%, #00aef0 100%);
+            cursor: pointer;
+            user-select: none;
+            gap: 10px;
+            min-height: 52px;
+        }
+
+        #ai-assistant.fullscreen .ai-header {
+            border-radius: 0;
+        }
+
+        .ai-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .ai-avatar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            border: 2px solid #0f1b2d;
+        }
+
+        .ai-header-text {
+            overflow: hidden;
+            transition: opacity 0.2s, max-width 0.3s;
+        }
+
+        #ai-assistant.collapsed .ai-header-text {
+            opacity: 0;
+            max-width: 0;
+        }
+
+        .ai-header-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .ai-header-sub {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+        }
+
+        .ai-toggle-btn {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 13px;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .ai-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        #ai-assistant.collapsed .ai-toggle-btn {
+            margin-left: 0;
+        }
+
+        .ai-fullscreen-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 13px;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .ai-fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .ai-body {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            background: #0f1b2d;
+        }
+
+        #ai-assistant.fullscreen .ai-body {
+            height: calc(100dvh - 52px);
+        }
+
+        #ai-assistant.fullscreen .ai-conversation-layout {
+            height: 100%;
+            min-height: 0;
+        }
+
+        #ai-assistant.fullscreen .ai-history-sidebar,
+        #ai-assistant.fullscreen .ai-chat-panel,
+        #ai-assistant.fullscreen .ai-messages {
+            min-height: 0;
+        }
+
+        #ai-assistant.collapsed .ai-body {
+            display: none;
+        }
+
+        /* API key bar */
+        .ai-apikey-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .ai-apikey-bar input {
+            flex: 1;
+            background: #162030;
+            border: 1px solid rgba(0, 212, 170, 0.25);
+            border-radius: 8px;
+            padding: 5px 9px;
+            color: #ccc;
+            font-size: 11px;
+            outline: none;
+        }
+
+        .ai-apikey-bar input:focus {
+            border-color: #00d4aa;
+        }
+
+        .ai-apikey-bar button {
+            background: #00d4aa22;
+            border: 1px solid #00d4aa55;
+            border-radius: 8px;
+            color: #00d4aa;
+            font-size: 11px;
+            padding: 5px 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .ai-apikey-bar button:hover {
+            background: #00d4aa44;
+        }
+
+        .ai-key-wrapper {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .ai-key-wrapper input {
+            width: 100%;
+            padding-right: 30px;
+        }
+
+        .ai-eye-btn {
+            position: absolute;
+            right: 6px;
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+            color: #00d4aa88 !important;
+            font-size: 13px !important;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .ai-eye-btn:hover {
+            color: #00d4aa !important;
+            background: none !important;
+        }
+
+        /* Context chips */
+        .ai-context-bar {
+            display: flex;
+            gap: 6px;
+            padding: 6px 12px;
+            overflow-x: auto;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            scrollbar-width: none;
+        }
+
+        .ai-context-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .ai-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #162030;
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 999px;
+            padding: 3px 10px;
+            font-size: 10px;
+            color: #00d4aa;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .ai-conversation-layout {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+        }
+
+        .ai-history-sidebar {
+            display: none;
+            width: 260px;
+            min-width: 260px;
+            background: #0b1626;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            overflow-y: scroll;
+            padding: 10px;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: #00d4aa66 #0b1626;
+        }
+
+        .ai-history-sidebar::-webkit-scrollbar {
+            width: 12px;
+            -webkit-appearance: none;
+        }
+
+        .ai-history-sidebar::-webkit-scrollbar-thumb {
+            background: #00d4aa66;
+            border-radius: 8px;
+            border: 2px solid #0b1626;
+            min-height: 32px;
+        }
+
+        .ai-history-sidebar::-webkit-scrollbar-track {
+            background: #0b1626;
+        }
+
+        #ai-assistant.fullscreen .ai-history-sidebar {
+            display: block;
+        }
+
+        .ai-history-title {
+            color: #9adbc8;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            margin-bottom: 8px;
+            position: sticky;
+            top: 0;
+            background: #0b1626;
+            padding-bottom: 6px;
+        }
+
+        .ai-history-toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            position: sticky;
+            top: 24px;
+            background: #0b1626;
+            padding-bottom: 6px;
+            z-index: 1;
+        }
+
+        .ai-history-new-btn {
+            flex: 1;
+            border: 1px solid rgba(0, 212, 170, 0.35);
+            background: #10253b;
+            color: #9df1dc;
+            border-radius: 8px;
+            font-size: 11px;
+            padding: 7px 8px;
+            cursor: pointer;
+        }
+
+        .ai-history-new-btn:hover {
+            background: #14314d;
+        }
+
+        .ai-history-conv-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .ai-history-conv-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .ai-history-conv-action {
+            border: 1px solid rgba(0, 212, 170, 0.28);
+            background: #162a41;
+            color: #9df1dc;
+            border-radius: 6px;
+            font-size: 10px;
+            line-height: 1;
+            padding: 5px 6px;
+            cursor: pointer;
+            min-width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-history-conv-action:hover {
+            background: #1b3552;
+            border-color: rgba(0, 212, 170, 0.45);
+        }
+
+        .ai-history-conv-action.danger {
+            border-color: rgba(255, 107, 107, 0.35);
+            background: #3a1f22;
+            color: #ffc5c5;
+        }
+
+        .ai-history-conv-action.danger:hover {
+            border-color: rgba(255, 107, 107, 0.55);
+            background: #4a2529;
+        }
+
+        .ai-history-conv-title {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 3px;
+            color: #e6f8ff;
+        }
+
+        .ai-history-meta {
+            font-size: 10px;
+            opacity: 0.75;
+            margin-bottom: 2px;
+        }
+
+        .ai-history-item.active {
+            border-color: rgba(0, 212, 170, 0.7);
+            box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.35) inset;
+            background: #1a3451;
+        }
+
+        .ai-history-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: #122137;
+            color: #cfe8ff;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 7px 8px;
+            font-size: 11px;
+            line-height: 1.35;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+
+        .ai-history-item:hover {
+            border-color: rgba(0, 212, 170, 0.35);
+            background: #172841;
+        }
+
+        .ai-history-role {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+
+        .ai-chat-panel {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Messages area */
+        .ai-messages {
+            flex: 1;
+            overflow-y: scroll;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: #00d4aa22 transparent;
+        }
+
+        .ai-messages::-webkit-scrollbar {
+            width: 8px;
+            -webkit-appearance: none;
+        }
+
+        .ai-messages::-webkit-scrollbar-thumb {
+            background: #00d4aa66;
+            border-radius: 4px;
+            border: 2px solid #0f1b2d;
+            min-height: 32px;
+        }
+
+        .ai-messages::-webkit-scrollbar-track {
+            background: #0f1b2d;
+        }
+
+        .ai-msg {
+            max-width: 90%;
+            padding: 9px 13px;
+            border-radius: 12px;
+            font-size: 12.5px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .ai-msg.assistant {
+            background: linear-gradient(135deg, #162030 0%, #1a2a40 100%);
+            border: 1px solid rgba(0, 212, 170, 0.15);
+            border-bottom-left-radius: 4px;
+            color: #d0e8f8;
+            align-self: flex-start;
+        }
+
+        .ai-msg.user {
+            background: linear-gradient(135deg, #00c89722 0%, #00aef022 100%);
+            border: 1px solid rgba(0, 212, 170, 0.25);
+            border-bottom-right-radius: 4px;
+            color: #e2f8f0;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .ai-msg.system-hint {
+            background: rgba(0, 212, 170, 0.06);
+            border: 1px dashed rgba(0, 212, 170, 0.25);
+            border-radius: 8px;
+            color: #7dd3b0;
+            font-size: 11px;
+            align-self: center;
+            text-align: center;
+            padding: 6px 12px;
+        }
+
+        .ai-typing {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            padding: 8px 12px;
+            align-self: flex-start;
+        }
+
+        .ai-typing span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #00d4aa;
+            animation: aiTyping 1.2s infinite;
+        }
+
+        .ai-typing span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .ai-typing span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes aiTyping {
+
+            0%,
+            80%,
+            100% {
+                opacity: 0.25;
+                transform: scale(1);
+            }
+
+            40% {
+                opacity: 1;
+                transform: scale(1.3);
+            }
+        }
+
+        /* Quick suggestions */
+        .ai-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 4px 12px 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .ai-sugg-btn {
+            background: #162030;
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 999px;
+            color: #00d4aa;
+            font-size: 10.5px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .ai-sugg-btn:hover {
+            background: rgba(0, 212, 170, 0.12);
+        }
+
+        /* Input */
+        .ai-input-row {
+            display: flex;
+            gap: 6px;
+            padding: 8px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        #ai-input {
+            flex: 1;
+            background: #162030;
+            border: 1px solid rgba(0, 212, 170, 0.25);
+            border-radius: 10px;
+            padding: 8px 12px;
+            color: #fff;
+            font-size: 12.5px;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        #ai-input:focus {
+            border-color: #00d4aa;
+        }
+
+        #ai-send-btn {
+            background: linear-gradient(135deg, #00c897, #00aef0);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            width: 38px;
+            height: 38px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: opacity 0.2s;
+            align-self: flex-end;
+        }
+
+        #ai-send-btn:hover {
+            opacity: 0.85;
+        }
+
+        #ai-send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            .acciones-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .progreso-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .file-tools {
+                grid-template-columns: 1fr;
+            }
+
+            #ai-assistant {
+                width: calc(100vw - 32px);
+                left: 16px;
+                bottom: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="main-nav" style="margin: -20px -20px 20px -20px; border-radius: 0;">
+            <a href="index.html" class="nav-btn dashboard">🏠 Dashboard</a>
+            <button class="nav-btn" onclick="window.location.href='library.html'">📚 Library</button>
+            <button class="nav-btn active">🎓 Learning</button>
+        </nav>
+        <!-- HEADER -->
+        <header>
+            <h1>CGAlpha/dashboard/learning</h1>
+            <button class="help-btn" onclick="showHelp()">? HELP</button>
+        </header>
+
+        <!-- HITO ACTUAL -->
+        <div class="hito-card">
+            <div class="hito-title">
+                HITO ACTUAL: <span id="hito-nombre">Enum</span> (Día <span id="hito-dia">1</span>)
+            </div>
+            <span class="hito-status pendiente" id="hito-status">Pendiente</span>
+        </div>
+
+        <!-- PROBLEMAS -->
+        <div class="problemas-card">
+            <div class="problemas-title">4 PROBLEMAS DEL HITO:</div>
+
+            <div class="problema python">
+                <div class="problema-header">
+                    <span class="problema-icon">snake</span>
+                    <span class="problema-agent">PYTHON_TUTOR:</span>
+                </div>
+                <div class="problema-text">"¿Qué es Enum y cómo se declara en Python?"</div>
+            </div>
+
+            <div class="problema math">
+                <div class="problema-header">
+                    <span class="problema-icon">triangle</span>
+                    <span class="problema-agent">MATH_TUTOR:</span>
+                </div>
+                <div class="problema-text">"¿Cómo se relaciona Enum con conjuntos en matemáticas?"</div>
+            </div>
+
+            <div class="problema trading">
+                <div class="problema-header">
+                    <span class="problema-icon">chart</span>
+                    <span class="problema-agent">TRADING_EXPERT:</span>
+                </div>
+                <div class="problema-text">"¿Por qué usar Enum para LONG/SHORT en lugar de strings?"</div>
+            </div>
+
+            <div class="problema architect">
+                <div class="problema-header">
+                    <span class="problema-icon">building</span>
+                    <span class="problema-agent">ARCHITECT:</span>
+                </div>
+                <div class="problema-text">"¿Dónde debe vivir SignalDirection en la arquitectura?"</div>
+            </div>
+        </div>
+
+        <!-- ACCIONES -->
+        <div class="acciones-card">
+            <div class="acciones-title">ACCIONES:</div>
+            <div class="acciones-grid">
+                <button class="accion-btn primary" onclick="crearClase()">1. CREAR CLASE</button>
+                <button class="accion-btn" onclick="incluirMD()">2. INCLUIR .MD</button>
+                <button class="accion-btn" onclick="leerClase()">3. LEER CLASE</button>
+                <button class="accion-btn" onclick="anadirExtra()">4. AÑADIR EXTRA</button>
+                <button class="accion-btn" onclick="completarHito()">5. COMPLETAR</button>
+                <button class="accion-btn" onclick="verHistorial()">6. HISTORIAL</button>
+                <button class="accion-btn" onclick="gestionarArchivos()">7. ARCHIVOS</button>
+            </div>
+        </div>
+
+        <!-- PROGRESO -->
+        <div class="progreso-card">
+            <div class="progreso-title">PROGRESO POR AGENTE:</div>
+            <div class="progreso-grid">
+                <div class="progreso-item">
+                    <div class="progreso-label">PYTHON</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill python" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+                <div class="progreso-item">
+                    <div class="progreso-label">MATH</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill math" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+                <div class="progreso-item">
+                    <div class="progreso-label">TRADING</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill trading" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+                <div class="progreso-item">
+                    <div class="progreso-label">ARCHITECT</div>
+                    <div class="progreso-bar">
+                        <div class="progreso-fill architect" style="width: 0%"></div>
+                    </div>
+                    <div class="progreso-pct">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <button class="modal-fullscreen" id="modal-fullscreen-btn" onclick="toggleModalFullscreen()"
+                title="Pantalla completa">⛶</button>
+            <div class="modal-title" id="modal-title">Título</div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN -->
+    <div class="notification" id="notification"></div>
+
+    <!-- ===== AGENTE ASISTENTE FLOTANTE ===== -->
+    <div id="ai-assistant">
+        <!-- Cabecera (click para colapsar/expandir) -->
+        <div class="ai-header" onclick="aiToggleCollapse()" title="Haz clic para minimizar/expandir">
+            <div class="ai-avatar">🤖</div>
+            <div class="ai-header-text">
+                <div class="ai-header-title">Asistente CGAlpha</div>
+                <div class="ai-header-sub">Pregúntame cualquier cosa</div>
+            </div>
+            <button class="ai-fullscreen-btn" id="ai-fullscreen-btn" onclick="event.stopPropagation(); aiToggleFullscreen()"
+                title="Pantalla completa">⛶</button>
+            <button class="ai-toggle-btn" id="ai-collapse-btn" onclick="event.stopPropagation(); aiToggleCollapse()"
+                title="Minimizar">▼</button>
+        </div>
+        <!-- Cuerpo del chat -->
+        <div class="ai-body">
+            <!-- Barra de API key -->
+            <div class="ai-apikey-bar">
+                <div class="ai-key-wrapper">
+                    <input type="password" id="ai-apikey-input" placeholder="Gemini API Key (opcional)"
+                        autocomplete="off">
+                    <button class="ai-eye-btn" id="ai-eye-btn" onclick="aiToggleKeyVisibility()"
+                        title="Mostrar/ocultar API Key">👁</button>
+                </div>
+                <button onclick="aiSaveKey()">💾</button>
+            </div>
+            <!-- Chips de contexto -->
+            <div class="ai-context-bar" id="ai-context-bar">
+                <span class="ai-chip" id="ai-chip-hito">📌 Hito: –</span>
+                <span class="ai-chip" id="ai-chip-clases">📄 Clases: 0</span>
+                <span class="ai-chip" id="ai-chip-extras">⭐ Extras: 0</span>
+            </div>
+            <div class="ai-conversation-layout">
+                <aside class="ai-history-sidebar" id="ai-history-sidebar"></aside>
+                <div class="ai-chat-panel">
+                    <!-- Mensajes -->
+                    <div class="ai-messages" id="ai-messages"></div>
+                    <!-- Sugerencias rápidas -->
+                    <div class="ai-suggestions" id="ai-suggestions">
+                        <button class="ai-sugg-btn" onclick="aiQuick('¿Qué es el hito actual y cómo trabajarlo?')">🎯 Hito
+                            actual</button>
+                        <button class="ai-sugg-btn" onclick="aiQuick('Explícame cómo funciona esta app')">📖 ¿Cómo
+                            funciona?</button>
+                        <button class="ai-sugg-btn" onclick="aiQuick('Resúmeme el contenido de la última clase guardada')">📋
+                            Última clase</button>
+                        <button class="ai-sugg-btn" onclick="aiQuick('Dame un ejercicio de práctica para el hito actual')">💡
+                            Ejercicio</button>
+                    </div>
+                    <!-- Input -->
+                    <div class="ai-input-row">
+                        <textarea id="ai-input" rows="1" placeholder="Pregúntame sobre el hito, la clase, la app…"
+                            onkeydown="aiKeyDown(event)"></textarea>
+                        <button id="ai-send-btn" onclick="aiSend()" title="Enviar">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/prettier@3.3.3/standalone.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/babel.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/estree.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/html.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/markdown.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/postcss.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/typescript.js"></script>
+    <script src="https://unpkg.com/prettier@3.3.3/plugins/yaml.js"></script>
+
+    <script>
+        const EXTRA_CATEGORIES = ['PYTHON_TUTOR', 'MATH_TUTOR', 'TRADING_EXPERT', 'ARCHITECT'];
+        const STORAGE_KEYS = {
+            state: 'learning_state_v2',
+            classes: 'learning_classes_v2',
+            extras: 'learning_extras_v2',
+            history: 'learning_history_v2',
+            readerSettings: 'learning_reader_settings_v1',
+        };
+        const HITOS = ['Enum', '@dataclass', 'frozen=True', '__post_init__', 'NewType'];
+
+        let estado = {
+            hitoActual: 'Enum',
+            dia: 1,
+            semana: 1,
+            estado: 'pendiente',
+            progreso: { python: 0, math: 0, trading: 0, architect: 0 },
+        };
+        let classRecords = [];
+        let extraRecords = [];
+        let fsRootHandle = null;
+        let readerSettings = {
+            prettierOnRead: true,
+        };
+
+        const promptCrearClase = `Lee los siguientes archivos de la carpeta learning/:
+1. PROMPT_INICIAL.md - Instrucciones para ti
+2. RUTA.md - Plan de aprendizaje
+3. PROGRESS.md - Estado actual del estudiante
+4. HISTORY.md - Resumen de lo ya aprendido
+5. guiones/python_tutor.md - Guión para Python
+6. guiones/math_tutor.md - Guión para Matemáticas
+7. guiones/trading_expert.md - Guión para Trading
+8. guiones/architect.md - Guión para Arquitectura
+
+Genera una clase completa para el hito actual siguiendo las instrucciones de PROMPT_INICIAL.md.
+Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
+
+        function nowDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function nowIso() {
+            return new Date().toISOString();
+        }
+
+        function makeId(prefix) {
+            return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function slugify(input) {
+            return String(input || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .toLowerCase() || 'item';
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function applyInlineMarkdown(line) {
+            let out = escapeHtml(line);
+            out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            out = out.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+            out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+            return out;
+        }
+
+        function markdownToHtml(md) {
+            const normalized = String(md || '').replace(/\r\n/g, '\n');
+            const codeBlocks = [];
+            let text = normalized.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (_m, lang, code) => {
+                const idx = codeBlocks.push({
+                    lang: String(lang || '').trim().toLowerCase(),
+                    code,
+                }) - 1;
+                return `@@CODEBLOCK_${idx}@@`;
+            });
+
+            const lines = text.split('\n');
+            const out = [];
+            let inUl = false;
+            let inOl = false;
+            let paragraph = [];
+
+            function flushParagraph() {
+                if (paragraph.length > 0) {
+                    out.push(`<p class="md-paragraph">${applyInlineMarkdown(paragraph.join(' '))}</p>`);
+                    paragraph = [];
+                }
+            }
+
+            function closeLists() {
+                if (inUl) {
+                    out.push('</ul>');
+                    inUl = false;
+                }
+                if (inOl) {
+                    out.push('</ol>');
+                    inOl = false;
+                }
+            }
+
+            for (const rawLine of lines) {
+                const line = rawLine.trimEnd();
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    flushParagraph();
+                    closeLists();
+                    continue;
+                }
+
+                const codeMatch = trimmed.match(/^@@CODEBLOCK_(\d+)@@$/);
+                if (codeMatch) {
+                    flushParagraph();
+                    closeLists();
+                    const block = codeBlocks[Number(codeMatch[1])] || { lang: '', code: '' };
+                    const langClass = block.lang ? ` language-${escapeHtml(block.lang)}` : '';
+                    out.push(`<pre><code class="code-view${langClass}">${escapeHtml(block.code)}</code></pre>`);
+                    continue;
+                }
+
+                const h3 = trimmed.match(/^###\s+(.*)$/);
+                if (h3) {
+                    flushParagraph();
+                    closeLists();
+                    out.push(`<h3>${applyInlineMarkdown(h3[1])}</h3>`);
+                    continue;
+                }
+
+                const h2 = trimmed.match(/^##\s+(.*)$/);
+                if (h2) {
+                    flushParagraph();
+                    closeLists();
+                    out.push(`<h2>${applyInlineMarkdown(h2[1])}</h2>`);
+                    continue;
+                }
+
+                const h1 = trimmed.match(/^#\s+(.*)$/);
+                if (h1) {
+                    flushParagraph();
+                    closeLists();
+                    out.push(`<h2>${applyInlineMarkdown(h1[1])}</h2>`);
+                    continue;
+                }
+
+                const ulMatch = trimmed.match(/^[-*]\s+(.*)$/);
+                if (ulMatch) {
+                    flushParagraph();
+                    if (inOl) {
+                        out.push('</ol>');
+                        inOl = false;
+                    }
+                    if (!inUl) {
+                        out.push('<ul>');
+                        inUl = true;
+                    }
+                    out.push(`<li>${applyInlineMarkdown(ulMatch[1])}</li>`);
+                    continue;
+                }
+
+                const olMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+                if (olMatch) {
+                    flushParagraph();
+                    if (inUl) {
+                        out.push('</ul>');
+                        inUl = false;
+                    }
+                    if (!inOl) {
+                        out.push('<ol>');
+                        inOl = true;
+                    }
+                    out.push(`<li>${applyInlineMarkdown(olMatch[1])}</li>`);
+                    continue;
+                }
+
+                paragraph.push(trimmed);
+            }
+
+            flushParagraph();
+            closeLists();
+            return out.join('\n');
+        }
+
+        function inferLanguage(raw, lang) {
+            const declared = String(lang || '').toLowerCase();
+            if (declared) return declared;
+            const text = String(raw || '');
+            if (/^\s*#include\s+<|\bstd::\b|\bint\s+main\s*\(/m.test(text)) return 'cpp';
+            if (/^\s*from\s+\w+\s+import\s+|^\s*def\s+\w+\s*\(|^\s*class\s+\w+\s*\(|\bself\b/m.test(text)) return 'python';
+            if (/^\s*<\/?[a-z][\s\S]*>/mi.test(text)) return 'html';
+            if (/\b(const|let|var|function|=>|import\s+.+\s+from)\b/m.test(text)) return 'javascript';
+            return 'plain';
+        }
+
+        function tokenizeCode(raw, lang) {
+            const language = inferLanguage(raw, lang);
+            const pyKeywords = new Set([
+                'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif',
+                'else', 'except', 'False', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
+                'lambda', 'None', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'True', 'try', 'while',
+                'with', 'yield', 'match', 'case'
+            ]);
+            const jsKeywords = new Set([
+                'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do',
+                'else', 'export', 'extends', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof',
+                'let', 'new', 'return', 'super', 'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void',
+                'while', 'with', 'yield', 'async', 'await', 'true', 'false', 'null', 'undefined'
+            ]);
+
+            const tokens = [];
+            const len = raw.length;
+            let i = 0;
+
+            function push(type, text) {
+                if (!text) return;
+                tokens.push({ type, text });
+            }
+
+            while (i < len) {
+                const ch = raw[i];
+                const next = raw[i + 1] || '';
+
+                if (language.includes('python') && ch === '#') {
+                    let j = i + 1;
+                    while (j < len && raw[j] !== '\n') j += 1;
+                    push('tok-comment', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+                if ((language.includes('js') || language.includes('ts') || language.includes('json') || language.includes('css') || language.includes('html')) && ch === '/' && next === '/') {
+                    let j = i + 2;
+                    while (j < len && raw[j] !== '\n') j += 1;
+                    push('tok-comment', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+                if ((language.includes('js') || language.includes('ts') || language.includes('css') || language.includes('html')) && ch === '/' && next === '*') {
+                    let j = i + 2;
+                    while (j < len - 1 && !(raw[j] === '*' && raw[j + 1] === '/')) j += 1;
+                    j = Math.min(len, j + 2);
+                    push('tok-comment', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+
+                if (ch === '"' || ch === '\'' || ch === '`') {
+                    const q = ch;
+                    let j = i + 1;
+                    while (j < len) {
+                        if (raw[j] === '\\') {
+                            j += 2;
+                            continue;
+                        }
+                        if (raw[j] === q) {
+                            j += 1;
+                            break;
+                        }
+                        j += 1;
+                    }
+                    push('tok-string', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+
+                if (/\d/.test(ch)) {
+                    let j = i + 1;
+                    while (j < len && /[\d._]/.test(raw[j])) j += 1;
+                    push('tok-number', raw.slice(i, j));
+                    i = j;
+                    continue;
+                }
+
+                if (/[A-Za-z_]/.test(ch)) {
+                    let j = i + 1;
+                    while (j < len && /[A-Za-z0-9_]/.test(raw[j])) j += 1;
+                    const word = raw.slice(i, j);
+                    const kw = language.includes('python') ? pyKeywords : jsKeywords;
+                    const nextSlice = raw.slice(j, j + 3);
+                    const prev = raw[i - 1] || '';
+
+                    if (word.startsWith('@')) {
+                        push('tok-decorator', word);
+                        i = j;
+                        continue;
+                    }
+                    if (kw.has(word)) {
+                        push('tok-keyword', word);
+                    } else if (/[A-Z]/.test(word[0])) {
+                        push('tok-type', word);
+                    } else if (/^\s*\(/.test(nextSlice) && prev !== '.') {
+                        push('tok-function', word);
+                    } else {
+                        push('tok-identifier', word);
+                    }
+                    i = j;
+                    continue;
+                }
+
+                if (/[=+\-*/%<>!&|^~?:.,;]/.test(ch)) {
+                    push('tok-operator', ch);
+                    i += 1;
+                    continue;
+                }
+
+                push('', ch);
+                i += 1;
+            }
+
+            return tokens;
+        }
+
+        function renderTokenWithBrackets(text, tokenClass, stack, openToClose, closeToOpen) {
+            let html = '';
+            let segment = '';
+
+            function flushSegment() {
+                if (!segment) return;
+                if (tokenClass) {
+                    html += `<span class="${tokenClass}">${escapeHtml(segment)}</span>`;
+                } else {
+                    html += escapeHtml(segment);
+                }
+                segment = '';
+            }
+
+            for (const ch of text) {
+                if (openToClose[ch]) {
+                    flushSegment();
+                    const depth = stack.length % 8;
+                    const type = openToClose[ch].type;
+                    const classes = ['bracket', `bracket-depth-${depth}`, `bracket-type-${type}`];
+                    if (tokenClass) classes.unshift(tokenClass);
+                    html += `<span class="${classes.join(' ')}">${escapeHtml(ch)}</span>`;
+                    stack.push({ expectedClose: openToClose[ch].close, depth, type });
+                    continue;
+                }
+
+                if (closeToOpen[ch]) {
+                    flushSegment();
+                    const last = stack[stack.length - 1];
+                    if (last && last.expectedClose === ch) {
+                        const classes = ['bracket', `bracket-depth-${last.depth}`, `bracket-type-${last.type}`];
+                        if (tokenClass) classes.unshift(tokenClass);
+                        html += `<span class="${classes.join(' ')}">${escapeHtml(ch)}</span>`;
+                        stack.pop();
+                    } else {
+                        const classes = ['bracket', 'bracket-mismatch'];
+                        if (tokenClass) classes.unshift(tokenClass);
+                        html += `<span class="${classes.join(' ')}">${escapeHtml(ch)}</span>`;
+                    }
+                    continue;
+                }
+
+                segment += ch;
+            }
+
+            flushSegment();
+            return html;
+        }
+
+        function colorizeBracketPairsInCode(container) {
+            const blocks = container.querySelectorAll('code.code-view');
+            const openToClose = {
+                '(': { close: ')', type: 'round' },
+                '[': { close: ']', type: 'square' },
+                '{': { close: '}', type: 'curly' },
+                '<': { close: '>', type: 'angle' },
+            };
+            const closeToOpen = { ')': '(', ']': '[', '}': '{', '>': '<' };
+
+            blocks.forEach((block) => {
+                if (block.dataset.bracketsColored === '1') return;
+                const raw = block.textContent || '';
+                const lang = Array.from(block.classList)
+                    .find((c) => c.startsWith('language-'))
+                    ?.slice('language-'.length) || '';
+                const tokens = tokenizeCode(raw, lang);
+                const stack = [];
+                let html = '';
+
+                for (const token of tokens) {
+                    html += renderTokenWithBrackets(token.text, token.type, stack, openToClose, closeToOpen);
+                }
+
+                block.innerHTML = html;
+                block.dataset.bracketsColored = '1';
+            });
+        }
+
+        function enhanceModalContent() {
+            const body = document.getElementById('modal-body');
+            if (!body) return;
+            colorizeBracketPairsInCode(body);
+        }
+
+        function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+                reader.readAsText(file, 'utf-8');
+            });
+        }
+
+        async function loadFileToTextarea(fileInputId, textareaId, infoId) {
+            const input = document.getElementById(fileInputId);
+            const textarea = document.getElementById(textareaId);
+            const info = infoId ? document.getElementById(infoId) : null;
+            if (!input || !textarea || !input.files || input.files.length === 0) return false;
+            const file = input.files[0];
+            try {
+                const content = await readTextFile(file);
+                textarea.value = content;
+                if (info) info.textContent = `Archivo cargado: ${file.name}`;
+                return true;
+            } catch (_err) {
+                showNotification('Error leyendo el archivo.');
+                return false;
+            }
+        }
+
+        function detectPrettierParser(fileName, content) {
+            const name = String(fileName || '').toLowerCase();
+            if (name.endsWith('.md') || name.endsWith('.markdown') || name.endsWith('.mdx') || name.endsWith('.txt')) return 'markdown';
+            if (name.endsWith('.json')) return 'json';
+            if (name.endsWith('.js') || name.endsWith('.mjs') || name.endsWith('.cjs')) return 'babel';
+            if (name.endsWith('.ts') || name.endsWith('.tsx')) return 'typescript';
+            if (name.endsWith('.css') || name.endsWith('.scss') || name.endsWith('.less')) return 'css';
+            if (name.endsWith('.html') || name.endsWith('.htm')) return 'html';
+            if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'yaml';
+            if (/^\s*[\[{]/.test(content || '')) return 'json';
+            return 'markdown';
+        }
+
+        function getPrettierPlugins() {
+            const candidates = [
+                window.prettierPlugins?.babel,
+                window.prettierPlugins?.estree,
+                window.prettierPlugins?.html,
+                window.prettierPlugins?.markdown,
+                window.prettierPlugins?.postcss,
+                window.prettierPlugins?.typescript,
+                window.prettierPlugins?.yaml,
+            ];
+            return candidates.filter(Boolean);
+        }
+
+        async function formatWithPrettierForReader(fileName, content) {
+            if (!readerSettings.prettierOnRead) return content;
+            if (!window.prettier || typeof window.prettier.format !== 'function') return content;
+
+            const parser = detectPrettierParser(fileName, content);
+            const plugins = getPrettierPlugins();
+            if (plugins.length === 0) return content;
+
+            try {
+                const formatted = await window.prettier.format(String(content || ''), {
+                    parser,
+                    plugins,
+                    printWidth: 100,
+                    tabWidth: 2,
+                    useTabs: false,
+                    proseWrap: 'preserve',
+                });
+                return typeof formatted === 'string' ? formatted : content;
+            } catch (_err) {
+                return content;
+            }
+        }
+
+        function saveAll() {
+            localStorage.setItem(STORAGE_KEYS.state, JSON.stringify(estado));
+            localStorage.setItem(STORAGE_KEYS.classes, JSON.stringify(classRecords));
+            localStorage.setItem(STORAGE_KEYS.extras, JSON.stringify(extraRecords));
+            localStorage.setItem(STORAGE_KEYS.history, buildHistoryText());
+        }
+
+        function loadAll() {
+            try {
+                const storedState = localStorage.getItem(STORAGE_KEYS.state);
+                const storedClasses = localStorage.getItem(STORAGE_KEYS.classes);
+                const storedExtras = localStorage.getItem(STORAGE_KEYS.extras);
+                const storedReaderSettings = localStorage.getItem(STORAGE_KEYS.readerSettings);
+
+                if (storedState) estado = { ...estado, ...JSON.parse(storedState) };
+                if (storedClasses) classRecords = JSON.parse(storedClasses) || [];
+                if (storedExtras) extraRecords = JSON.parse(storedExtras) || [];
+                if (storedReaderSettings) {
+                    readerSettings = { ...readerSettings, ...JSON.parse(storedReaderSettings) };
+                }
+            } catch (_err) {
+                classRecords = [];
+                extraRecords = [];
+            }
+        }
+
+        function saveReaderSettings() {
+            localStorage.setItem(STORAGE_KEYS.readerSettings, JSON.stringify(readerSettings));
+        }
+
+        function refreshUI() {
+            document.getElementById('hito-nombre').textContent = estado.hitoActual;
+            document.getElementById('hito-dia').textContent = estado.dia;
+            const statusEl = document.getElementById('hito-status');
+            statusEl.textContent = estado.estado === 'completado' ? 'Completado' : 'Pendiente';
+            statusEl.className = `hito-status ${estado.estado === 'completado' ? 'completado' : 'pendiente'}`;
+
+            const tipos = ['python', 'math', 'trading', 'architect'];
+            document.querySelectorAll('.progreso-fill').forEach((el, i) => {
+                el.style.width = `${estado.progreso[tipos[i]] || 0}%`;
+            });
+            document.querySelectorAll('.progreso-pct').forEach((el, i) => {
+                el.textContent = `${estado.progreso[tipos[i]] || 0}%`;
+            });
+        }
+
+        function buildHistoryText() {
+            const classLines = classRecords.map((r) =>
+                `${r.date} | ${r.hito} | CLASS | ${r.fileName} | ${r.persistMode || 'memory'}`
+            );
+            const extraLines = extraRecords.map((r) =>
+                `${r.date} | ${r.hito} | ${r.category} | ${r.fileName}`
+            );
+            return [...classLines, ...extraLines].sort().join('\n');
+        }
+
+        function downloadMarkdown(fileName, content) {
+            const blob = new Blob([content.endsWith('\n') ? content : `${content}\n`], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function writeMarkdownToFs(fileName, content, relativeDir) {
+            if (!fsRootHandle) return false;
+            let target = fsRootHandle;
+            const parts = relativeDir.split('/').filter(Boolean);
+            for (const part of parts) {
+                target = await target.getDirectoryHandle(part, { create: true });
+            }
+            const fileHandle = await target.getFileHandle(fileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content.endsWith('\n') ? content : `${content}\n`);
+            await writable.close();
+            return true;
+        }
+
+        async function persistMarkdownFile(fileName, content, relativeDir) {
+            try {
+                const saved = await writeMarkdownToFs(fileName, content, relativeDir);
+                if (saved) {
+                    return { mode: 'filesystem', location: `${relativeDir}/${fileName}` };
+                }
+            } catch (_err) {
+                // fallback a descarga
+            }
+            downloadMarkdown(fileName, content);
+            return { mode: 'download', location: fileName };
+        }
+
+        async function configurarCarpetaMD() {
+            if (!window.showDirectoryPicker) {
+                showNotification('Tu navegador no soporta carpeta persistente. Se usará descarga .md.');
+                return;
+            }
+            try {
+                fsRootHandle = await window.showDirectoryPicker();
+                showNotification('Carpeta .md configurada para esta sesión.');
+                updateFsStatus();
+            } catch (_err) {
+                showNotification('Selección de carpeta cancelada.');
+            }
+        }
+
+        function updateFsStatus() {
+            const el = document.getElementById('fs-status');
+            if (!el) return;
+            if (fsRootHandle) {
+                el.textContent = 'Persistencia .md: carpeta local activa (esta sesión).';
+                return;
+            }
+            el.textContent = 'Persistencia .md: modo descarga automática (.md).';
+        }
+
+        function showHelp() {
+            const helpContent = `
+                <h3>CÓMO USAR ESTA INTERFAZ</h3>
+                <ol>
+                    <li><strong>Crear clase</strong> -> genera prompt para tu LLM.</li>
+                    <li><strong>Incluir .MD</strong> -> guarda clase y persiste markdown.</li>
+                    <li><strong>Añadir extra</strong> -> guarda extra en una categoría:
+                        <code>PYTHON_TUTOR</code>, <code>MATH_TUTOR</code>, <code>TRADING_EXPERT</code>, <code>ARCHITECT</code>.
+                    </li>
+                    <li><strong>Archivos</strong> -> buscar por categoría y texto, ver y eliminar contenido.</li>
+                </ol>
+                <h3>PERSISTENCIA .MD</h3>
+                <p>La app intenta guardar en carpeta local si la configuras. Si no, descarga archivos <code>.md</code> automáticamente.</p>
+            `;
+            showModal('AYUDA', helpContent);
+        }
+
+        function crearClase() {
+            showModal('CREAR CLASE - Copia este prompt', `
+                <p>Copia el siguiente prompt y pégalo en tu LLM avanzado:</p>
+                <pre>${escapeHtml(promptCrearClase)}</pre>
+                <p style="margin-top: 15px;">Después de generar, usa <strong>[INCLUIR .MD]</strong> para guardar el resultado.</p>
+            `);
+        }
+
+        function incluirMD() {
+            showModal('INCLUIR ARCHIVO .MD', `
+                <p>Pega el contenido generado por el LLM:</p>
+                <div class="textarea-container">
+                    <label class="textarea-label">O subir archivo desde tu PC (.md/.txt)</label>
+                    <input type="file" id="md-file" accept=".md,.txt,.markdown,text/markdown,text/plain"
+                           class="textarea-input" style="min-height:auto;" onchange="loadFileToTextarea('md-file','md-content','md-file-info')">
+                    <div id="md-file-info" class="file-status" style="margin-top:6px;"></div>
+                </div>
+                <div class="textarea-container">
+                    <textarea class="textarea-input" id="md-content" placeholder="Pega aquí el contenido del archivo clase.md..."></textarea>
+                </div>
+                <button class="accion-btn primary" onclick="guardarMD()">GUARDAR</button>
+            `);
+        }
+
+        async function guardarMD() {
+            const textarea = document.getElementById('md-content');
+            let content = textarea.value;
+            if (!content.trim()) {
+                await loadFileToTextarea('md-file', 'md-content', 'md-file-info');
+                content = textarea.value;
+            }
+            if (!content.trim()) {
+                showNotification('El contenido está vacío.');
+                return;
+            }
+
+            const date = nowDate();
+            const safeHito = slugify(estado.hitoActual);
+            const fileName = `clase_${date}_${safeHito}.md`;
+            const relativeDir = `learning/estudios/${date}_${safeHito}`;
+            const persisted = await persistMarkdownFile(fileName, content, relativeDir);
+            const record = {
+                id: makeId('class'),
+                type: 'CLASS_CONTENT',
+                hito: estado.hitoActual,
+                date,
+                createdAt: nowIso(),
+                fileName,
+                content,
+                persistMode: persisted.mode,
+                persistLocation: persisted.location,
+            };
+
+            classRecords.push(record);
+            saveAll();
+            closeModal();
+            showNotification(`Clase guardada (${persisted.mode}).`);
+        }
+
+        function getLatestClassForCurrentHito() {
+            const candidates = classRecords
+                .filter((r) => r.hito === estado.hitoActual)
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            if (candidates.length > 0) return candidates[0];
+            const any = classRecords.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            return any[0] || null;
+        }
+
+        async function leerClase() {
+            const record = getLatestClassForCurrentHito();
+            if (!record) {
+                showNotification('No hay clase guardada. Usa CREAR CLASE e INCLUIR .MD.');
+                return;
+            }
+            const formatted = await formatWithPrettierForReader(record.fileName, record.content);
+            const html = markdownToHtml(formatted);
+            showModal(`CLASE: ${record.hito}`, `<div class="estudio-content">${html}</div>`);
+        }
+
+        function anadirExtra() {
+            const options = EXTRA_CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
+            showModal('AÑADIR MATERIAL EXTRA', `
+                <p>Guarda contenido adicional por categoría:</p>
+                <div class="textarea-container">
+                    <label class="textarea-label">Categoría</label>
+                    <select id="extra-category" class="textarea-input" style="min-height:auto;">
+                        ${options}
+                    </select>
+                </div>
+                <div class="textarea-container">
+                    <label class="textarea-label">O subir archivo desde tu PC (.md/.txt)</label>
+                    <input type="file" id="extra-file" accept=".md,.txt,.markdown,text/markdown,text/plain"
+                           class="textarea-input" style="min-height:auto;" onchange="loadFileToTextarea('extra-file','extra-content','extra-file-info')">
+                    <div id="extra-file-info" class="file-status" style="margin-top:6px;"></div>
+                </div>
+                <div class="textarea-container">
+                    <label class="textarea-label">Contenido extra</label>
+                    <textarea class="textarea-input" id="extra-content" placeholder="Escribe lo que aprendiste adicional..."></textarea>
+                </div>
+                <button class="accion-btn primary" onclick="guardarExtra()">GUARDAR EXTRA</button>
+            `);
+        }
+
+        async function guardarExtra() {
+            const category = document.getElementById('extra-category').value;
+            const textarea = document.getElementById('extra-content');
+            let content = textarea.value;
+            if (!content.trim()) {
+                await loadFileToTextarea('extra-file', 'extra-content', 'extra-file-info');
+                content = textarea.value;
+            }
+            if (!content.trim()) {
+                showNotification('El contenido está vacío.');
+                return;
+            }
+            if (!EXTRA_CATEGORIES.includes(category)) {
+                showNotification('Categoría inválida.');
+                return;
+            }
+
+            const date = nowDate();
+            const safeHito = slugify(estado.hitoActual);
+            const fileName = `extra_${date}_${safeHito}_${category.toLowerCase()}.md`;
+            const relativeDir = `learning/estudios/${date}_${safeHito}/extras`;
+            const persisted = await persistMarkdownFile(fileName, content, relativeDir);
+            const record = {
+                id: makeId('extra'),
+                type: 'EXTRA_CONTENT',
+                hito: estado.hitoActual,
+                date,
+                createdAt: nowIso(),
+                category,
+                fileName,
+                content,
+                persistMode: persisted.mode,
+                persistLocation: persisted.location,
+            };
+
+            extraRecords.push(record);
+            saveAll();
+            closeModal();
+            showNotification(`Extra ${category} guardado (${persisted.mode}).`);
+        }
+
+        function completarHito() {
+            showModal('COMPLETAR HITO', `
+                <p>¿Confirmas que completaste el hito <strong>${escapeHtml(estado.hitoActual)}</strong>?</p>
+                <ol>
+                    <li>Se actualiza el progreso local.</li>
+                    <li>Puedes continuar al siguiente hito.</li>
+                </ol>
+                <button class="accion-btn primary" onclick="confirmarCompletar()">CONFIRMAR</button>
+            `);
+        }
+
+        function confirmarCompletar() {
+            estado.estado = 'completado';
+            estado.progreso.python = Math.min(100, estado.progreso.python + 5);
+            estado.progreso.math = Math.min(100, estado.progreso.math + 5);
+            estado.progreso.trading = Math.min(100, estado.progreso.trading + 5);
+            estado.progreso.architect = Math.min(100, estado.progreso.architect + 5);
+
+            const idx = HITOS.indexOf(estado.hitoActual);
+            if (idx >= 0 && idx < HITOS.length - 1) {
+                estado.hitoActual = HITOS[idx + 1];
+                estado.dia += 1;
+                estado.estado = 'pendiente';
+            }
+
+            saveAll();
+            refreshUI();
+            closeModal();
+            showNotification('Hito actualizado.');
+        }
+
+        function verHistorial() {
+            const history = localStorage.getItem(STORAGE_KEYS.history) || 'Aún no hay entradas en el historial.';
+            showModal('HISTORIAL DE APRENDIZAJE', `<pre>${escapeHtml(history)}</pre>`);
+        }
+
+        function allRecords() {
+            const classes = classRecords.map((r) => ({ ...r, viewCategory: 'CLASS_CONTENT', badgeClass: 'class', typeKey: 'class' }));
+            const extras = extraRecords.map((r) => ({
+                ...r,
+                viewCategory: r.category,
+                badgeClass: categoryBadge(r.category),
+                typeKey: 'extra',
+            }));
+            return [...classes, ...extras].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        }
+
+        function categoryBadge(category) {
+            if (category === 'PYTHON_TUTOR') return 'python';
+            if (category === 'MATH_TUTOR') return 'math';
+            if (category === 'TRADING_EXPERT') return 'trading';
+            if (category === 'ARCHITECT') return 'architect';
+            return 'class';
+        }
+
+        function gestionarArchivos() {
+            showModal('GESTIONAR ARCHIVOS', `
+                <div class="file-tools">
+                    <button class="accion-btn primary full" onclick="configurarCarpetaMD()">CONFIGURAR CARPETA .MD (opcional)</button>
+                    <label class="file-status full" style="display:flex; gap:8px; align-items:center;">
+                        <input type="checkbox" id="toggle-prettier-read" onchange="togglePrettierRead(this.checked)">
+                        Aplicar Prettier Formatter al leer archivos
+                    </label>
+                    <select id="file-category-filter" onchange="renderFileList()">
+                        <option value="ALL">TODAS</option>
+                        <option value="CLASS_CONTENT">CLASS_CONTENT</option>
+                        ${EXTRA_CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                    <input id="file-search-input" type="text" placeholder="Buscar por nombre, hito o contenido..." oninput="renderFileList()">
+                    <div id="fs-status" class="file-status full"></div>
+                </div>
+                <div id="file-list" class="file-list"></div>
+            `);
+            updateFsStatus();
+            const toggle = document.getElementById('toggle-prettier-read');
+            if (toggle) toggle.checked = !!readerSettings.prettierOnRead;
+            renderFileList();
+        }
+
+        function togglePrettierRead(checked) {
+            readerSettings.prettierOnRead = !!checked;
+            saveReaderSettings();
+            showNotification(readerSettings.prettierOnRead
+                ? 'Prettier activado para el lector.'
+                : 'Prettier desactivado para el lector.');
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('file-list');
+            if (!container) return;
+
+            const category = document.getElementById('file-category-filter')?.value || 'ALL';
+            const q = (document.getElementById('file-search-input')?.value || '').toLowerCase().trim();
+            let records = allRecords();
+
+            if (category !== 'ALL') {
+                records = records.filter((r) => r.viewCategory === category);
+            }
+            if (q) {
+                records = records.filter((r) => {
+                    const haystack = `${r.fileName} ${r.hito} ${r.viewCategory} ${r.content}`.toLowerCase();
+                    return haystack.includes(q);
+                });
+            }
+
+            if (records.length === 0) {
+                container.innerHTML = '<div class="file-item">No hay archivos para ese filtro.</div>';
+                return;
+            }
+
+            container.innerHTML = records.map((r) => {
+                const preview = escapeHtml(r.content.slice(0, 180)).replace(/\n/g, ' ');
+                return `
+                    <div class="file-item">
+                        <div class="file-item-header">
+                            <span class="file-badge ${r.badgeClass}">${r.viewCategory}</span>
+                            <span class="file-name">${escapeHtml(r.fileName)}</span>
+                        </div>
+                        <div class="file-meta">${escapeHtml(r.date)} | Hito: ${escapeHtml(r.hito)} | Persistencia: ${escapeHtml(r.persistMode || 'memory')}</div>
+                        <div class="file-preview">${preview}${r.content.length > 180 ? '...' : ''}</div>
+                        <div class="file-actions">
+                            <button class="accion-btn small" onclick="verArchivo('${r.id}', '${r.typeKey}')">VER</button>
+                            <button class="accion-btn danger small" onclick="eliminarArchivo('${r.id}', '${r.typeKey}')">ELIMINAR</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function findRecord(id, type) {
+            if (type === 'class') {
+                return classRecords.find((r) => r.id === id) || null;
+            }
+            return extraRecords.find((r) => r.id === id) || null;
+        }
+
+        async function verArchivo(id, type) {
+            const record = findRecord(id, type);
+            if (!record) {
+                showNotification('Archivo no encontrado.');
+                return;
+            }
+            const formatted = await formatWithPrettierForReader(record.fileName, record.content);
+            showModal(`VER ARCHIVO: ${record.fileName}`, `
+                <div class="estudio-content">${markdownToHtml(formatted)}</div>
+                <div style="margin-top: 12px;">
+                    <button class="accion-btn danger" onclick="eliminarArchivo('${record.id}', '${type}')">ELIMINAR ESTE ARCHIVO</button>
+                </div>
+            `);
+        }
+
+        function eliminarArchivo(id, type) {
+            const msg = type === 'class'
+                ? '¿Eliminar este contenido de clase?'
+                : '¿Eliminar este contenido extra específico?';
+            if (!confirm(msg)) return;
+
+            if (type === 'class') {
+                classRecords = classRecords.filter((r) => r.id !== id);
+            } else {
+                extraRecords = extraRecords.filter((r) => r.id !== id);
+            }
+            saveAll();
+            if (document.getElementById('file-list')) {
+                renderFileList();
+            }
+            showNotification('Contenido eliminado.');
+        }
+
+        function toggleModalFullscreen() {
+            const modal = document.getElementById('modal');
+            const modalContent = document.querySelector('#modal .modal-content');
+            const btn = document.getElementById('modal-fullscreen-btn');
+            if (!modalContent) return;
+            modalContent.classList.toggle('fullscreen');
+            if (modal) {
+                modal.classList.toggle('modal-fullscreen', modalContent.classList.contains('fullscreen'));
+            }
+            if (btn) {
+                btn.textContent = modalContent.classList.contains('fullscreen') ? '🗗' : '⛶';
+                btn.title = modalContent.classList.contains('fullscreen')
+                    ? 'Salir de pantalla completa'
+                    : 'Pantalla completa';
+            }
+        }
+
+        function showModal(title, content) {
+            const modal = document.getElementById('modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = content;
+            modal.classList.add('active');
+            modal.classList.remove('modal-fullscreen');
+            const modalContent = document.querySelector('#modal .modal-content');
+            const btn = document.getElementById('modal-fullscreen-btn');
+            if (modalContent) modalContent.classList.remove('fullscreen');
+            if (btn) {
+                btn.textContent = '⛶';
+                btn.title = 'Pantalla completa';
+            }
+            enhanceModalContent();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('active');
+            modal.classList.remove('modal-fullscreen');
+            const modalContent = document.querySelector('#modal .modal-content');
+            if (modalContent) modalContent.classList.remove('fullscreen');
+        }
+
+        function showNotification(message) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.classList.add('show');
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        }
+
+        function init() {
+            loadAll();
+            saveReaderSettings();
+            refreshUI();
+            saveAll();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                if (typeof aiState !== 'undefined' && aiState.fullscreen) aiToggleFullscreen(false);
+            }
+        });
+
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') closeModal();
+        });
+
+        init();
+
+        /* ============================================================
+           AGENTE ASISTENTE – Lógica completa
+           ============================================================ */
+        const AI_STORAGE_KEY = 'cgalpha_ai_v2';
+        const AI_MODEL = 'gemini-3-flash-preview'; // ← Cambia el modelo aquí
+        let aiState = {
+            collapsed: false,
+            fullscreen: false,
+            apiKey: '',
+            activeConversationId: null,
+            showMessageListInSidebar: false,
+            conversations: [],
+            history: [], // {role:'user'|'assistant', text:'...'}
+        };
+
+        function aiMakeConversationId() {
+            return `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function aiBuildConversationTitle(seedText) {
+            const raw = String(seedText || '').replace(/\s+/g, ' ').trim();
+            if (!raw) return 'Nueva conversación';
+            return raw.slice(0, 38) + (raw.length > 38 ? '…' : '');
+        }
+
+        function aiGetActiveConversation() {
+            return aiState.conversations.find((c) => c.id === aiState.activeConversationId) || null;
+        }
+
+        function aiEnsureConversations() {
+            if (!Array.isArray(aiState.conversations)) aiState.conversations = [];
+
+            if (aiState.conversations.length === 0) {
+                aiState.conversations = [{
+                    id: aiMakeConversationId(),
+                    title: aiState.history.length > 0 ? aiBuildConversationTitle(aiState.history[0]?.text || '') : 'Nueva conversación',
+                    createdAt: nowIso(),
+                    updatedAt: nowIso(),
+                    history: Array.isArray(aiState.history) ? aiState.history.slice() : [],
+                }];
+            }
+
+            if (!aiState.activeConversationId || !aiState.conversations.some((c) => c.id === aiState.activeConversationId)) {
+                aiState.activeConversationId = aiState.conversations[0].id;
+            }
+
+            const active = aiGetActiveConversation();
+            aiState.history = active ? (active.history || []) : [];
+        }
+
+        function aiPersistActiveHistory() {
+            const active = aiGetActiveConversation();
+            if (!active) return;
+            active.history = aiState.history.slice();
+            active.updatedAt = nowIso();
+            if (!active.title || active.title === 'Nueva conversación') {
+                const firstUserMsg = aiState.history.find((m) => m.role === 'user')?.text || '';
+                if (firstUserMsg) active.title = aiBuildConversationTitle(firstUserMsg);
+            }
+        }
+
+        function aiCreateNewConversation() {
+            const conv = {
+                id: aiMakeConversationId(),
+                title: 'Nueva conversación',
+                createdAt: nowIso(),
+                updatedAt: nowIso(),
+                history: [],
+            };
+            aiState.conversations.unshift(conv);
+            aiState.activeConversationId = conv.id;
+            aiState.history = [];
+            aiSave();
+            aiRenderMessages();
+            aiUpdateContext();
+        }
+
+        function aiSwitchConversation(conversationId) {
+            const target = aiState.conversations.find((c) => c.id === conversationId);
+            if (!target) return;
+            aiPersistActiveHistory();
+            aiState.activeConversationId = conversationId;
+            aiState.history = (target.history || []).slice();
+            aiSave();
+            aiRenderMessages();
+            aiUpdateContext();
+        }
+
+        function aiDeleteConversation(conversationId) {
+            aiEnsureConversations();
+            const target = aiState.conversations.find((c) => c.id === conversationId);
+            if (!target) return;
+
+            const ok = confirm(`¿Eliminar conversación "${target.title || 'Nueva conversación'}"?`);
+            if (!ok) return;
+
+            aiState.conversations = aiState.conversations.filter((c) => c.id !== target.id);
+
+            if (aiState.conversations.length === 0) {
+                aiState.conversations = [{
+                    id: aiMakeConversationId(),
+                    title: 'Nueva conversación',
+                    createdAt: nowIso(),
+                    updatedAt: nowIso(),
+                    history: [],
+                }];
+            }
+
+            if (aiState.activeConversationId === target.id) {
+                aiState.activeConversationId = aiState.conversations[0].id;
+                aiState.history = (aiState.conversations[0].history || []).slice();
+            }
+
+            aiSave();
+            aiRenderMessages();
+            aiUpdateContext();
+            showNotification('Conversación eliminada.');
+        }
+
+        function aiToggleSidebarMessages(conversationId) {
+            if (conversationId && aiState.activeConversationId !== conversationId) {
+                const target = aiState.conversations.find((c) => c.id === conversationId);
+                if (target) {
+                    aiPersistActiveHistory();
+                    aiState.activeConversationId = conversationId;
+                    aiState.history = (target.history || []).slice();
+                }
+            }
+            aiState.showMessageListInSidebar = !aiState.showMessageListInSidebar;
+            aiSave();
+            aiRenderMessages();
+            aiUpdateContext();
+        }
+
+        // ---- Persistencia del asistente ----
+        function aiLoad() {
+            try {
+                const raw = localStorage.getItem(AI_STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    aiState = { ...aiState, ...parsed };
+                }
+            } catch (_) { }
+            aiEnsureConversations();
+        }
+
+        function aiSave() {
+            aiPersistActiveHistory();
+            localStorage.setItem(AI_STORAGE_KEY, JSON.stringify({
+                collapsed: aiState.collapsed,
+                fullscreen: aiState.fullscreen,
+                showMessageListInSidebar: aiState.showMessageListInSidebar,
+                apiKey: aiState.apiKey,
+                activeConversationId: aiState.activeConversationId,
+                conversations: aiState.conversations
+                    .map((c) => ({
+                        ...c,
+                        history: (c.history || []).slice(-120),
+                    }))
+                    .slice(0, 40),
+                history: aiState.history.slice(-40), // compatibilidad legacy
+            }));
+        }
+
+        function aiToggleFullscreen(forceValue) {
+            const el = document.getElementById('ai-assistant');
+            const btn = document.getElementById('ai-fullscreen-btn');
+            const bodyEl = document.body;
+            if (!el) return;
+
+            const nextValue = typeof forceValue === 'boolean' ? forceValue : !aiState.fullscreen;
+            aiState.fullscreen = nextValue;
+
+            if (aiState.fullscreen) {
+                el.classList.add('fullscreen');
+                if (bodyEl) bodyEl.classList.add('ai-fullscreen-active');
+                aiState.collapsed = false;
+                el.classList.remove('collapsed');
+                const collapseBtn = document.getElementById('ai-collapse-btn');
+                if (collapseBtn) collapseBtn.textContent = '▼';
+            } else {
+                el.classList.remove('fullscreen');
+                if (bodyEl) bodyEl.classList.remove('ai-fullscreen-active');
+            }
+
+            if (btn) {
+                btn.textContent = aiState.fullscreen ? '🗗' : '⛶';
+                btn.title = aiState.fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa';
+            }
+
+            aiScrollToBottom();
+            aiSave();
+        }
+
+        // ---- Colapsar/expandir ----
+        function aiToggleCollapse() {
+            aiState.collapsed = !aiState.collapsed;
+            const el = document.getElementById('ai-assistant');
+            const btn = document.getElementById('ai-collapse-btn');
+            if (aiState.collapsed) {
+                el.classList.add('collapsed');
+                if (btn) btn.textContent = '▲';
+            } else {
+                el.classList.remove('collapsed');
+                if (btn) btn.textContent = '▼';
+                aiScrollToBottom();
+            }
+            aiSave();
+        }
+
+        // ---- Guardar API key ----
+        function aiSaveKey() {
+            const input = document.getElementById('ai-apikey-input');
+            if (!input) return;
+            aiState.apiKey = input.value.trim();
+            aiSave();
+            showNotification(aiState.apiKey ? `API Key guardada ✓ (${AI_MODEL})` : 'API Key borrada.');
+        }
+
+        // ---- Mostrar/ocultar API Key ----
+        function aiToggleKeyVisibility() {
+            const input = document.getElementById('ai-apikey-input');
+            const btn = document.getElementById('ai-eye-btn');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (btn) btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                if (btn) btn.textContent = '👁';
+            }
+        }
+
+        // ---- Contexto de la app ----
+        function aiBuildContext() {
+            const hito = estado.hitoActual || '?';
+            const dia = estado.dia || 1;
+            const progreso = estado.progreso || {};
+            const numClases = classRecords.length;
+            const numExtras = extraRecords.length;
+
+            // Obtener la última clase guardada
+            let ultimaClase = '';
+            const lastClass = getLatestClassForCurrentHito();
+            if (lastClass) {
+                // Truncar para no exceder contexto (máx 2000 chars)
+                ultimaClase = lastClass.content.slice(0, 2000);
+            }
+
+            return [
+                `Eres un asistente educativo amigable para la plataforma CGAlpha Learning.`,
+                `Ayudas al estudiante a aprender Python, matemáticas, trading y arquitectura de software.`,
+                `ESTADO ACTUAL DE LA APP:`,
+                `- Hito activo: "${hito}" (Día ${dia})`,
+                `- Estado del hito: ${estado.estado || 'pendiente'}`,
+                `- Progreso: Python ${progreso.python || 0}%, Math ${progreso.math || 0}%, Trading ${progreso.trading || 0}%, Architect ${progreso.architect || 0}%`,
+                `- Clases guardadas: ${numClases}, Extras: ${numExtras}`,
+                numExtras > 0 ? `- Categorías extra disponibles: ${[...new Set(extraRecords.map(r => r.category))].join(', ')}` : '',
+                `\nFUNCIONES DE LA APP (para explicar al usuario):`,
+                `1. CREAR CLASE: genera un prompt para copiar en un LLM externo y obtener la clase del hito.`,
+                `2. INCLUIR .MD: pega o sube el contenido generado por el LLM para guardarlo en la app.`,
+                `3. LEER CLASE: muestra la última clase guardada para el hito actual con resaltado de sintaxis.`,
+                `4. AÑADIR EXTRA: guarda notas o contenido adicional clasificado por agente (PYTHON_TUTOR, MATH_TUTOR, etc.).`,
+                `5. COMPLETAR: marca el hito como completado y avanza al siguiente.`,
+                `6. HISTORIAL: muestra un log de todas las actividades.`,
+                `7. ARCHIVOS: gestiona, busca y elimina clases/extras guardados.`,
+                `\nCONTENIDO DE LA ÚLTIMA CLASE GUARDADA:`,
+                ultimaClase ? `\"\"\"\n${ultimaClase}\n\"\"\"` : '(No hay clase guardada todavía para este hito)',
+            ].filter(Boolean).join('\n');
+        }
+
+        // ---- Actualizar chips de contexto ----
+        function aiUpdateContext() {
+            const chitoEl = document.getElementById('ai-chip-hito');
+            const cclasesEl = document.getElementById('ai-chip-clases');
+            const cextrasEl = document.getElementById('ai-chip-extras');
+            if (chitoEl) chitoEl.textContent = `📌 Hito: ${estado.hitoActual || '?'}`;
+            if (cclasesEl) cclasesEl.textContent = `📄 Clases: ${classRecords.length}`;
+            if (cextrasEl) cextrasEl.textContent = `⭐ Extras: ${extraRecords.length}`;
+        }
+
+        function aiRenderSidebar() {
+            const sidebar = document.getElementById('ai-history-sidebar');
+            if (!sidebar) return;
+
+            aiEnsureConversations();
+
+            const sortedConversations = aiState.conversations
+                .slice()
+                .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+
+            const convoItems = sortedConversations.map((conv) => {
+                const firstUserMsg = (conv.history || []).find((m) => m.role === 'user')?.text || '';
+                const preview = firstUserMsg
+                    ? String(firstUserMsg).replace(/\s+/g, ' ').trim().slice(0, 78)
+                    : 'Sin mensajes aún';
+                const dateLabel = conv.updatedAt ? new Date(conv.updatedAt).toLocaleString() : '';
+                const isActive = conv.id === aiState.activeConversationId ? ' active' : '';
+                const isVisible = aiState.showMessageListInSidebar && conv.id === aiState.activeConversationId;
+                return `
+                    <div class="ai-history-item${isActive}" onclick="aiSwitchConversation('${conv.id}')" title="Abrir conversación">
+                        <div class="ai-history-conv-head">
+                            <div class="ai-history-conv-title">${escapeHtml(conv.title || 'Nueva conversación')}</div>
+                            <div class="ai-history-conv-actions">
+                                <button class="ai-history-conv-action" onclick="event.stopPropagation(); aiToggleSidebarMessages('${conv.id}')" title="Ver contenido de esta conversación">${isVisible ? '🙈' : '👁'}</button>
+                                <button class="ai-history-conv-action danger" onclick="event.stopPropagation(); aiDeleteConversation('${conv.id}')" title="Eliminar esta conversación">🗑</button>
+                            </div>
+                        </div>
+                        <div class="ai-history-meta">${escapeHtml(dateLabel)} · ${conv.history?.length || 0} mensajes</div>
+                        <div>${escapeHtml(preview)}${preview.length >= 78 ? '…' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const active = aiGetActiveConversation();
+            const messageItems = (active?.history || []).map((msg, idx) => {
+                const role = msg.role === 'user' ? 'Tú' : 'Asistente';
+                const excerpt = String(msg.text || '').replace(/\s+/g, ' ').trim().slice(0, 95);
+                return `
+                    <button class="ai-history-item" onclick="aiScrollToMessage(${idx})" title="Ir al mensaje ${idx + 1}">
+                        <div class="ai-history-role">${role} · #${idx + 1}</div>
+                        <div>${escapeHtml(excerpt || '(vacío)')}</div>
+                    </button>
+                `;
+            }).join('');
+
+            sidebar.innerHTML = `
+                <div class="ai-history-title">Historial de conversaciones</div>
+                <div class="ai-history-toolbar">
+                    <button class="ai-history-new-btn" onclick="aiCreateNewConversation()">+ Nueva conversación</button>
+                </div>
+                ${convoItems || '<div class="ai-history-item" style="cursor:default;">No hay conversaciones.</div>'}
+                ${aiState.showMessageListInSidebar ? `
+                    <div class="ai-history-title" style="margin-top:10px;">Conversación activa (${aiState.history.length})</div>
+                    ${messageItems || '<div class="ai-history-item" style="cursor:default;">Sin mensajes aún.</div>'}
+                ` : ''}
+            `;
+        }
+
+        function aiScrollToMessage(index) {
+            const el = document.getElementById(`ai-msg-${index}`);
+            if (!el) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // ---- Renderizar mensajes ----
+        function aiRenderMessages() {
+            const container = document.getElementById('ai-messages');
+            if (!container) return;
+            container.innerHTML = '';
+            if (aiState.history.length === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'ai-msg system-hint';
+                hint.textContent = '¡Hola! Soy tu asistente CGAlpha. Puedo explicarte el hito actual, la última clase, cómo funciona la app o responder cualquier duda de Python, matemáticas, trading o arquitectura. ¿En qué te ayudo?';
+                container.appendChild(hint);
+                aiRenderSidebar();
+                return;
+            }
+            aiState.history.forEach((msg, idx) => {
+                const div = document.createElement('div');
+                div.className = `ai-msg ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                div.id = `ai-msg-${idx}`;
+                // Render básico: soportar negritas y código inline
+                div.innerHTML = aiFormatText(msg.text);
+                container.appendChild(div);
+            });
+            aiRenderSidebar();
+            aiScrollToBottom();
+        }
+
+        function aiFormatText(text) {
+            // Simple formatter: escape + negritas + código inline + saltos de línea
+            let s = escapeHtml(text);
+            s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            s = s.replace(/`([^`]+)`/g, '<code style="background:#1a2a40;padding:1px 5px;border-radius:4px;font-size:11px;">$1</code>');
+            s = s.replace(/\n/g, '<br>');
+            return s;
+        }
+
+        function aiScrollToBottom() {
+            const container = document.getElementById('ai-messages');
+            if (container) container.scrollTop = container.scrollHeight;
+        }
+
+        // ---- Typing indicator ----
+        function aiShowTyping() {
+            const container = document.getElementById('ai-messages');
+            if (!container) return;
+            const div = document.createElement('div');
+            div.className = 'ai-typing';
+            div.id = 'ai-typing-indicator';
+            div.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(div);
+            aiScrollToBottom();
+        }
+
+        function aiHideTyping() {
+            const el = document.getElementById('ai-typing-indicator');
+            if (el) el.remove();
+        }
+
+        // ---- Llamada a Gemini API ----
+        async function aiCallGemini(userMessage) {
+            const systemContext = aiBuildContext();
+            const apiKey = aiState.apiKey;
+
+            if (!apiKey) {
+                return aiFallback(userMessage);
+            }
+
+            // Construir historial para Gemini.
+            // NOTA: aiState.history ya incluye el mensaje actual en la última posición
+            // (fue añadido en aiSend antes de llamar aquí). Por eso tomamos slice(-21, -1)
+            // para excluirlo y evitar que aparezca duplicado.
+            const geminiHistory = [];
+            const recentHistory = aiState.history.slice(-21, -1);
+            for (const msg of recentHistory) {
+                geminiHistory.push({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }],
+                });
+            }
+            // Añadir el mensaje actual (una sola vez)
+            geminiHistory.push({
+                role: 'user',
+                parts: [{ text: userMessage }],
+            });
+
+            const body = {
+                system_instruction: { parts: [{ text: systemContext }] },
+                contents: geminiHistory,
+                generationConfig: {
+                    maxOutputTokens: 1024,
+                    temperature: 0.7,
+                },
+            };
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${apiKey}`;
+
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    const errMsg = errData?.error?.message || `HTTP ${resp.status}`;
+                    const status = resp.status;
+
+                    if (status === 429 || errMsg.toLowerCase().includes('quota')) {
+                        return '⚠️ **Cuota agotada** para tu API Key.\n\n🔑 Soluciones:\n1. Espera 1-2 minutos (límite por minuto) y reintenta.\n2. Crea una nueva API Key en Google AI Studio.\n3. Si el modelo gemini-2.0-flash no tiene cuota gratuita en tu región, prueba con gemini-1.5-flash (tiene cuota más amplia).\n\nError técnico: ' + errMsg;
+                    }
+                    if (status === 400 && errMsg.toLowerCase().includes('not found')) {
+                        return '⚠️ **Modelo no disponible** para esta API Key.\n\nEl modelo gemini-2.0-flash puede no estar habilitado en tu cuenta.\n\n🔑 Soluciones:\n1. Ve a aistudio.google.com y acepta los términos de gemini-2.0-flash.\n2. Crea una nueva API Key en un proyecto nuevo.\n3. El modelo gemini-1.5-flash suele funcionar sin configuración extra.\n\nError: ' + errMsg;
+                    }
+                    if (status === 401 || status === 403) {
+                        return '⚠️ **API Key inválida o sin permisos** (HTTP ' + status + ').\n\n🔑 Verifica:\n1. Copia la key completa desde aistudio.google.com/app/apikey\n2. Úsala el ojo 👁 para confirmar que está bien pegada.\n3. Asegúrate de que la key no está revocada.\n\nError: ' + errMsg;
+                    }
+                    return '⚠️ Error de API (HTTP ' + status + '): ' + errMsg;
+                }
+
+                const data = await resp.json();
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) return '(No pude obtener una respuesta. Intenta de nuevo.)';
+                return text;
+            } catch (err) {
+                return `⚠️ Error de red: ${err.message}. Asegúrate de tener conexión a internet.`;
+            }
+        }
+
+        // ---- Fallback sin API key ----
+        function aiFallback(userMessage) {
+            const q = userMessage.toLowerCase();
+            const hito = estado.hitoActual || '?';
+
+            if (q.includes('hito') || q.includes('actual')) {
+                return `El hito actual es **"${hito}"** (Día ${estado.dia}). \n\nPara trabajarlo:\n1. Usa **CREAR CLASE** para generar el prompt.\n2. Pégalo en tu LLM (Gemini, ChatGPT, Claude).\n3. Usa **INCLUIR .MD** para guardar el resultado.\n4. Usa **LEER CLASE** para revisar el contenido.\n\n💡 *Configura tu Gemini API Key arriba para que pueda responderte con más detalle.*`;
+            }
+            if (q.includes('app') || q.includes('funciona') || q.includes('cómo')) {
+                return `**CGAlpha Learning** funciona así:\n\n📚 **1. CREAR CLASE** → genera un prompt para obtener la clase del hito actual.\n📥 **2. INCLUIR .MD** → guarda el contenido de la clase generada.\n👁️ **3. LEER CLASE** → muestra la clase con resaltado de código.\n➕ **4. AÑADIR EXTRA** → guarda notas adicionales por categoría.\n✅ **5. COMPLETAR** → avanza al siguiente hito.\n📋 **6. HISTORIAL** → log de actividades.\n📁 **7. ARCHIVOS** → gestiona todo el contenido guardado.\n\n💡 *Agrega tu Gemini API Key para respuestas detalladas sobre tu contenido.*`;
+            }
+            if (q.includes('clase') || q.includes('contenido')) {
+                const last = getLatestClassForCurrentHito();
+                if (last) return `Tienes una clase guardada para **"${last.hito}"** del ${last.date}. Usa **LEER CLASE** (botón 3) para verla con resaltado de código.\n\n💡 *Con API Key puedo explicarte el contenido en detalle.*`;
+                return `No hay clase guardada aún para el hito "${hito}". Usa **CREAR CLASE** (botón 1) para generar el prompt y luego **INCLUIR .MD** (botón 2) para guardarla.`;
+            }
+            if (q.includes('python') || q.includes('enum')) {
+                return `**Enum en Python** es una clase que permite definir constantes con nombre.\n\n\`\`\`python\nfrom enum import Enum\n\nclass SignalDirection(Enum):\n    LONG = 'buy'\n    SHORT = 'sell'\n    NEUTRAL = 'hold'\n\`\`\`\n\n💡 *Configura tu API Key para respuestas más personalizadas.*`;
+            }
+            if (q.includes('ejercicio') || q.includes('práctica')) {
+                return `**Ejercicio para "${hito}"**:\n\n1. Define una clase Enum para representar el estado de una señal de trading.\n2. Crea una función que reciba un valor y retorne el miembro del Enum correspondiente.\n3. Escribe 3 casos de prueba.\n\n💡 *Con API Key puedo generarte ejercicios más específicos basados en tu clase.*`;
+            }
+            return `Entendido. Puedo ayudarte con el hito **"${hito}"**, explicar la app, resumir tu última clase o darte ejercicios.\n\n🔑 Para respuestas potenciadas por IA, agrega tu **Gemini API Key** en el campo de la parte superior del chat.\n\nPrueba los botones de sugerencias rápidas de abajo.`;
+        }
+
+        // ---- Enviar mensaje ----
+        async function aiSend() {
+            const input = document.getElementById('ai-input');
+            const sendBtn = document.getElementById('ai-send-btn');
+            if (!input) return;
+
+            aiEnsureConversations();
+
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            input.style.height = 'auto';
+
+            // Agregar mensaje del usuario
+            aiState.history.push({ role: 'user', text });
+            aiPersistActiveHistory();
+            aiRenderMessages();
+
+            // Deshabilitar input mientras procesa
+            if (sendBtn) sendBtn.disabled = true;
+            input.disabled = true;
+
+            // Mostrar typing
+            aiShowTyping();
+            aiScrollToBottom();
+
+            // Obtener respuesta
+            let response;
+            try {
+                response = await aiCallGemini(text);
+            } catch (err) {
+                response = `⚠️ Error inesperado: ${err.message}`;
+            }
+
+            aiHideTyping();
+
+            // Agregar respuesta
+            aiState.history.push({ role: 'assistant', text: response });
+            aiPersistActiveHistory();
+            aiSave();
+            aiRenderMessages();
+
+            // Rehabilitar input
+            if (sendBtn) sendBtn.disabled = false;
+            input.disabled = false;
+            input.focus();
+            aiUpdateContext();
+        }
+
+        // ---- Sugerencias rápidas ----
+        function aiQuick(text) {
+            const input = document.getElementById('ai-input');
+            if (input) {
+                input.value = text;
+                aiSend();
+            }
+        }
+
+        // ---- Enter para enviar (Shift+Enter para nueva línea) ----
+        function aiKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                aiSend();
+            }
+        }
+
+        // ---- Auto-resize del textarea ----
+        document.getElementById('ai-input')?.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+        });
+
+        // ---- Inicialización del asistente ----
+        function aiInit() {
+            aiLoad();
+
+            // Aplicar estado colapsado
+            if (aiState.collapsed) {
+                const el = document.getElementById('ai-assistant');
+                const btn = document.getElementById('ai-collapse-btn');
+                if (el) el.classList.add('collapsed');
+                if (btn) btn.textContent = '▲';
+            }
+
+            if (aiState.fullscreen) {
+                aiToggleFullscreen(true);
+            }
+
+            // Restaurar API Key en el input
+            const keyInput = document.getElementById('ai-apikey-input');
+            if (keyInput && aiState.apiKey) keyInput.value = aiState.apiKey;
+
+            aiUpdateContext();
+            aiRenderMessages();
+        }
+
+        aiInit();
+    </script>
+</body>
+
+</html>
