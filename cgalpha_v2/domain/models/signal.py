@@ -34,6 +34,14 @@ class SignalDirection(Enum):
     SHORT = "short"
 
 
+class TrendDirection(Enum):
+    """Legacy-compatible trend direction used by v2 test fixtures."""
+
+    BULLISH = "bullish"
+    BEARISH = "bearish"
+    SIDEWAYS = "sideways"
+
+
 @dataclass(frozen=True, slots=True)
 class Candle:
     """
@@ -121,6 +129,30 @@ class DetectorVerdict:
             raise ValueError(
                 f"DetectorVerdict confidence must be in [0, 1], "
                 f"got {self.confidence}"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class Trend:
+    """
+    Legacy-compatible trend value object kept for v2 regression fixtures.
+
+    It is intentionally minimal and independent from detector internals.
+    """
+
+    direction: TrendDirection
+    r_squared: float
+    slope: float
+    duration_bars: int
+
+    def __post_init__(self) -> None:
+        if not (0.0 <= self.r_squared <= 1.0):
+            raise ValueError(
+                f"Trend r_squared must be in [0, 1], got {self.r_squared}"
+            )
+        if self.duration_bars < 1:
+            raise ValueError(
+                f"Trend duration_bars must be >= 1, got {self.duration_bars}"
             )
 
 

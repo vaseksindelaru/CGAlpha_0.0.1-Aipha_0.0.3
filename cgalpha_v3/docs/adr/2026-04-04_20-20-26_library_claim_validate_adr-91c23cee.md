@@ -1,0 +1,32 @@
+# ADR adr-91c23cee
+
+- Fecha: 2026-04-04T20:20:26.942485+00:00
+- Trigger: `library_claim_validate`
+- Iteración: `2026-04-04_20-20_01`
+- Nivel evento: `warning`
+
+## Contexto
+LILA: primary_source_gap detectado
+
+## Decisión
+- Registrar decisión runtime para trazabilidad.
+
+## Consecuencias
+- Revisión futura en auditoría de iteraciones.
+
+## Evidencia
+```json
+{
+  "claim": "Momentum intradia robusto",
+  "source_ids": [
+    "src-96adcffe"
+  ],
+  "primary_source_gap": true,
+  "claim_ok": false,
+  "validation_message": "claim 'Momentum intradia robusto' apoyado solo en fuentes ['tertiary'] — se requiere ≥1 primaria",
+  "sources_total": 1,
+  "primary_count": 0,
+  "missing_source_ids": [],
+  "backlog_item_id": "bl-bbd681a3"
+}
+```

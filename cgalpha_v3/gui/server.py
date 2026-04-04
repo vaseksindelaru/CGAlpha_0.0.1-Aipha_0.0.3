@@ -1,0 +1,1410 @@
+"""
+CGAlpha v3 — GUI Control Room Server
+=====================================
+Servidor de la sala de control viva.
+
+Fase: 0 (Mission Control + Market Live mock + Risk Dashboard básico)
+Auth: Bearer token via AUTH_TOKEN en .env
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import random
+import re
+import uuid
+from datetime import datetime, timezone
+from functools import wraps
+from pathlib import Path
+from typing import Any
+
+from flask import Flask, jsonify, request, send_from_directory
+from flask.typing import ResponseReturnValue
+
+# ---------------------------------------------------------------------------
+# Configuración
+# ---------------------------------------------------------------------------
+
+BASE_DIR = Path(__file__).parent
+STATIC_DIR = BASE_DIR / "static"
+MEMORY_DIR = BASE_DIR.parent / "memory"
+
+AUTH_TOKEN = os.getenv("CGV3_AUTH_TOKEN", "cgalpha-v3-local-dev")
+HOST = os.getenv("CGV3_HOST", "127.0.0.1")
+PORT = int(os.getenv("CGV3_PORT", "8080"))
+
+app = Flask(__name__, static_folder=str(STATIC_DIR))
+
+# ---------------------------------------------------------------------------
+# Estado global y Managers
+# ---------------------------------------------------------------------------
+from cgalpha_v3.application.rollback_manager import RollbackManager
+from cgalpha_v3.application.change_proposer import ChangeProposer
+from cgalpha_v3.application.experiment_runner import ExperimentResult, ExperimentRunner
+from cgalpha_v3.data_quality.gates import TemporalLeakageError
+from cgalpha_v3.domain.models.signal import ApproachType, MemoryEntry, MemoryLevel, Proposal, RiskAssessment
+from cgalpha_v3.learning.memory_policy import MemoryPolicyEngine
+from cgalpha_v3.lila.library_manager import AdaptiveBacklogItem, LibraryManager, LibrarySource
+
+_rollback_mgr = RollbackManager(MEMORY_DIR / "snapshots")
+_lila_mgr = LibraryManager()
+_change_proposer = ChangeProposer()
+_experiment_runner = ExperimentRunner()
+_memory_engine = MemoryPolicyEngine()
+_latest_proposal: Proposal | None = None
+_latest_experiment: ExperimentResult | None = None
+_experiment_history: list[ExperimentResult] = []
+_incident_registry: list[dict[str, Any]] = []
+_adr_registry: list[dict[str, Any]] = []
+
+DOCS_DIR = BASE_DIR.parent / "docs"
+
+_system_state: dict[str, Any] = {
+    "phase": "FASE_0",
+    "status": "idle",  # idle | running | degraded | error | kill-switch-active
+    "kill_switch": "armed",  # armed | triggered | disabled
+    "last_event": "Sistema inicializado",
+    "last_event_ts": datetime.now(timezone.utc).isoformat(),
+    "circuit_breaker": "inactive",
+    "drawdown_session_pct": 0.0,
+    "max_drawdown_session_pct": 5.0,
+    "max_position_size_pct": 2.0,
+    "max_signals_per_hour": 10,
+    "min_signal_quality_score": 0.65,
+    "data_quality": "valid",  # valid | stale | corrupted
+    "market_symbol": "BTCUSDT",
+    "market_interval": "5m",
+    "market_price": None,
+    "market_ts": None,
+    "primary_source_gap": False,
+    "experiment_loop_status": "idle",
+    "regime_shift_active": False,
+    "panels_active": [
+        "mission_control",
+        "market_live",
+        "risk_dashboard",
+    ],
+}
+
+_events_log: list[dict[str, Any]] = []
+
+
+# ---------------------------------------------------------------------------
+# Auth middleware
+# ---------------------------------------------------------------------------
+
+def require_auth(f: Any) -> Any:
+    @wraps(f)
+    def decorated(*args: Any, **kwargs: Any) -> ResponseReturnValue:
+        auth = request.headers.get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if token != AUTH_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+def _log_event(event: str, level: str = "info") -> None:
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "event": event,
+        "level": level,
+    }
+    _events_log.append(entry)
+    _system_state["last_event"] = event
+    _system_state["last_event_ts"] = entry["ts"]
+    # Mantener solo últimos 200 eventos en memoria
+    if len(_events_log) > 200:
+        _events_log.pop(0)
+
+
+def _risk_params_snapshot() -> dict[str, Any]:
+    return {
+        "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+        "max_position_size_pct": _system_state["max_position_size_pct"],
+        "max_signals_per_hour": _system_state["max_signals_per_hour"],
+        "min_signal_quality_score": _system_state["min_signal_quality_score"],
+    }
+
+
+def _library_snapshot_json() -> dict[str, Any]:
+    snap = _lila_mgr.library_snapshot()
+    last_ingestion = snap.get("last_ingestion")
+    snap["last_ingestion"] = (
+        last_ingestion.isoformat() if isinstance(last_ingestion, datetime) else None
+    )
+    return snap
+
+
+def _library_counts() -> dict[str, int]:
+    return {
+        "primary": len(_lila_mgr.search(source_type="primary", limit=10_000)),
+        "secondary": len(_lila_mgr.search(source_type="secondary", limit=10_000)),
+        "tertiary": len(_lila_mgr.search(source_type="tertiary", limit=10_000)),
+    }
+
+
+def _serialize_library_source(source: LibrarySource) -> dict[str, Any]:
+    return {
+        "source_id": source.source_id,
+        "title": source.title,
+        "authors": source.authors,
+        "year": source.year,
+        "source_type": source.source_type,
+        "venue": source.venue,
+        "url": source.url,
+        "abstract": source.abstract,
+        "relevant_finding": source.relevant_finding,
+        "applicability": source.applicability,
+        "tags": source.tags,
+        "ev_level": source.ev_level,
+        "ingested_at": source.ingested_at.isoformat(),
+        "duplicate_of": source.duplicate_of,
+        "contradicts": source.contradicts,
+        "executive_summary": source.executive_summary,
+        "tech_summary": source.tech_summary,
+    }
+
+
+def _serialize_backlog_item(item: AdaptiveBacklogItem) -> dict[str, Any]:
+    return {
+        "item_id": item.item_id,
+        "title": item.title,
+        "rationale": item.rationale,
+        "item_type": item.item_type,
+        "impact": item.impact,
+        "risk": item.risk,
+        "evidence_gap": item.evidence_gap,
+        "priority_score": item.priority_score,
+        "requested_by": item.requested_by,
+        "claim": item.claim,
+        "related_source_ids": item.related_source_ids,
+        "recommended_source_type": item.recommended_source_type,
+        "status": item.status,
+        "created_at": item.created_at.isoformat(),
+        "updated_at": item.updated_at.isoformat(),
+        "resolution_note": item.resolution_note,
+    }
+
+
+def _theory_live_snapshot_json() -> dict[str, Any]:
+    snap = _lila_mgr.theory_live_snapshot()
+    lib = snap.get("library", {})
+    last_ingestion = lib.get("last_ingestion")
+    lib["last_ingestion"] = (
+        last_ingestion.isoformat() if isinstance(last_ingestion, datetime) else None
+    )
+    return {
+        "library": lib,
+        "counts": snap.get("counts", {}),
+        "primary_source_gap_open": bool(snap.get("primary_source_gap_open", False)),
+        "recent_sources": [
+            _serialize_library_source(s) for s in snap.get("recent_sources", [])
+        ],
+        "backlog": {
+            "open": snap.get("backlog", {}).get("open", 0),
+            "in_progress": snap.get("backlog", {}).get("in_progress", 0),
+            "resolved": snap.get("backlog", {}).get("resolved", 0),
+            "primary_source_gap_open": snap.get("backlog", {}).get("primary_source_gap_open", 0),
+            "top_priority_score": snap.get("backlog", {}).get("top_priority_score", 0.0),
+            "top_items": [
+                _serialize_backlog_item(i)
+                for i in snap.get("backlog", {}).get("top_items", [])
+            ],
+        },
+    }
+
+
+def _serialize_proposal(proposal: Proposal) -> dict[str, Any]:
+    return {
+        "proposal_id": proposal.proposal_id,
+        "agent_id": proposal.agent_id,
+        "generated_at": proposal.generated_at.isoformat(),
+        "session_id": proposal.session_id,
+        "hypothesis": proposal.hypothesis,
+        "approach_types_targeted": [a.value for a in proposal.approach_types_targeted],
+        "risk_assessment": {
+            "max_drawdown_impact_pct": proposal.risk_assessment.max_drawdown_impact_pct,
+            "position_sizing_impact": proposal.risk_assessment.position_sizing_impact,
+            "kill_switch_threshold": proposal.risk_assessment.kill_switch_threshold,
+            "circuit_breaker_interaction": proposal.risk_assessment.circuit_breaker_interaction,
+        },
+        "namespace": proposal.namespace,
+        "scientific_justification": proposal.scientific_justification,
+        "backtesting": proposal.backtesting,
+        "expected_impact": proposal.expected_impact,
+        "validation_plan": proposal.validation_plan,
+        "status": proposal.status,
+    }
+
+
+def _serialize_experiment_result(experiment: ExperimentResult) -> dict[str, Any]:
+    return experiment.as_dict()
+
+
+def _memory_entries_dir() -> Path:
+    return MEMORY_DIR / "memory_entries"
+
+
+def _incidents_dir() -> Path:
+    return MEMORY_DIR / "incidents"
+
+
+def _adr_dir() -> Path:
+    return DOCS_DIR / "adr"
+
+
+def _post_mortems_dir() -> Path:
+    return DOCS_DIR / "post_mortems"
+
+
+def _ensure_dirs() -> None:
+    for d in (_memory_entries_dir(), _incidents_dir(), _adr_dir(), _post_mortems_dir()):
+        d.mkdir(parents=True, exist_ok=True)
+
+
+def _slugify(text: str, max_len: int = 48) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", text).strip("_").lower()
+    if not cleaned:
+        cleaned = "entry"
+    return cleaned[:max_len]
+
+
+def _serialize_memory_entry(entry: MemoryEntry) -> dict[str, Any]:
+    return {
+        "entry_id": entry.entry_id,
+        "level": entry.level.value,
+        "content": entry.content,
+        "source_id": entry.source_id,
+        "source_type": entry.source_type,
+        "created_at": entry.created_at.isoformat(),
+        "expires_at": entry.expires_at.isoformat() if entry.expires_at else None,
+        "approved_by": entry.approved_by,
+        "field": entry.field,
+        "tags": entry.tags,
+        "stale": entry.stale,
+    }
+
+
+def _learning_memory_snapshot_json() -> dict[str, Any]:
+    return _memory_engine.snapshot()
+
+
+def _persist_memory_entry(entry: MemoryEntry) -> None:
+    _ensure_dirs()
+    path = _memory_entries_dir() / f"{entry.entry_id}.json"
+    path.write_text(json.dumps(_serialize_memory_entry(entry), indent=2, ensure_ascii=False))
+
+
+def _capture_memory_librarian_event(event: str, trigger: str, level: str, context: dict[str, Any] | None) -> None:
+    tags = [f"trigger:{trigger}", f"level:{level}"]
+    if context:
+        tags.extend([f"ctx:{k}" for k in list(context.keys())[:5]])
+    entry = _memory_engine.ingest_raw(
+        content=event,
+        field="memory_librarian",
+        source_id=context.get("source_id") if context else None,
+        source_type="secondary",
+        tags=tags,
+    )
+    _memory_engine.normalize(entry.entry_id, tags=["auto-normalized"])
+    _persist_memory_entry(_memory_engine.entries[entry.entry_id])
+
+
+def _incident_priority(level: str, trigger: str) -> str:
+    if level == "critical":
+        return "P0"
+    if "rollback" in trigger:
+        return "P1"
+    if level == "warning":
+        return "P1"
+    return "P3"
+
+
+def _register_incident(
+    *,
+    event: str,
+    trigger: str,
+    level: str,
+    iteration_id: str | None,
+    context: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if level not in ("warning", "critical"):
+        return None
+
+    _ensure_dirs()
+    created_at = datetime.now(timezone.utc)
+    priority = _incident_priority(level, trigger)
+    incident_id = f"inc-{uuid.uuid4().hex[:8]}"
+    filename = f"{created_at.strftime('%Y-%m-%d')}_{priority}_{_slugify(event, 36)}_{incident_id}.md"
+    post_mortem_path = _post_mortems_dir() / filename
+    post_mortem_template = (
+        f"# Post-Mortem {priority} — {incident_id}\n\n"
+        f"- Fecha incidente: {created_at.isoformat()}\n"
+        f"- Trigger: `{trigger}`\n"
+        f"- Iteración: `{iteration_id or 'N/A'}`\n\n"
+        "## Resumen\n"
+        f"{event}\n\n"
+        "## Impacto\n"
+        "- Impacto operativo:\n"
+        "- Servicios afectados:\n\n"
+        "## Línea de tiempo\n"
+        "1. Detección:\n"
+        "2. Contención:\n"
+        "3. Resolución:\n\n"
+        "## Causa raíz\n"
+        "-\n\n"
+        "## Acciones correctivas\n"
+        "1.\n"
+        "2.\n\n"
+        "## Evidencia\n"
+        f"- Contexto runtime: `{json.dumps(context or {}, ensure_ascii=False)}`\n"
+    )
+    post_mortem_path.write_text(post_mortem_template)
+
+    incident = {
+        "incident_id": incident_id,
+        "priority": priority,
+        "trigger": trigger,
+        "level": level,
+        "event": event,
+        "iteration_id": iteration_id,
+        "created_at": created_at.isoformat(),
+        "status": "open",
+        "context": context or {},
+        "post_mortem_path": str(post_mortem_path),
+        "resolved_at": None,
+        "resolution_note": "",
+    }
+    _incident_registry.append(incident)
+    if len(_incident_registry) > 200:
+        _incident_registry.pop(0)
+    (_incidents_dir() / f"{incident_id}.json").write_text(
+        json.dumps(incident, indent=2, ensure_ascii=False)
+    )
+    return incident
+
+
+def _register_adr(
+    *,
+    event: str,
+    trigger: str,
+    level: str,
+    iteration_id: str | None,
+    context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    _ensure_dirs()
+    created_at = datetime.now(timezone.utc)
+    adr_id = f"adr-{uuid.uuid4().hex[:8]}"
+    adr_filename = (
+        f"{created_at.strftime('%Y-%m-%d_%H-%M-%S')}_{_slugify(trigger, 24)}_{adr_id}.md"
+    )
+    adr_path = _adr_dir() / adr_filename
+    adr_content = (
+        f"# ADR {adr_id}\n\n"
+        f"- Fecha: {created_at.isoformat()}\n"
+        f"- Trigger: `{trigger}`\n"
+        f"- Iteración: `{iteration_id or 'N/A'}`\n"
+        f"- Nivel evento: `{level}`\n\n"
+        "## Contexto\n"
+        f"{event}\n\n"
+        "## Decisión\n"
+        "- Registrar decisión runtime para trazabilidad.\n\n"
+        "## Consecuencias\n"
+        "- Revisión futura en auditoría de iteraciones.\n\n"
+        "## Evidencia\n"
+        f"```json\n{json.dumps(context or {}, indent=2, ensure_ascii=False)}\n```\n"
+    )
+    adr_path.write_text(adr_content)
+    adr = {
+        "adr_id": adr_id,
+        "created_at": created_at.isoformat(),
+        "trigger": trigger,
+        "iteration_id": iteration_id,
+        "event": event,
+        "path": str(adr_path),
+    }
+    _adr_registry.append(adr)
+    if len(_adr_registry) > 400:
+        _adr_registry.pop(0)
+    return adr
+
+
+def _experiment_loop_snapshot_json() -> dict[str, Any]:
+    return {
+        "status": _system_state["experiment_loop_status"],
+        "has_proposal": _latest_proposal is not None,
+        "has_experiment": _latest_experiment is not None,
+        "proposal": _serialize_proposal(_latest_proposal) if _latest_proposal else None,
+        "latest_experiment": _serialize_experiment_result(_latest_experiment) if _latest_experiment else None,
+        "history_count": len(_experiment_history),
+    }
+
+
+def _parse_approach_types(value: Any) -> list[ApproachType]:
+    tokens = _parse_list_field(value)
+    if not tokens:
+        return [ApproachType.TOUCH]
+    parsed: list[ApproachType] = []
+    for token in tokens:
+        tk = token.strip().upper()
+        try:
+            parsed.append(ApproachType[tk])
+        except KeyError as exc:
+            raise ValueError(f"invalid_approach_type:{token}") from exc
+    return parsed
+
+
+def _generate_mock_market_rows(num_rows: int = 180) -> list[dict[str, Any]]:
+    now_ts = datetime.now(timezone.utc).timestamp()
+    start_ts = now_ts - (num_rows * 300.0)
+    price = 100.0
+    rows: list[dict[str, Any]] = []
+    rng = random.Random(42)
+    for i in range(num_rows):
+        open_ts = start_ts + (i * 300.0)
+        close_ts = open_ts + 300.0
+        drift = 0.03 if (i // 30) % 2 == 0 else -0.01
+        noise = rng.uniform(-0.08, 0.08)
+        open_price = price
+        price = max(price + drift + noise, 1.0)
+        close_price = price
+        high_price = max(open_price, close_price) + abs(rng.uniform(0.0, 0.06))
+        low_price = max(min(open_price, close_price) - abs(rng.uniform(0.0, 0.06)), 0.0001)
+        rows.append(
+            {
+                "open_time": float(open_ts),
+                "close_time": float(close_ts),
+                "open": float(round(open_price, 6)),
+                "high": float(round(high_price, 6)),
+                "low": float(round(low_price, 6)),
+                "close": float(round(close_price, 6)),
+            }
+        )
+    return rows
+
+
+def _parse_list_field(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [x.strip() for x in value.split(",") if x.strip()]
+    if isinstance(value, list):
+        return [str(x).strip() for x in value if str(x).strip()]
+    return []
+
+
+def _next_iteration_dir(iterations_root: Path, base_name: str) -> Path:
+    candidate = iterations_root / base_name
+    if not candidate.exists():
+        return candidate
+
+    idx = 1
+    while True:
+        candidate = iterations_root / f"{base_name}_{idx:02d}"
+        if not candidate.exists():
+            return candidate
+        idx += 1
+
+
+def _build_iteration_status(
+    *,
+    iteration_id: str,
+    trigger: str,
+    generated_at: str,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    snapshots_dir = MEMORY_DIR / "snapshots"
+    rollback_available = snapshots_dir.exists() and any(d.is_dir() for d in snapshots_dir.iterdir())
+    recent_events = _events_log[-20:]
+
+    status: dict[str, Any] = {
+        "iteration": iteration_id,
+        "generated_at": generated_at,
+        "trigger": trigger,
+        "phase": _system_state["phase"],
+        "completed_tasks": [
+            "Registro automático de ciclo real desde GUI",
+            _system_state["last_event"],
+        ],
+        "blocked_tasks": [],
+        "gui_events_published": [e["event"] for e in recent_events],
+        "tests_status": {
+            "gui_runtime_cycle": "registrado automáticamente en ejecución real",
+        },
+        "risk_assessment_status": "N/A - ciclo de control GUI",
+        "kill_switch_status": _system_state["kill_switch"],
+        "circuit_breaker": _system_state["circuit_breaker"],
+        "data_quality": _system_state["data_quality"],
+        "drawdown_session_pct": _system_state["drawdown_session_pct"],
+        "primary_source_gap": _system_state["primary_source_gap"],
+        "risk_parameters": _risk_params_snapshot(),
+        "experiment_loop": _experiment_loop_snapshot_json(),
+        "learning_memory": _learning_memory_snapshot_json(),
+        "incident_open_count": len([i for i in _incident_registry if i["status"] == "open"]),
+        "adr_count": len(_adr_registry),
+        "namespace": "v3",
+        "production_ready": False,
+        "production_gate_reason": "P0/P1/P2 pendientes según checklist de implementación",
+        "rollback_available": rollback_available,
+        "rollback_note": "Snapshot disponible para rollback" if rollback_available else "Sin snapshots disponibles",
+    }
+    if context:
+        status["context"] = context
+    return status
+
+
+def _build_iteration_summary(status: dict[str, Any]) -> str:
+    recent_events = list(reversed(_events_log[-10:]))
+    if recent_events:
+        events_md = "\n".join(
+            f"| {e['ts']} | {e['level']} | {e['event']} |"
+            for e in recent_events
+        )
+    else:
+        events_md = "| — | — | Sin eventos |"
+
+    risks: list[str] = []
+    if status["kill_switch_status"] == "triggered":
+        risks.append("- Kill-switch activo: señales suspendidas.")
+    if status["data_quality"] != "valid":
+        risks.append("- Data quality no está en estado valid; mantener vigilancia operativa.")
+    if not risks:
+        risks.append("- Sin riesgos críticos nuevos detectados en este ciclo GUI.")
+    risks_text = "\n".join(risks)
+
+    return (
+        f"# Iteración: {status['iteration']} — {status['phase']}\n\n"
+        "## Objetivo\n"
+        f"Registro automático de ciclo real GUI disparado por `{status['trigger']}`.\n\n"
+        "## Estado rápido\n\n"
+        f"- Generado en: {status['generated_at']}\n"
+        f"- Último evento: {status['gui_events_published'][-1] if status['gui_events_published'] else 'N/A'}\n"
+        f"- Kill-switch: {status['kill_switch_status']}\n"
+        f"- Circuit breaker: {status['circuit_breaker']}\n"
+        f"- Data quality: {status['data_quality']}\n\n"
+        f"- Incidentes abiertos: {status.get('incident_open_count', 0)}\n"
+        f"- ADR acumulados: {status.get('adr_count', 0)}\n\n"
+        "## Parámetros de riesgo vigentes\n\n"
+        f"- max_drawdown_session_pct: {status['risk_parameters']['max_drawdown_session_pct']}\n"
+        f"- max_position_size_pct: {status['risk_parameters']['max_position_size_pct']}\n"
+        f"- max_signals_per_hour: {status['risk_parameters']['max_signals_per_hour']}\n"
+        f"- min_signal_quality_score: {status['risk_parameters']['min_signal_quality_score']}\n\n"
+        "## Eventos recientes GUI\n\n"
+        "| Timestamp UTC | Nivel | Evento |\n"
+        "|---|---|---|\n"
+        f"{events_md}\n\n"
+        "## Riesgos identificados\n\n"
+        f"{risks_text}\n\n"
+        "## Próximos pasos\n\n"
+        "1. Revisar CHECKLIST_IMPLEMENTACION para confirmar gate objetivo.\n"
+        "2. Continuar el siguiente ciclo desde GUI manteniendo trazabilidad automática.\n"
+    )
+
+
+def _persist_iteration_artifacts(
+    *,
+    trigger: str,
+    context: dict[str, Any] | None = None,
+) -> Path:
+    iterations_root = MEMORY_DIR / "iterations"
+    iterations_root.mkdir(parents=True, exist_ok=True)
+
+    now = datetime.now(timezone.utc)
+    base_name = now.strftime("%Y-%m-%d_%H-%M")
+    iteration_dir = _next_iteration_dir(iterations_root, base_name)
+    iteration_dir.mkdir(parents=True, exist_ok=False)
+
+    status = _build_iteration_status(
+        iteration_id=iteration_dir.name,
+        trigger=trigger,
+        generated_at=now.isoformat(),
+        context=context,
+    )
+    (iteration_dir / "iteration_status.json").write_text(
+        json.dumps(status, indent=2, ensure_ascii=False)
+    )
+    (iteration_dir / "iteration_summary.md").write_text(_build_iteration_summary(status))
+    return iteration_dir
+
+
+def _record_control_cycle(
+    *,
+    event: str,
+    trigger: str,
+    level: str = "info",
+    context: dict[str, Any] | None = None,
+) -> None:
+    _log_event(event, level=level)
+    iteration_dir: Path | None = None
+    try:
+        iteration_dir = _persist_iteration_artifacts(trigger=trigger, context=context)
+    except Exception as exc:  # pragma: no cover - error path defensivo
+        _log_event(f"ITERATION_ARTIFACT_ERROR: {exc}", level="warning")
+    try:
+        _capture_memory_librarian_event(event=event, trigger=trigger, level=level, context=context)
+    except Exception as exc:  # pragma: no cover - error path defensivo
+        _log_event(f"MEMORY_CAPTURE_ERROR: {exc}", level="warning")
+    try:
+        _register_incident(
+            event=event,
+            trigger=trigger,
+            level=level,
+            iteration_id=iteration_dir.name if iteration_dir else None,
+            context=context,
+        )
+    except Exception as exc:  # pragma: no cover - error path defensivo
+        _log_event(f"INCIDENT_WIRING_ERROR: {exc}", level="warning")
+    try:
+        _register_adr(
+            event=event,
+            trigger=trigger,
+            level=level,
+            iteration_id=iteration_dir.name if iteration_dir else None,
+            context=context,
+        )
+    except Exception as exc:  # pragma: no cover - error path defensivo
+        _log_event(f"ADR_WIRING_ERROR: {exc}", level="warning")
+
+
+# ---------------------------------------------------------------------------
+# Rutas API
+# ---------------------------------------------------------------------------
+
+@app.route("/")
+def index() -> ResponseReturnValue:
+    return send_from_directory(str(STATIC_DIR), "index.html")
+
+
+@app.route("/api/status")
+@require_auth
+def api_status() -> ResponseReturnValue:
+    """
+    Devuelve gui_status_snapshot compatible con Sección J del Prompt Maestro.
+    """
+    return jsonify({
+        "panels_active": _system_state["panels_active"],
+        "auth_enabled": True,
+        "last_event": _system_state["last_event"],
+        "kill_switch_status": _system_state["kill_switch"],
+        "system_status": _system_state["status"],
+        "phase": _system_state["phase"],
+        "data_quality": _system_state["data_quality"],
+        "circuit_breaker": _system_state["circuit_breaker"],
+        "drawdown_session_pct": _system_state["drawdown_session_pct"],
+        "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+        "max_position_size_pct": _system_state["max_position_size_pct"],
+        "max_signals_per_hour": _system_state["max_signals_per_hour"],
+        "min_signal_quality_score": _system_state["min_signal_quality_score"],
+        "primary_source_gap": _system_state["primary_source_gap"],
+        "regime_shift_active": _system_state["regime_shift_active"],
+        "market": {
+            "symbol": _system_state["market_symbol"],
+            "interval": _system_state["market_interval"],
+            "price": _system_state["market_price"],
+            "ts": _system_state["market_ts"],
+        },
+        "library": _library_snapshot_json(),
+        "theory_live": _theory_live_snapshot_json(),
+        "experiment_loop": _experiment_loop_snapshot_json(),
+        "learning_memory": _learning_memory_snapshot_json(),
+        "incident_open_count": len([i for i in _incident_registry if i["status"] == "open"]),
+        "adr_count": len(_adr_registry),
+        "server_ts": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+@app.route("/api/events")
+@require_auth
+def api_events() -> ResponseReturnValue:
+    """Stream de eventos recientes (últimos N)."""
+    limit = min(int(request.args.get("limit", 50)), 200)
+    return jsonify(list(reversed(_events_log[-limit:])))
+
+
+@app.route("/api/library/status", methods=["GET"])
+@require_auth
+def library_status() -> ResponseReturnValue:
+    """Snapshot de estado de la biblioteca Lila."""
+    return jsonify({
+        **_library_snapshot_json(),
+        "counts": _library_counts(),
+    })
+
+
+@app.route("/api/library/sources", methods=["GET"])
+@require_auth
+def library_sources() -> ResponseReturnValue:
+    """Listar/buscar fuentes de biblioteca."""
+    query = request.args.get("query", "")
+    source_type = request.args.get("source_type", "").strip().lower() or None
+    tags = _parse_list_field(request.args.get("tags"))
+    limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+
+    if source_type and source_type not in ("primary", "secondary", "tertiary"):
+        return jsonify({"error": "invalid_source_type"}), 400
+
+    results = _lila_mgr.search(
+        query=query,
+        source_type=source_type,  # type: ignore[arg-type]
+        tags=tags or None,
+        limit=limit,
+    )
+    return jsonify({
+        "query": query,
+        "source_type": source_type,
+        "tags": tags,
+        "count": len(results),
+        "results": [_serialize_library_source(s) for s in results],
+    })
+
+
+@app.route("/api/library/sources/<source_id>", methods=["GET"])
+@require_auth
+def library_source_detail(source_id: str) -> ResponseReturnValue:
+    """Detalle de una fuente por source_id."""
+    results = _lila_mgr.search(limit=10_000)
+    for source in results:
+        if source.source_id == source_id:
+            return jsonify(_serialize_library_source(source))
+    return jsonify({"error": "source_not_found"}), 404
+
+
+@app.route("/api/library/ingest", methods=["POST"])
+@require_auth
+def library_ingest() -> ResponseReturnValue:
+    """Ingestar fuente en Lila desde GUI/API."""
+    data = request.get_json() or {}
+    required = ["title", "source_type", "year", "abstract"]
+    missing = [f for f in required if f not in data or not str(data.get(f)).strip()]
+    if missing:
+        return jsonify({"error": "missing_fields", "fields": missing}), 400
+
+    source_type = str(data.get("source_type", "")).strip().lower()
+    if source_type not in ("primary", "secondary", "tertiary"):
+        return jsonify({"error": "invalid_source_type"}), 400
+
+    try:
+        source = LibrarySource(
+            source_id=str(data.get("source_id") or LibraryManager.new_source_id()),
+            title=str(data["title"]).strip(),
+            authors=_parse_list_field(data.get("authors")) or ["Unknown"],
+            year=int(data["year"]),
+            source_type=source_type,  # type: ignore[arg-type]
+            venue=str(data.get("venue") or "unknown"),
+            url=data.get("url"),
+            abstract=str(data["abstract"]).strip(),
+            relevant_finding=str(data.get("relevant_finding") or "N/A"),
+            applicability=str(data.get("applicability") or "N/A"),
+            tags=_parse_list_field(data.get("tags")),
+            executive_summary=str(data.get("executive_summary") or ""),
+            tech_summary=str(data.get("tech_summary") or ""),
+        )
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid_payload"}), 400
+
+    stored, is_new = _lila_mgr.ingest(source)
+    _record_control_cycle(
+        event=(
+            f"LILA: ingesta {'nueva' if is_new else 'duplicada'} "
+            f"[{stored.source_type}] {stored.source_id}"
+        ),
+        level="info" if is_new else "warning",
+        trigger="library_ingest",
+        context={
+            "source_id": stored.source_id,
+            "source_type": stored.source_type,
+            "is_new": is_new,
+            "title": stored.title,
+        },
+    )
+    return jsonify({
+        "is_new": is_new,
+        "source": _serialize_library_source(stored),
+        "snapshot": _library_snapshot_json(),
+    })
+
+
+@app.route("/api/library/claims/validate", methods=["POST"])
+@require_auth
+def library_claim_validate() -> ResponseReturnValue:
+    """Valida claim y detecta primary_source_gap en runtime."""
+    data = request.get_json() or {}
+    claim = str(data.get("claim") or "").strip()
+    source_ids = _parse_list_field(data.get("source_ids"))
+    if not source_ids:
+        return jsonify({"error": "source_ids_required"}), 400
+
+    detection = _lila_mgr.detect_primary_source_gap(
+        source_ids=source_ids,
+        claim=claim,
+        auto_backlog=bool(data.get("auto_backlog", True)),
+        requested_by=str(data.get("requested_by") or "runtime"),
+    )
+    _system_state["primary_source_gap"] = bool(detection["primary_source_gap"])
+    _record_control_cycle(
+        event=(
+            "LILA: primary_source_gap detectado"
+            if detection["primary_source_gap"]
+            else "LILA: claim validado con fuente primaria"
+        ),
+        level="warning" if detection["primary_source_gap"] else "info",
+        trigger="library_claim_validate",
+        context={
+            "claim": claim,
+            "source_ids": source_ids,
+            **detection,
+        },
+    )
+    return jsonify(detection)
+
+
+@app.route("/api/lila/backlog", methods=["GET"])
+@require_auth
+def lila_backlog_list() -> ResponseReturnValue:
+    """Lista backlog adaptativo de Lila."""
+    raw_status = request.args.get("status", "open").strip().lower()
+    status = None if raw_status in ("all", "*") else raw_status
+    if status not in (None, "open", "in_progress", "resolved"):
+        return jsonify({"error": "invalid_status"}), 400
+    limit = min(max(int(request.args.get("limit", 20)), 1), 200)
+    items = _lila_mgr.list_backlog(status=status, limit=limit)  # type: ignore[arg-type]
+    return jsonify({
+        "status": status,
+        "count": len(items),
+        "items": [_serialize_backlog_item(i) for i in items],
+    })
+
+
+@app.route("/api/lila/backlog", methods=["POST"])
+@require_auth
+def lila_backlog_add() -> ResponseReturnValue:
+    """Crea item de backlog adaptativo."""
+    data = request.get_json() or {}
+    required = ["title", "rationale", "item_type", "impact", "risk", "evidence_gap"]
+    missing = [f for f in required if f not in data or not str(data.get(f)).strip()]
+    if missing:
+        return jsonify({"error": "missing_fields", "fields": missing}), 400
+
+    item_type = str(data.get("item_type", "")).strip().lower()
+    if item_type not in ("primary_source_gap", "theory_request", "evidence_conflict", "research_gap"):
+        return jsonify({"error": "invalid_item_type"}), 400
+
+    rec_type = str(data.get("recommended_source_type", "primary")).strip().lower()
+    if rec_type not in ("primary", "secondary", "tertiary"):
+        return jsonify({"error": "invalid_recommended_source_type"}), 400
+
+    try:
+        item = _lila_mgr.add_backlog_item(
+            title=str(data["title"]),
+            rationale=str(data["rationale"]),
+            item_type=item_type,  # type: ignore[arg-type]
+            impact=int(data["impact"]),
+            risk=int(data["risk"]),
+            evidence_gap=int(data["evidence_gap"]),
+            requested_by=str(data.get("requested_by") or "user"),
+            claim=str(data.get("claim") or ""),
+            related_source_ids=_parse_list_field(data.get("related_source_ids")),
+            recommended_source_type=rec_type,  # type: ignore[arg-type]
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _record_control_cycle(
+        event=f"LILA: backlog item creado {item.item_id}",
+        level="info",
+        trigger="lila_backlog_add",
+        context={"item_id": item.item_id, "item_type": item.item_type, "priority_score": item.priority_score},
+    )
+    return jsonify(_serialize_backlog_item(item))
+
+
+@app.route("/api/lila/backlog/<item_id>/resolve", methods=["POST"])
+@require_auth
+def lila_backlog_resolve(item_id: str) -> ResponseReturnValue:
+    """Resuelve item del backlog."""
+    data = request.get_json() or {}
+    note = str(data.get("resolution_note") or "")
+    item = _lila_mgr.resolve_backlog_item(item_id=item_id, resolution_note=note)
+    if item is None:
+        return jsonify({"error": "item_not_found"}), 404
+
+    _record_control_cycle(
+        event=f"LILA: backlog item resuelto {item.item_id}",
+        level="info",
+        trigger="lila_backlog_resolve",
+        context={"item_id": item.item_id, "item_type": item.item_type},
+    )
+    return jsonify(_serialize_backlog_item(item))
+
+
+@app.route("/api/theory/live", methods=["GET"])
+@require_auth
+def theory_live_status() -> ResponseReturnValue:
+    """Snapshot Theory Live conectado a biblioteca real de Lila."""
+    return jsonify(_theory_live_snapshot_json())
+
+
+@app.route("/api/experiment/status", methods=["GET"])
+@require_auth
+def experiment_status() -> ResponseReturnValue:
+    """Estado del Experiment Loop (proposal + última ejecución)."""
+    return jsonify(_experiment_loop_snapshot_json())
+
+
+@app.route("/api/experiment/propose", methods=["POST"])
+@require_auth
+def experiment_propose() -> ResponseReturnValue:
+    """Genera propuesta base con fricciones activas por defecto."""
+    global _latest_proposal
+    data = request.get_json() or {}
+    hypothesis = str(data.get("hypothesis") or "").strip()
+    if not hypothesis:
+        return jsonify({"error": "hypothesis_required"}), 400
+
+    try:
+        approach_types = _parse_approach_types(data.get("approach_types"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    risk = RiskAssessment(
+        max_drawdown_impact_pct=float(data.get("max_drawdown_impact_pct", 1.0)),
+        position_sizing_impact=str(data.get("position_sizing_impact", "none")),  # type: ignore[arg-type]
+        kill_switch_threshold=str(
+            data.get("kill_switch_threshold", "drawdown_session_pct > max_drawdown_session_pct")
+        ),
+        circuit_breaker_interaction=str(
+            data.get("circuit_breaker_interaction", "No bypass de circuit breaker")
+        ),
+    )
+    proposal = _change_proposer.create_proposal(
+        hypothesis=hypothesis,
+        approach_types_targeted=approach_types,
+        source_ids=_parse_list_field(data.get("source_ids")),
+        risk_assessment=risk,
+    )
+    _latest_proposal = proposal
+    _system_state["experiment_loop_status"] = "proposal_ready"
+    _record_control_cycle(
+        event=f"EXPERIMENT: propuesta generada {proposal.proposal_id}",
+        trigger="experiment_propose",
+        level="info",
+        context={
+            "proposal_id": proposal.proposal_id,
+            "frictions": proposal.backtesting.get("frictions", {}),
+            "walk_forward_windows": proposal.backtesting.get("walk_forward_windows", 3),
+        },
+    )
+    return jsonify(_serialize_proposal(proposal))
+
+
+@app.route("/api/experiment/run", methods=["POST"])
+@require_auth
+def experiment_run() -> ResponseReturnValue:
+    """Ejecuta experimento con walk-forward>=3 y no-leakage obligatorio."""
+    global _latest_experiment
+    if _latest_proposal is None:
+        return jsonify({"error": "proposal_required"}), 400
+
+    data = request.get_json() or {}
+    rows = data.get("rows")
+    if isinstance(rows, list) and rows:
+        dataset = rows
+    else:
+        dataset = _generate_mock_market_rows(num_rows=int(data.get("mock_rows", 180)))
+
+    ft = data.get("feature_timestamps")
+    feature_timestamps = [float(x) for x in ft] if isinstance(ft, list) else None
+
+    try:
+        result = _experiment_runner.run_experiment(
+            proposal=_latest_proposal,
+            rows=dataset,
+            feature_timestamps=feature_timestamps,
+        )
+    except TemporalLeakageError as exc:
+        _system_state["experiment_loop_status"] = "failed_leakage"
+        _record_control_cycle(
+            event=f"EXPERIMENT: temporal leakage detectado ({exc})",
+            trigger="experiment_run",
+            level="critical",
+            context={"error": str(exc)},
+        )
+        return jsonify({"error": "temporal_leakage", "message": str(exc)}), 400
+    except Exception as exc:
+        _system_state["experiment_loop_status"] = "failed"
+        _record_control_cycle(
+            event=f"EXPERIMENT: ejecución fallida ({exc})",
+            trigger="experiment_run",
+            level="warning",
+            context={"error": str(exc)},
+        )
+        return jsonify({"error": "experiment_failed", "message": str(exc)}), 400
+
+    _latest_experiment = result
+    _experiment_history.append(result)
+    if len(_experiment_history) > 25:
+        _experiment_history.pop(0)
+    _system_state["experiment_loop_status"] = "completed"
+    _record_control_cycle(
+        event=f"EXPERIMENT: ejecución completada {result.experiment_id}",
+        trigger="experiment_run",
+        level="info",
+        context={
+            "experiment_id": result.experiment_id,
+            "proposal_id": result.proposal_id,
+            "metrics": result.metrics,
+            "walk_forward_windows": len(result.walk_forward_windows),
+            "no_leakage_checked": result.no_leakage_checked,
+        },
+    )
+    return jsonify(_serialize_experiment_result(result))
+
+
+@app.route("/api/learning/memory/status", methods=["GET"])
+@require_auth
+def learning_memory_status() -> ResponseReturnValue:
+    """Snapshot del motor de memoria inteligente."""
+    return jsonify(_learning_memory_snapshot_json())
+
+
+@app.route("/api/learning/memory/entries", methods=["GET"])
+@require_auth
+def learning_memory_entries() -> ResponseReturnValue:
+    """Listado de entradas de memoria por nivel/campo."""
+    raw_level = request.args.get("level", "").strip()
+    raw_field = request.args.get("field", "").strip()
+    level = None
+    if raw_level:
+        try:
+            level = MemoryPolicyEngine.parse_level(raw_level)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+    field = raw_field if raw_field else None
+    if field and field not in ("codigo", "math", "trading", "architect", "memory_librarian"):
+        return jsonify({"error": "invalid_field"}), 400
+    limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+    entries = _memory_engine.list_entries(level=level, field=field, limit=limit)  # type: ignore[arg-type]
+    return jsonify({
+        "count": len(entries),
+        "entries": [_serialize_memory_entry(e) for e in entries],
+    })
+
+
+@app.route("/api/learning/memory/ingest", methods=["POST"])
+@require_auth
+def learning_memory_ingest() -> ResponseReturnValue:
+    """Ingesta entrada de memoria (0a), con normalización opcional a 0b."""
+    data = request.get_json() or {}
+    content = str(data.get("content") or "").strip()
+    field = str(data.get("field") or "").strip()
+    if not content:
+        return jsonify({"error": "content_required"}), 400
+    if field not in ("codigo", "math", "trading", "architect", "memory_librarian"):
+        return jsonify({"error": "invalid_field"}), 400
+
+    source_type = data.get("source_type")
+    if source_type is not None and source_type not in ("primary", "secondary", "tertiary"):
+        return jsonify({"error": "invalid_source_type"}), 400
+
+    entry = _memory_engine.ingest_raw(
+        content=content,
+        field=field,  # type: ignore[arg-type]
+        source_id=str(data.get("source_id")) if data.get("source_id") else None,
+        source_type=source_type,  # type: ignore[arg-type]
+        tags=_parse_list_field(data.get("tags")),
+    )
+    auto_normalize = bool(data.get("auto_normalize", True))
+    if auto_normalize:
+        entry = _memory_engine.normalize(entry.entry_id)
+    _persist_memory_entry(entry)
+    _record_control_cycle(
+        event=f"LEARNING: memoria ingestada {entry.entry_id} ({entry.field}/{entry.level.value})",
+        trigger="learning_memory_ingest",
+        level="info",
+        context={"entry_id": entry.entry_id, "field": entry.field, "level": entry.level.value},
+    )
+    return jsonify({"entry": _serialize_memory_entry(entry), "snapshot": _learning_memory_snapshot_json()})
+
+
+@app.route("/api/learning/memory/promote", methods=["POST"])
+@require_auth
+def learning_memory_promote() -> ResponseReturnValue:
+    """Promoción explícita de nivel de memoria."""
+    data = request.get_json() or {}
+    entry_id = str(data.get("entry_id") or "").strip()
+    target_level_raw = str(data.get("target_level") or "").strip()
+    approved_by = str(data.get("approved_by") or "Lila")
+    if not entry_id:
+        return jsonify({"error": "entry_id_required"}), 400
+    if not target_level_raw:
+        return jsonify({"error": "target_level_required"}), 400
+    try:
+        target_level = MemoryPolicyEngine.parse_level(target_level_raw)
+        entry = _memory_engine.promote(
+            entry_id=entry_id,
+            target_level=target_level,
+            approved_by=approved_by,
+            tags=_parse_list_field(data.get("tags")),
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    _persist_memory_entry(entry)
+    _record_control_cycle(
+        event=f"LEARNING: memoria promovida {entry.entry_id} -> {entry.level.value}",
+        trigger="learning_memory_promote",
+        level="info",
+        context={"entry_id": entry.entry_id, "target_level": entry.level.value},
+    )
+    return jsonify({"entry": _serialize_memory_entry(entry), "snapshot": _learning_memory_snapshot_json()})
+
+
+@app.route("/api/learning/memory/retention/run", methods=["POST"])
+@require_auth
+def learning_memory_retention() -> ResponseReturnValue:
+    """Ejecuta retención TTL de memoria."""
+    retention = _memory_engine.apply_ttl_retention()
+    _record_control_cycle(
+        event=f"LEARNING: retención TTL ejecutada (removed={retention['removed_count']})",
+        trigger="learning_memory_retention_run",
+        level="info",
+        context=retention,  # type: ignore[arg-type]
+    )
+    return jsonify({"retention": retention, "snapshot": _learning_memory_snapshot_json()})
+
+
+@app.route("/api/learning/memory/regime/check", methods=["POST"])
+@require_auth
+def learning_memory_regime_check() -> ResponseReturnValue:
+    """Detecta cambio de régimen y degrada memoria alta si aplica."""
+    data = request.get_json() or {}
+    series_raw = data.get("volatility_series")
+    if not isinstance(series_raw, list) or not series_raw:
+        return jsonify({"error": "volatility_series_required"}), 400
+    try:
+        series = [float(x) for x in series_raw]
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid_volatility_series"}), 400
+
+    result = _memory_engine.detect_and_apply_regime_shift(series)
+    _system_state["regime_shift_active"] = bool(result.get("regime_shift", False))
+    _record_control_cycle(
+        event=(
+            "LEARNING: cambio de régimen detectado y degradación aplicada"
+            if result.get("regime_shift")
+            else "LEARNING: chequeo de régimen sin cambio"
+        ),
+        trigger="learning_memory_regime_check",
+        level="warning" if result.get("regime_shift") else "info",
+        context=result,  # type: ignore[arg-type]
+    )
+    return jsonify({"result": result, "snapshot": _learning_memory_snapshot_json()})
+
+
+@app.route("/api/incidents", methods=["GET"])
+@require_auth
+def incidents_list() -> ResponseReturnValue:
+    """Lista incidentes P0-P3 registrados por runtime."""
+    status = request.args.get("status", "").strip().lower()
+    limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+    items = list(reversed(_incident_registry))
+    if status in ("open", "resolved"):
+        items = [i for i in items if i["status"] == status]
+    return jsonify({"count": min(len(items), limit), "incidents": items[:limit]})
+
+
+@app.route("/api/incidents/<incident_id>/resolve", methods=["POST"])
+@require_auth
+def incident_resolve(incident_id: str) -> ResponseReturnValue:
+    """Marca incidente como resuelto con nota."""
+    data = request.get_json() or {}
+    note = str(data.get("resolution_note") or "").strip()
+    for inc in _incident_registry:
+        if inc["incident_id"] == incident_id:
+            inc["status"] = "resolved"
+            inc["resolved_at"] = datetime.now(timezone.utc).isoformat()
+            inc["resolution_note"] = note
+            (_incidents_dir() / f"{incident_id}.json").write_text(
+                json.dumps(inc, indent=2, ensure_ascii=False)
+            )
+            _record_control_cycle(
+                event=f"INCIDENT: resuelto {incident_id}",
+                trigger="incident_resolve",
+                level="info",
+                context={"incident_id": incident_id, "resolution_note": note},
+            )
+            return jsonify(inc)
+    return jsonify({"error": "incident_not_found"}), 404
+
+
+@app.route("/api/adr/recent", methods=["GET"])
+@require_auth
+def adr_recent() -> ResponseReturnValue:
+    """Lista ADR recientes generados por iteración."""
+    limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+    items = list(reversed(_adr_registry))
+    return jsonify({"count": min(len(items), limit), "adrs": items[:limit]})
+
+
+@app.route("/api/kill-switch/arm", methods=["POST"])
+@require_auth
+def kill_switch_arm() -> ResponseReturnValue:
+    """Paso 1: solicitar activación del kill-switch."""
+    _system_state["kill_switch"] = "arming"
+    _record_control_cycle(
+        event="KILL-SWITCH: solicitud de activación (paso 1 de 2)",
+        level="warning",
+        trigger="kill_switch_arm",
+        context={"kill_switch_status": _system_state["kill_switch"]},
+    )
+    return jsonify({"status": "pending_confirmation", "message": "Confirme en /api/kill-switch/confirm"})
+
+
+@app.route("/api/kill-switch/confirm", methods=["POST"])
+@require_auth
+def kill_switch_confirm() -> ResponseReturnValue:
+    """Paso 2: confirmar activación del kill-switch."""
+    if _system_state["kill_switch"] != "arming":
+        return jsonify({"error": "No hay solicitud de activación pendiente"}), 400
+    _system_state["kill_switch"] = "triggered"
+    _system_state["status"] = "kill-switch-active"
+    _record_control_cycle(
+        event="KILL-SWITCH: ACTIVADO — señales suspendidas",
+        level="critical",
+        trigger="kill_switch_confirm",
+        context={
+            "kill_switch_status": _system_state["kill_switch"],
+            "system_status": _system_state["status"],
+        },
+    )
+    return jsonify({"status": "triggered", "ts": datetime.now(timezone.utc).isoformat()})
+
+
+@app.route("/api/kill-switch/reset", methods=["POST"])
+@require_auth
+def kill_switch_reset() -> ResponseReturnValue:
+    """Re-armar el kill-switch desde GUI."""
+    _system_state["kill_switch"] = "armed"
+    _system_state["status"] = "idle"
+    _record_control_cycle(
+        event="KILL-SWITCH: desactivado — sistema re-armado",
+        level="info",
+        trigger="kill_switch_reset",
+        context={
+            "kill_switch_status": _system_state["kill_switch"],
+            "system_status": _system_state["status"],
+        },
+    )
+    return jsonify({"status": "armed"})
+
+
+@app.route("/api/risk/params", methods=["GET"])
+@require_auth
+def risk_params_get() -> ResponseReturnValue:
+    """Leer parámetros de riesgo actuales."""
+    return jsonify({
+        "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+        "max_position_size_pct": _system_state["max_position_size_pct"],
+        "max_signals_per_hour": _system_state["max_signals_per_hour"],
+        "min_signal_quality_score": _system_state["min_signal_quality_score"],
+        "drawdown_session_pct": _system_state["drawdown_session_pct"],
+        "circuit_breaker": _system_state["circuit_breaker"],
+    })
+
+
+@app.route("/api/risk/params", methods=["POST"])
+@require_auth
+def risk_params_set() -> ResponseReturnValue:
+    """Actualizar parámetros de riesgo desde GUI."""
+    data = request.get_json() or {}
+    changed = []
+    numeric_fields = {
+        "max_drawdown_session_pct": float,
+        "max_position_size_pct": float,
+        "max_signals_per_hour": int,
+        "min_signal_quality_score": float,
+    }
+    for key, caster in numeric_fields.items():
+        if key not in data:
+            continue
+        try:
+            casted = caster(data[key])
+        except (TypeError, ValueError):
+            return jsonify({"error": f"invalid_value:{key}"}), 400
+
+        if key in ("max_drawdown_session_pct", "max_position_size_pct") and casted < 0:
+            return jsonify({"error": f"invalid_range:{key}"}), 400
+        if key == "max_signals_per_hour" and casted <= 0:
+            return jsonify({"error": "invalid_range:max_signals_per_hour"}), 400
+        if key == "min_signal_quality_score" and not (0 <= casted <= 1):
+            return jsonify({"error": "invalid_range:min_signal_quality_score"}), 400
+
+        _system_state[key] = casted
+        changed.append(key)
+    if changed:
+        _record_control_cycle(
+            event=f"Parámetros de riesgo actualizados: {changed}",
+            level="info",
+            trigger="risk_params_set",
+            context={"updated": changed, "risk_parameters": _risk_params_snapshot()},
+        )
+    return jsonify({
+        "updated": changed,
+        "current": {k: _system_state[k] for k in changed},
+        "all": {
+            "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+            "max_position_size_pct": _system_state["max_position_size_pct"],
+            "max_signals_per_hour": _system_state["max_signals_per_hour"],
+            "min_signal_quality_score": _system_state["min_signal_quality_score"],
+        },
+    })
+
+
+@app.route("/api/rollback/list", methods=["GET"])
+@require_auth
+def rollback_list() -> ResponseReturnValue:
+    """Listar snapshots disponibles para rollback."""
+    return jsonify(_rollback_mgr.list_snapshots())
+
+
+@app.route("/api/rollback/restore", methods=["POST"])
+@require_auth
+def rollback_restore() -> ResponseReturnValue:
+    """Ejecutar restauración de un snapshot."""
+    data = request.get_json() or {}
+    path = data.get("path")
+    if not path:
+        return jsonify({"error": "path_required"}), 400
+
+    try:
+        restored = _rollback_mgr.restore(path, verify_hash=True)
+        # Actualizar estado del sistema con la config restaurada
+        cfg = restored.get("config", {})
+        for k in ["max_drawdown_session_pct", "max_position_size_pct", "max_signals_per_hour", "min_signal_quality_score"]:
+            if k in cfg:
+                _system_state[k] = cfg[k]
+
+        _record_control_cycle(
+            event=f"ROLLBACK ejecutado desde GUI: {Path(path).name}",
+            level="warning",
+            trigger="rollback_restore",
+            context={"restored_path": path, "elapsed_ms": restored["elapsed_ms"]}
+        )
+        return jsonify({"status": "success", "restored": restored})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Arranque
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    _ensure_dirs()
+    print(f"[CGAlpha v3 GUI] Iniciando en http://{HOST}:{PORT}")
+    print(f"[CGAlpha v3 GUI] Auth token activo: {AUTH_TOKEN[:8]}...")
+    print("[CGAlpha v3 GUI] FASE 0 — Control Room en modo mock")
+    _log_event("Control Room iniciado — FASE 0")
+    app.run(host=HOST, port=PORT, debug=False)

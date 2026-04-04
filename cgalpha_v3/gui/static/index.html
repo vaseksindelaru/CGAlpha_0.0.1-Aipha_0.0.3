@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CGAlpha v3 / Control Room</title>
+    <meta name="description" content="Sala de control viva de CGAlpha v3. Observable, participativa y segura." />
+    <style>
+        /* ── RESET ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ── TOKENS: paleta idéntica a GUI anterior ── */
+        :root {
+            --bg: #1a1a2e;
+            --bg2: #16213e;
+            --bg3: #0f1b2d;
+            --border: #333;
+            --accent: #00d4aa;
+            --accent2: #00aef0;
+            --text: #eee;
+            --text-dim: #aaa;
+            --text-muted: #777;
+            --red: #ff6b6b;
+            --yellow: #f59e0b;
+            --green: #00d4aa;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── LOGIN OVERLAY ── */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: var(--bg2);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            padding: 40px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            min-width: 320px;
+            box-shadow: 0 8px 40px rgba(0, 212, 170, 0.15);
+        }
+
+        .login-card h1 {
+            color: var(--accent);
+            font-size: 1.8rem;
+        }
+
+        .login-card p {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .login-field {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .login-field label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .login-field input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg3);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .login-field input:focus {
+            border-color: var(--accent);
+        }
+
+        #login-error {
+            color: var(--red);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            min-height: 56px;
+        }
+
+        .topbar-title {
+            color: var(--accent);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-right: 32px;
+            white-space: nowrap;
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .nav-btn {
+            padding: 8px 18px;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .nav-btn:hover {
+            color: var(--text);
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 8px 20px;
+            background: var(--bg2);
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        .btn-danger {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-danger:hover {
+            background: var(--red);
+            color: #000;
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-ghost {
+            border-color: rgba(0, 212, 170, 0.3);
+            color: var(--text-dim);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(0, 212, 170, 0.08);
+            color: var(--accent);
+        }
+
+        /* ── SECTIONS ── */
+        .section {
+            display: none;
+            padding: 28px 24px;
+            flex: 1;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* ── GRID ── */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        @media (max-width: 1200px) {
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+
+            .grid-4,
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--bg2);
+            border: 2px solid rgba(0, 212, 170, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .panel:hover {
+            border-color: rgba(0, 212, 170, 0.5);
+            box-shadow: 0 4px 24px rgba(0, 212, 170, 0.08);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 212, 170, 0.04);
+        }
+
+        .panel-icon {
+            font-size: 18px;
+        }
+
+        .panel-header h2 {
+            font-size: 14px;
+            font-weight: 700;
+            flex: 1;
+            color: var(--text);
+        }
+
+        .panel-body {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel-tall {
+            grid-row: span 2;
+        }
+
+        /* ── PILLS ── */
+        .pill {
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .pill-idle {
+            background: rgba(0, 212, 170, 0.12);
+            color: var(--accent);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+        }
+
+        .pill-running {
+            background: rgba(0, 174, 240, 0.12);
+            color: #00aef0;
+            border: 1px solid rgba(0, 174, 240, 0.3);
+        }
+
+        .pill-error {
+            background: rgba(255, 107, 107, 0.12);
+            color: var(--red);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .pill-killswitch {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff8a8a;
+            border: 1px solid rgba(255, 107, 107, 0.4);
+        }
+
+        .pill-degraded {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .pill-armed {
+            background: rgba(0, 212, 170, 0.12);
+            color: var(--accent);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+        }
+
+        .pill-triggered {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff8a8a;
+            border: 1px solid rgba(255, 107, 107, 0.4);
+        }
+
+        /* ── STAT ROW ── */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+
+        .stat-value {
+            font-size: 13px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .stat-value.accent {
+            color: var(--accent);
+        }
+
+        .stat-value.red {
+            color: var(--red);
+        }
+
+        .stat-value.yellow {
+            color: var(--yellow);
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-wrap {
+            height: 5px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            transition: width 0.4s;
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, var(--yellow), var(--red));
+        }
+
+        /* ── DQ STATES ── */
+        .dq-valid {
+            color: var(--accent);
+        }
+
+        .dq-stale {
+            color: var(--yellow);
+        }
+
+        .dq-corrupt {
+            color: var(--red);
+        }
+
+        /* ── EVENTS LOG ── */
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 280px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 212, 170, 0.3) transparent;
+        }
+
+        .ev-entry {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: start;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 12px;
+        }
+
+        .ev-text {
+            color: var(--text-dim);
+            word-break: break-all;
+        }
+
+        .ev-ts {
+            color: var(--text-muted);
+            font-size: 10px;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        .ev-critical .ev-text {
+            color: var(--red);
+        }
+
+        .ev-warning .ev-text {
+            color: var(--yellow);
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            background: var(--bg2);
+            border: 2px solid var(--red);
+            border-radius: 16px;
+            padding: 32px;
+            width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 40px rgba(255, 107, 107, 0.2);
+        }
+
+        .modal-card h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .modal-card p {
+            color: var(--text-dim);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* ── SECTION TITLES ── */
+        .section-title {
+            margin-bottom: 20px;
+        }
+
+        .section-title h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .section-title p {
+            color: var(--text-dim);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* ── FORM ── */
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-row label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .form-row input[type="number"] {
+            width: 100%;
+            padding: 9px 12px;
+            background: var(--bg3);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .form-row input:focus {
+            border-color: var(--accent);
+        }
+
+        .success-msg {
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        /* ── PLACEHOLDER PANEL ── */
+        .placeholder {
+            padding: 32px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .placeholder .ph-icon {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* ── LIBRARY MVP ── */
+        .lib-toolbar {
+            display: grid;
+            grid-template-columns: 1fr 160px 1fr auto auto;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .lib-toolbar input,
+        .lib-toolbar select,
+        .lib-ingest-grid input,
+        .lib-ingest-grid textarea,
+        .lib-ingest-grid select {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg3);
+            border: 1px solid rgba(0, 212, 170, 0.25);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 12px;
+            outline: none;
+        }
+
+        .lib-toolbar input:focus,
+        .lib-toolbar select:focus,
+        .lib-ingest-grid input:focus,
+        .lib-ingest-grid textarea:focus,
+        .lib-ingest-grid select:focus {
+            border-color: var(--accent);
+        }
+
+        .lib-results {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 340px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .lib-row {
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .lib-row:hover {
+            border-color: rgba(0, 212, 170, 0.45);
+            background: rgba(0, 212, 170, 0.06);
+        }
+
+        .lib-row-title {
+            font-size: 12px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .lib-row-meta {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-dim);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .lib-detail {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.5;
+            min-height: 120px;
+            white-space: pre-wrap;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .lib-ingest-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .lib-ingest-grid textarea {
+            min-height: 76px;
+            resize: vertical;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 980px) {
+            .lib-toolbar {
+                grid-template-columns: 1fr 1fr;
+            }
+            .lib-ingest-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .footer .block-badge {
+            background: rgba(255, 107, 107, 0.12);
+            color: #ff8a8a;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 10px;
+            padding: 2px 10px;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 170, 0.25);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+    <!-- KILL-SWITCH MODAL -->
+    <div id="ks-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2>⚠️ Confirmar Kill-Switch</h2>
+            <p>Esta acción suspende <strong>todas las señales</strong> de forma inmediata.<br />Esta operación requiere
+                confirmación explícita (2 pasos).</p>
+            <div class="modal-actions">
+                <button class="btn btn-ghost btn-sm" onclick="closeKsModal()">Cancelar</button>
+                <button class="btn btn-danger btn-sm" onclick="killSwitchConfirm()">Confirmar activación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP -->
+    <div id="app" style="display:flex;flex-direction:column;min-height:100vh;">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <span class="topbar-title">CGAlpha/control-room</span>
+            <nav class="topbar-nav">
+                <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showSection('risk')">Risk</button>
+                <button class="nav-btn" onclick="showSection('library')">Library</button>
+                <button class="nav-btn" onclick="showSection('theory')">Theory Live</button>
+                <button class="nav-btn" onclick="showSection('experiment')">Experiment Loop</button>
+                <button class="nav-btn" onclick="showSection('learning')">Learning</button>
+            </nav>
+            <div class="topbar-right">
+                <div class="status-indicator">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Conectando…</span>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="killSwitchStep1()">⚡ Kill-Switch</button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD -->
+        <main id="section-dashboard" class="section active">
+            <div class="grid-4">
+
+                <!-- MISSION CONTROL -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🛸</span>
+                        <h2>Mission Control</h2>
+                        <span class="pill pill-idle" id="mc-status-pill">idle</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Fase</span>
+                            <span class="stat-value accent" id="mc-phase">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Kill-Switch</span>
+                            <span class="stat-value" id="mc-ks">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Último evento</span>
+                            <span class="stat-value" id="mc-last-event"
+                                style="font-size:11px;max-width:160px;text-align:right;">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Servidor</span>
+                            <span class="stat-value" id="mc-ts" style="font-size:11px;font-family:monospace;">—</span>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="resetKillSwitch()">Re-armar
+                            sistema</button>
+                        <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <span style="font-size:11px; color:var(--text-dim); font-weight:700;">SNAPSHOTS
+                                    (ROLLBACK)</span>
+                                <button class="btn btn-ghost btn-sm" onclick="fetchRollbacks()">↻</button>
+                            </div>
+                            <div id="rollback-list"
+                                style="max-height:80px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
+                                <span style="font-size:10px; color:var(--text-muted)">Cargando snapshots...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MARKET LIVE -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📈</span>
+                        <h2>Market Live</h2>
+                        <span id="dq-badge" class="pill pill-idle">—</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Par</span>
+                            <span class="stat-value accent" id="mkt-symbol">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Intervalo</span>
+                            <span class="stat-value" id="mkt-interval">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Precio</span>
+                            <span class="stat-value" id="mkt-price" style="font-size:18px;font-weight:700;">—
+                                (mock)</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Actualizado</span>
+                            <span class="stat-value" id="mkt-ts" style="font-size:11px;font-family:monospace;">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Data Quality</span>
+                            <span class="stat-value" id="dq-text">Cargando…</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RISK DASHBOARD -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🛡️</span>
+                        <h2>Risk Dashboard</h2>
+                        <span id="cb-pill" class="pill pill-idle">CB: —</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Drawdown sesión</span>
+                            <span class="stat-value" id="dd-value">—</span>
+                        </div>
+                        <div class="progress-wrap">
+                            <div class="progress-fill" id="dd-bar" style="width:0%"></div>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Límite DD</span>
+                            <span class="stat-value" id="dd-limit">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Circuit Breaker</span>
+                            <span class="stat-value" id="cb-text">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Namespace</span>
+                            <span class="stat-value accent">v3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT LOG -->
+                <div class="panel panel-tall">
+                    <div class="panel-header">
+                        <span class="panel-icon">📋</span>
+                        <h2>Event Log</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="fetchEvents()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="events-list" id="events-list">
+                            <span style="color:var(--text-muted);font-size:12px">Cargando…</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- RISK -->
+        <main id="section-risk" class="section">
+            <div class="section-title">
+                <h2>🛡️ Risk Management</h2>
+                <p>Parámetros configurables desde esta sala de control (Sección M del Prompt Maestro).</p>
+            </div>
+            <div class="grid-2">
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">⚙️</span>
+                        <h2>Parámetros de Riesgo</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <label>Max Drawdown Sesión (%)</label>
+                            <input type="number" id="risk-max-dd" step="0.5" min="0" max="20" value="5" />
+                        </div>
+                        <div class="form-row">
+                            <label>Max Position Size (%)</label>
+                            <input type="number" id="risk-max-position" step="0.1" min="0" max="100" value="2" />
+                        </div>
+                        <div class="form-row">
+                            <label>Max Signals por Hora</label>
+                            <input type="number" id="risk-max-signals" step="1" min="1" max="500" value="10" />
+                        </div>
+                        <div class="form-row">
+                            <label>Min Signal Quality Score (0-1)</label>
+                            <input type="number" id="risk-min-quality" step="0.01" min="0" max="1" value="0.65" />
+                        </div>
+                        <button class="btn btn-sm" style="margin-top:10px" onclick="saveRiskParams()">Guardar
+                            parámetros</button>
+                        <p id="risk-save-msg" class="success-msg hidden">✓ Parámetros actualizados</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">⚡</span>
+                        <h2>Kill-Switch</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Estado actual</span>
+                            <span class="stat-value" id="ks-status-big">—</span>
+                        </div>
+                        <p style="color:var(--text-muted);font-size:12px;line-height:1.6;margin-top:4px">
+                            Suspende todas las señales de forma inmediata. Requiere confirmación en 2 pasos.
+                            Se reactiva desde esta misma interfaz, sin reiniciar el sistema.
+                        </p>
+                        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                            <button class="btn btn-danger btn-sm" onclick="killSwitchStep1()">⚡ Activar
+                                Kill-Switch</button>
+                            <button class="btn btn-ghost btn-sm" onclick="resetKillSwitch()">Re-armar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="grid-column: 1 / -1">
+                    <div class="panel-header"><span class="panel-icon">🚨</span>
+                        <h2>Circuit Breakers (Sección M)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Drawdown sesión &gt; límite</span>
+                            <span class="stat-value accent">→ Suspender operación + alerta P0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Latencia API &gt; 1000ms p95 sostenida &gt;60s</span>
+                            <span class="stat-value" style="color:var(--yellow)">→ Degradar a stand-by</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Data Quality Gate falla</span>
+                            <span class="stat-value" style="color:var(--yellow)">→ Suspender señales + alerta P1</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">3 señales rechazadas consecutivas por filtro ML</span>
+                            <span class="stat-value" style="color:var(--yellow)">→ Revisar threshold</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- LIBRARY -->
+        <main id="section-library" class="section">
+            <div class="section-title">
+                <h2>📚 Library — Lila</h2>
+                <p>Biblioteca gobernada por Lila. Fuentes clasificadas: primaria / secundaria / terciaria.</p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📊</span>
+                        <h2>Estado de Biblioteca</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="refreshLibrary()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Total docs</span><span class="stat-value accent"
+                                id="lib-total">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Primary ratio</span><span class="stat-value"
+                                id="lib-primary-ratio">0.000</span></div>
+                        <div class="stat-row"><span class="stat-label">Pending review</span><span class="stat-value"
+                                id="lib-pending">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Last ingestion</span><span class="stat-value"
+                                id="lib-last-ingestion" style="font-size:11px;font-family:monospace;">—</span></div>
+                        <div class="stat-row"><span class="stat-label">Primarias</span><span class="stat-value"
+                                id="lib-count-primary">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Secundarias</span><span class="stat-value"
+                                id="lib-count-secondary">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Terciarias</span><span class="stat-value"
+                                id="lib-count-tertiary">0</span></div>
+
+                        <div class="lib-toolbar">
+                            <input id="lib-query" type="text" placeholder="Buscar por título/resumen/tag" />
+                            <select id="lib-type">
+                                <option value="">Todos</option>
+                                <option value="primary">Primary</option>
+                                <option value="secondary">Secondary</option>
+                                <option value="tertiary">Tertiary</option>
+                            </select>
+                            <input id="lib-tags" type="text" placeholder="tags: momentum, crypto" />
+                            <button class="btn btn-sm" onclick="searchLibrary()">Buscar</button>
+                            <button class="btn btn-ghost btn-sm" onclick="clearLibraryFilters()">Limpiar</button>
+                        </div>
+
+                        <div id="lib-results" class="lib-results">
+                            <span style="color:var(--text-muted);font-size:12px">Cargando biblioteca...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🧾</span>
+                        <h2>Ficha / Ingesta</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div id="lib-detail" class="lib-detail">Selecciona una fuente para ver detalle.</div>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">Nueva fuente</div>
+                            <div class="lib-ingest-grid">
+                                <input id="lib-ingest-title" type="text" placeholder="Título" />
+                                <input id="lib-ingest-year" type="number" placeholder="Año" min="1900" max="2100" />
+                                <select id="lib-ingest-type">
+                                    <option value="primary">primary</option>
+                                    <option value="secondary">secondary</option>
+                                    <option value="tertiary">tertiary</option>
+                                </select>
+                                <input id="lib-ingest-venue" type="text" placeholder="Venue / Fuente" />
+                                <input id="lib-ingest-authors" type="text" placeholder="Autores (coma separada)" />
+                                <input id="lib-ingest-tags" type="text" placeholder="Tags (coma separada)" />
+                                <textarea id="lib-ingest-abstract" placeholder="Abstract"></textarea>
+                                <textarea id="lib-ingest-finding" placeholder="Relevant finding"></textarea>
+                                <textarea id="lib-ingest-applicability" placeholder="Applicability"></textarea>
+                            </div>
+                            <button class="btn btn-sm" style="margin-top:8px" onclick="ingestLibrarySource()">Ingestar
+                                fuente</button>
+                            <p id="lib-ingest-msg" class="success-msg hidden">✓ Fuente ingestada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- THEORY LIVE -->
+        <main id="section-theory" class="section">
+            <div class="section-title">
+                <h2>🧪 Theory Live — Lila Runtime</h2>
+                <p>Conexión directa a snapshot de biblioteca, detección de primary_source_gap y backlog adaptativo.</p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📡</span>
+                        <h2>Estado Teórico en Vivo</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="refreshTheoryLive()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Total docs</span><span class="stat-value accent"
+                                id="th-total-docs">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Primary ratio</span><span class="stat-value"
+                                id="th-primary-ratio">0.000</span></div>
+                        <div class="stat-row"><span class="stat-label">Primary source gap</span><span
+                                class="stat-value" id="th-primary-gap">NO</span></div>
+                        <div class="stat-row"><span class="stat-label">Backlog open</span><span class="stat-value"
+                                id="th-backlog-open">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Backlog in-progress</span><span class="stat-value"
+                                id="th-backlog-inprogress">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Backlog resolved</span><span class="stat-value"
+                                id="th-backlog-resolved">0</span></div>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">Fuentes recientes</div>
+                            <div id="th-recent-sources" class="lib-results">
+                                <span style="color:var(--text-muted);font-size:12px">Cargando…</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🧠</span>
+                        <h2>Validación Claim + Backlog</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <label>Claim técnico</label>
+                            <input id="th-claim" type="text" placeholder="Ej: Momentum intradía mantiene edge en régimen X" />
+                        </div>
+                        <div class="form-row">
+                            <label>Source IDs (coma separados)</label>
+                            <input id="th-source-ids" type="text" placeholder="src-xxxx, src-yyyy" />
+                        </div>
+                        <button class="btn btn-sm" onclick="validateTheoryClaim()">Validar claim</button>
+                        <div id="th-claim-result" class="lib-detail" style="margin-top:8px;">Sin validación aún.</div>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:12px; color:var(--text-dim);">Backlog adaptativo (prioridad)</span>
+                                <button class="btn btn-ghost btn-sm" onclick="fetchAdaptiveBacklog()">↻</button>
+                            </div>
+                            <div id="th-backlog-list" class="lib-results">
+                                <span style="color:var(--text-muted);font-size:12px">Cargando backlog…</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- EXPERIMENT LOOP -->
+        <main id="section-experiment" class="section">
+            <div class="section-title">
+                <h2>🧬 Experiment Loop</h2>
+                <p>Change Proposer + ejecución con fricciones activas, walk-forward y no-leakage obligatorio.</p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🧪</span>
+                        <h2>Propuesta</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="fetchExperimentStatus()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <label>Hipótesis</label>
+                            <input id="exp-hypothesis" type="text"
+                                placeholder="Ej: Ajustar filtro de calidad para RETEST/BREAKOUT" />
+                        </div>
+                        <div class="form-row">
+                            <label>Approach types (coma)</label>
+                            <input id="exp-approaches" type="text" placeholder="RETEST, BREAKOUT" />
+                        </div>
+                        <button class="btn btn-sm" onclick="proposeExperiment()">Generar propuesta</button>
+                        <p id="exp-propose-msg" class="success-msg hidden">✓ Propuesta generada</p>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div class="stat-row"><span class="stat-label">Estado loop</span><span class="stat-value"
+                                    id="exp-status">idle</span></div>
+                            <div class="stat-row"><span class="stat-label">Proposal ID</span><span class="stat-value"
+                                    id="exp-proposal-id" style="font-family:monospace;font-size:11px;">—</span></div>
+                            <div class="stat-row"><span class="stat-label">Experiment ID</span><span class="stat-value"
+                                    id="exp-experiment-id" style="font-family:monospace;font-size:11px;">—</span></div>
+                            <div class="stat-row"><span class="stat-label">No-leakage</span><span class="stat-value"
+                                    id="exp-no-leakage">—</span></div>
+                            <div class="stat-row"><span class="stat-label">WF windows</span><span class="stat-value"
+                                    id="exp-wf-windows">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📊</span>
+                        <h2>Métricas Netas (post-fricción)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Gross return (%)</span><span class="stat-value"
+                                id="exp-gross">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Friction cost (%)</span><span class="stat-value"
+                                id="exp-cost">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Net return (%)</span><span class="stat-value accent"
+                                id="exp-net">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Sharpe like</span><span class="stat-value"
+                                id="exp-sharpe">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Max DD (%)</span><span class="stat-value"
+                                id="exp-mdd">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Trades</span><span class="stat-value"
+                                id="exp-trades">0</span></div>
+                        <button class="btn btn-sm" style="margin-top:8px" onclick="runExperiment()">Ejecutar
+                            experimento</button>
+                        <div id="exp-window-metrics" class="lib-results" style="margin-top:10px;">
+                            <span style="color:var(--text-muted);font-size:12px">Sin resultados aún.</span>
+                        </div>
+                        <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">
+                            <div class="stat-row"><span class="stat-label">Approach labels (total)</span><span
+                                    class="stat-value" id="exp-approach-total">0</span></div>
+                            <div id="exp-approach-hist" class="lib-results">
+                                <span style="color:var(--text-muted);font-size:12px">Sin histograma aún.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- LEARNING -->
+        <main id="section-learning" class="section">
+            <div class="section-title">
+                <h2>🧠 Learning &amp; Memoria</h2>
+                <p>5 campos de aprendizaje sincronizados con cada iteración técnica. Política de memoria niveles 0a–4.
+                </p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">📊</span>
+                        <h2>Campos de Aprendizaje</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">código</span><span class="stat-value"
+                                id="learn-field-codigo">0</span></div>
+                        <div class="stat-row"><span class="stat-label">math</span><span class="stat-value"
+                                id="learn-field-math">0</span></div>
+                        <div class="stat-row"><span class="stat-label">trading</span><span class="stat-value"
+                                id="learn-field-trading">0</span></div>
+                        <div class="stat-row"><span class="stat-label">architect</span><span class="stat-value"
+                                id="learn-field-architect">0</span></div>
+                        <div class="stat-row"><span class="stat-label">memory_librarian</span><span class="stat-value"
+                                id="learn-field-memory-librarian">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Regime shift activo</span><span class="stat-value"
+                                id="learn-regime-active">NO</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🗂️</span>
+                        <h2>Niveles de Memoria</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">0a — Raw intake</span><span class="stat-value"
+                                id="learn-level-0a">0</span></div>
+                        <div class="stat-row"><span class="stat-label">0b — Normalizado</span><span class="stat-value"
+                                id="learn-level-0b">0</span></div>
+                        <div class="stat-row"><span class="stat-label">1 — Hechos</span><span class="stat-value"
+                                id="learn-level-1">0</span></div>
+                        <div class="stat-row"><span class="stat-label">2 — Relaciones</span><span class="stat-value"
+                                id="learn-level-2">0</span></div>
+                        <div class="stat-row"><span class="stat-label">3 — Playbooks</span><span class="stat-value"
+                                id="learn-level-3">0</span></div>
+                        <div class="stat-row"><span class="stat-label">4 — Estrategia</span><span class="stat-value"
+                                id="learn-level-4">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Expiran <24h</span><span class="stat-value"
+                                id="learn-expiring">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Stale entries</span><span class="stat-value"
+                                id="learn-stale">0</span></div>
+                        <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">Acciones runtime</div>
+                            <div class="lib-ingest-grid">
+                                <input id="learn-content" type="text" placeholder="Contenido de memoria" />
+                                <select id="learn-field">
+                                    <option value="memory_librarian">memory_librarian</option>
+                                    <option value="trading">trading</option>
+                                    <option value="codigo">codigo</option>
+                                    <option value="math">math</option>
+                                    <option value="architect">architect</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                                <button class="btn btn-sm" onclick="ingestLearningMemory()">Ingestar</button>
+                                <button class="btn btn-ghost btn-sm" onclick="runLearningRetention()">TTL Run</button>
+                                <button class="btn btn-ghost btn-sm" onclick="runLearningRegimeCheck()">Regime
+                                    Check</button>
+                            </div>
+                            <p id="learn-msg" class="success-msg hidden">✓ Acción Learning ejecutada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <span>CGAlpha v3.0-audit · Namespace: <strong style="color:var(--accent)">v3</strong></span>
+            <span class="block-badge">🔴 Mercado real bloqueado hasta P0 verificado</span>
+            <span id="footer-ts" style="font-family:monospace"></span>
+        </footer>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

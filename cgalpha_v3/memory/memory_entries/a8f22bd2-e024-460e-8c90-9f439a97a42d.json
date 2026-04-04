@@ -1,0 +1,19 @@
+{
+  "entry_id": "a8f22bd2-e024-460e-8c90-9f439a97a42d",
+  "level": "0b",
+  "content": "Parámetros de riesgo actualizados: ['max_drawdown_session_pct', 'max_position_size_pct', 'max_signals_per_hour', 'min_signal_quality_score']",
+  "source_id": null,
+  "source_type": "secondary",
+  "created_at": "2026-04-04T20:32:42.798847+00:00",
+  "expires_at": "2026-04-11T20:32:42.798867+00:00",
+  "approved_by": "auto",
+  "field": "memory_librarian",
+  "tags": [
+    "trigger:risk_params_set",
+    "level:info",
+    "ctx:updated",
+    "ctx:risk_parameters",
+    "auto-normalized"
+  ],
+  "stale": false
+}

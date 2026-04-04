@@ -14,6 +14,8 @@ from cgalpha_v2.domain.models.signal import (
     Candle,
     Signal,
     SignalDirection,
+    Trend,
+    TrendDirection,
     DetectorVerdict,
     TripleCoincidenceResult,
 )
@@ -61,6 +63,8 @@ __all__ = [
     "Candle",
     "Signal",
     "SignalDirection",
+    "Trend",
+    "TrendDirection",
     "DetectorVerdict",
     "TripleCoincidenceResult",
     # prediction

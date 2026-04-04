@@ -1,0 +1,49 @@
+{
+  "iteration": "2026-04-04_18-58",
+  "generated_at": "2026-04-04T18:58:23.249519+00:00",
+  "trigger": "risk_params_set",
+  "phase": "FASE_0",
+  "completed_tasks": [
+    "Registro automático de ciclo real desde GUI",
+    "Parámetros de riesgo actualizados: ['max_drawdown_session_pct', 'max_position_size_pct', 'max_signals_per_hour', 'min_signal_quality_score']"
+  ],
+  "blocked_tasks": [],
+  "gui_events_published": [
+    "KILL-SWITCH: solicitud de activación (paso 1 de 2)",
+    "KILL-SWITCH: ACTIVADO — señales suspendidas",
+    "Parámetros de riesgo actualizados: ['max_drawdown_session_pct', 'max_position_size_pct', 'max_signals_per_hour', 'min_signal_quality_score']"
+  ],
+  "tests_status": {
+    "gui_runtime_cycle": "registrado automáticamente en ejecución real"
+  },
+  "risk_assessment_status": "N/A - ciclo de control GUI",
+  "kill_switch_status": "triggered",
+  "circuit_breaker": "inactive",
+  "data_quality": "valid",
+  "drawdown_session_pct": 0.0,
+  "risk_parameters": {
+    "max_drawdown_session_pct": 4.5,
+    "max_position_size_pct": 1.5,
+    "max_signals_per_hour": 7,
+    "min_signal_quality_score": 0.72
+  },
+  "namespace": "v3",
+  "production_ready": false,
+  "production_gate_reason": "P0/P1/P2 pendientes según checklist de implementación",
+  "rollback_available": false,
+  "rollback_note": "Sin snapshots disponibles",
+  "context": {
+    "updated": [
+      "max_drawdown_session_pct",
+      "max_position_size_pct",
+      "max_signals_per_hour",
+      "min_signal_quality_score"
+    ],
+    "risk_parameters": {
+      "max_drawdown_session_pct": 4.5,
+      "max_position_size_pct": 1.5,
+      "max_signals_per_hour": 7,
+      "min_signal_quality_score": 0.72
+    }
+  }
+}

@@ -20,7 +20,7 @@ Ubiquitous Language:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -175,30 +175,31 @@ class Proposal:
         Because Proposal is frozen, state transitions produce new instances.
         This preserves immutability while allowing lifecycle progression.
         """
-        # We create a new instance by extracting all fields
-        from dataclasses import asdict
-
-        data = asdict(self)
-        data["status"] = new_status
+        resolved_at = self.resolved_at
         if new_status in (
             ProposalStatus.APPLIED,
             ProposalStatus.REJECTED,
             ProposalStatus.ROLLED_BACK,
             ProposalStatus.QUARANTINED,
         ):
-            data["resolved_at"] = datetime.utcnow()
-        return Proposal(**data)
+            resolved_at = datetime.utcnow()
+        return replace(
+            self,
+            status=new_status,
+            resolved_at=resolved_at,
+        )
 
     def with_evaluation(self, evaluation: EvaluationResult) -> Proposal:
         """Return a new Proposal with evaluation result attached."""
-        from dataclasses import asdict
-
-        data = asdict(self)
-        data["evaluation"] = evaluation
         new_status = (
             ProposalStatus.APPROVED if evaluation.approved else ProposalStatus.REJECTED
         )
-        data["status"] = new_status
+        resolved_at = self.resolved_at
         if not evaluation.approved:
-            data["resolved_at"] = datetime.utcnow()
-        return Proposal(**data)
+            resolved_at = datetime.utcnow()
+        return replace(
+            self,
+            evaluation=evaluation,
+            status=new_status,
+            resolved_at=resolved_at,
+        )

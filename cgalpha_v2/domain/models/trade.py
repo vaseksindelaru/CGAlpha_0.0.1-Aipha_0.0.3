@@ -26,6 +26,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+from cgalpha_v2.domain.models.signal import SignalDirection
 
 class TradeOutcome(Enum):
     """
@@ -47,6 +48,10 @@ class TradeOutcome(Enum):
     BREAKEVEN = "breakeven"
     WIN = "win"
     STRONG_WIN = "strong_win"
+    # Legacy aliases used by older fixtures
+    SL = "loss"
+    BE = "breakeven"
+    TP = "win"
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,7 +117,7 @@ class TradeRecord:
         signal_id:      ID of the signal that triggered this trade.
         symbol:         Trading pair (e.g. 'BTCUSDT').
         timeframe:      Candle timeframe (e.g. '1h').
-        direction:      'long' or 'short'.
+        direction:      SignalDirection enum.
         entry_price:    Price at entry.
         entry_time:     Timestamp of entry.
         exit_price:     Price at exit (None if still open).
@@ -131,7 +136,7 @@ class TradeRecord:
     signal_id: str
     symbol: str
     timeframe: str
-    direction: str
+    direction: SignalDirection
     entry_price: float
     entry_time: datetime
     atr_at_entry: float
@@ -166,6 +171,10 @@ class TradeRecord:
                 f"TradeRecord sl_factor must be positive, "
                 f"got {self.sl_factor}"
             )
+        if not isinstance(self.direction, SignalDirection):
+            raise TypeError(
+                f"TradeRecord direction must be SignalDirection, got {type(self.direction).__name__}"
+            )
 
     @property
     def is_profitable(self) -> bool:
@@ -183,6 +192,6 @@ class TradeRecord:
         if self.exit_price is None:
             return 0.0
         delta = self.exit_price - self.entry_price
-        if self.direction == "short":
+        if self.direction == SignalDirection.SHORT:
             delta = -delta
         return delta / self.atr_at_entry
