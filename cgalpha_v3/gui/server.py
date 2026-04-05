@@ -50,6 +50,7 @@ from cgalpha_v3.learning.memory_policy import MemoryPolicyEngine
 from cgalpha_v3.application.promotion_validator import PromotionValidator
 from cgalpha_v3.application.production_gate import ProductionGate, ProductionGateError
 from cgalpha_v3.lila.library_manager import AdaptiveBacklogItem, LibraryManager, LibrarySource
+from cgalpha_v3.learning.project_history_learner import ProjectHistoryLearner
 from cgalpha_v3.risk.health_monitor import HealthMonitor
 
 _rollback_mgr = RollbackManager(MEMORY_DIR / "snapshots")
@@ -60,6 +61,7 @@ _memory_engine = MemoryPolicyEngine()
 _health_monitor = HealthMonitor()
 _promotion_validator = PromotionValidator()
 _production_gate = ProductionGate(_promotion_validator)
+_history_learner = ProjectHistoryLearner(_memory_engine, BASE_DIR.parent.parent) 
 _assistant = LLMAssistantV2() # Modo modular
 
 _latest_proposal: Proposal | None = None
@@ -1493,37 +1495,54 @@ if __name__ == "__main__":
     print("[CGAlpha v3 GUI] FASE 0 — Control Room en modo mock")
     _log_event("Control Room iniciado — FASE 0")
     app.run(host=HOST, port=PORT, debug=False)
+@app.route("/api/learning/ingest/history", methods=["POST"])
+@require_auth
+def learning_ingest_history() -> ResponseReturnValue:
+    """Ingestar conocimiento de las iteraciones y ADRs pasadas."""
+    try:
+        stats = _history_learner.learn_from_history()
+        _record_control_cycle(
+            event=f"DEEP_LEARNING: History ingested - {stats['entries_created']} entries",
+            trigger="learning_ingest_history",
+            level="success",
+            context=stats
+        )
+        return jsonify(stats)
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
 @app.route("/api/assistant/chat", methods=["POST"])
 @require_auth
 def assistant_chat() -> ResponseReturnValue:
-    """Chat interactivo con Lila (Asistente v3)."""
+    """Chat interactivo con Lila (Asistente v3). Capacidad de aprendizaje profundo activa."""
     data = request.get_json() or {}
     message = data.get("message", "").strip()
     
     if not message:
         return jsonify({"error": "empty_message"}), 400
 
-    # Lógica de respuesta simulada inteligente si no hay API Key o falla
-    # (Para no romper la experiencia en local si no hay OpenAI configurado)
     try:
-        # Obtenemos snapshot de salud para contexto
         health = _health_monitor.status_snapshot()
         status = health.get("status", "unknown")
-        
-        # Respuestas rápidas basadas en contexto P3
         low_msg = message.lower()
-        if "estatus" in low_msg or "estado" in low_msg:
+        
+        # COMANDOS ESPECIALES DE APRENDIZAJE (P4)
+        if any(kw in low_msg for kw in ["aprende de la historia", "learn from history", "revisa lo construido", "deep learning project"]):
+            # Trigger automatic ingestion
+            stats = _history_learner.learn_from_history()
+            resp = f"He completado el aprendizaje profundo de v3. He procesado {stats['iterations_found']} iteraciones y {stats['adrs_found']} decisiones arquitectónicas (ADRs). He creado {stats['entries_created']} nuevas entradas en mi memoria a largo plazo (Nivel 2 y 3). Ahora soy consciente de: {', '.join(stats['top_insights'][:3])}."
+        
+        elif "estatus" in low_msg or "estado" in low_msg:
             resp = f"El sistema reporta un estado {status.upper()}. Tenemos {_health_monitor.total_samples} muestras en el monitor de salud."
         elif "audit" in low_msg or "p3" in low_msg:
             resp = "La auditoría P3 ha finalizado con éxito. Todos los gates de Hardening (Temporal, Multi-symbol, Proposer) están nominales."
         elif "hola" in low_msg:
-            resp = "Hola, soy Lila. Estoy monitoreando la integridad de los datos en tiempo real. ¿Deseas analizar algún experimento?"
+            resp = "Hola, soy Lila. Estoy monitoreando la integridad de los datos en tiempo real. ¿Deseas analizar algún experimento o que 'aprenda de la historia' v3?"
         else:
-            # Fallback a motor real si está disponible
             if os.getenv("OPENAI_API_KEY"):
                 resp = _assistant.generate(f"Contexto: Trading System v3 Audit. Health: {status}. Pregunta: {message}")
             else:
-                resp = "Analizando... Veo que la integridad temporal es correcta y el Risk Manager está activo. Por ahora me limito a monitorear los circuitos breakers."
+                resp = "Analizando... Veo que la integridad temporal es correcta y el Risk Manager está activo. Si quieres que aprenda del pasado, dime 'Lila, aprende de la historia'."
 
         _record_control_cycle(
             event=f"LILA_CHAT: Interaction - Msg: {message[:30]}...",

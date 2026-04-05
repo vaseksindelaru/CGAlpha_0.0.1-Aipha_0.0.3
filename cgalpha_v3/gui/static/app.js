@@ -840,6 +840,9 @@ function showSection(name) {
     if (name === "learning") {
         fetchLearningMemoryStatus();
     }
+    if (name === "help") {
+        helpSearch('inicio');
+    }
 }
 
 // ── FOOTER ─────────────────────────────────────────────
@@ -983,5 +986,97 @@ function appendChatMessage(type, text) {
     return div;
 }
 
-// Ensure lila messages display properly
-appendChatMessage("lila", "System Audit Status: Verified. Memory Integrity: 100%. Ready.");
+// ── HELP CENTER DATA ──────────────────────────────────
+const HELP_DATA = [
+    {
+        cat: 'inicio',
+        title: 'Inicio Rápido / Mission Control',
+        icon: '🚀',
+        content: 'El Mission Control es el corazón del sistema. (1) Verifica que la base de datos de mercado esté VÁLIDA. (2) Usa el botón "Re-armar sistema" si hubo un incidente. (3) Monitorea los eventos en tiempo real para detectar anomalías.'
+    },
+    {
+        cat: 'riesgo',
+        title: 'Gestión de Riesgos y SLOs',
+        icon: '🛡️',
+        content: 'El Dashboard de Riesgos monitorea SLOs críticos. Si el Drawdown supera el 5% o hay inconsistencias en los datos, el sistema activará los Circuit Breakers e incluso el Kill-Switch si es necesario.'
+    },
+    {
+        cat: 'lila',
+        title: 'Lila Assistant v3.1',
+        icon: '🤖',
+        content: 'Lila es tu compañera de IA. (1) Puede aprender de la historia del proyecto. (2) Puede auditar experimentos. (3) Usa los botones del encabezado para gestionar el historial de chat o la vista de pantalla completa.'
+    },
+    {
+        cat: 'auditoria',
+        title: 'Hardening Progresivo (P3)',
+        icon: '📋',
+        content: 'CGAlpha v3 ha pasado por auditorías P0 (Risk), P1 (Rollback), P2 (Memory) y P3 (Hardening). Esto garantiza integridad temporal, gates de producción y soporte multi-symbol (BTC/ETH/SOL).'
+    },
+    {
+        cat: 'faq',
+        title: 'Preguntas Frecuentes (FAQ)',
+        icon: '❓',
+        isFaq: true,
+        items: [
+            { q: '¿Cómo accedo a los experimentos pasados?', a: 'En la pestaña "Experiment Loop" encontrarás el resumen del último experimento. El historial completo reside en la memoria de Lila.' },
+            { q: '¿Qué significa el punto verde arriba?', a: 'Significa que la conexión con el servidor Flask está activa y el HealthMonitor está reportando estado HEALTHY.' },
+            { q: '¿Cómo restauro el sistema tras un Kill-Switch?', a: 'Haz clic en "Re-armar sistema" en el panel de Mission Control.' },
+            { q: '¿El asistente guarda mis conversaciones?', a: 'Sí, todas las sesiones se guardan localmente y puedes consultarlas en la carpeta de historial de Lila.' }
+        ]
+    }
+];
+
+function helpSearch(cat) {
+    const btns = document.querySelectorAll('.help-nav-btn');
+    btns.forEach(b => {
+        b.classList.remove('active');
+        if (b.getAttribute('data-cat') === cat) b.classList.add('active');
+    });
+
+    renderHelpArticles(HELP_DATA.filter(d => d.cat === cat));
+}
+
+function filterHelp() {
+    const q = document.getElementById('help-search-input').value.toLowerCase();
+    const matches = HELP_DATA.filter(d =>
+        d.title.toLowerCase().includes(q) ||
+        d.content?.toLowerCase()?.includes(q) ||
+        (d.items && d.items.some(f => f.q.toLowerCase().includes(q)))
+    );
+    renderHelpArticles(matches);
+}
+
+function renderHelpArticles(data) {
+    const container = document.getElementById('help-articles');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (data.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted)">No se encontraron artículos que coincidan con tu búsqueda.</div>';
+        return;
+    }
+
+    data.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'help-card';
+
+        if (item.isFaq) {
+            div.innerHTML = `<h4>${item.icon} ${item.title}</h4>`;
+            item.items.forEach(faq => {
+                const fdiv = document.createElement('div');
+                fdiv.className = 'help-faq-item';
+                fdiv.innerHTML = `
+                    <div class="help-faq-q" onclick="this.parentElement.classList.toggle('open')">${faq.q} <span>▼</span></div>
+                    <div class="help-faq-a">${faq.a}</div>
+                `;
+                div.appendChild(fdiv);
+            });
+        } else {
+            div.innerHTML = `
+                <h4>${item.icon} ${item.title}</h4>
+                <p>${item.content}</p>
+            `;
+        }
+        container.appendChild(div);
+    });
+}

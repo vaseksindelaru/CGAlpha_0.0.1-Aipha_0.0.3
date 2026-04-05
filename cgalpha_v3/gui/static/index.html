@@ -759,6 +759,7 @@
                 <button class="nav-btn" onclick="showSection('theory')">Theory Live</button>
                 <button class="nav-btn" onclick="showSection('experiment')">Experiment Loop</button>
                 <button class="nav-btn" onclick="showSection('learning')">Learning</button>
+                <button class="nav-btn" onclick="showSection('help')">Help ?</button>
             </nav>
             <div class="topbar-right">
                 <div class="status-indicator">
@@ -768,6 +769,178 @@
                 <button class="btn btn-danger btn-sm" onclick="killSwitchStep1()">⚡ Kill-Switch</button>
             </div>
         </header>
+
+        <!-- HELP CENTER -->
+        <main id="section-help" class="section">
+            <div class="help-container">
+                <div class="help-sidebar">
+                    <h3>Centro de Ayuda</h3>
+                    <div class="help-nav">
+                        <button class="help-nav-btn active" data-cat="inicio" onclick="helpSearch('inicio')">🚀 Inicio
+                            Rápido</button>
+                        <button class="help-nav-btn" data-cat="riesgo" onclick="helpSearch('riesgo')">🛡️ Gestión de
+                            Riesgos</button>
+                        <button class="help-nav-btn" data-cat="lila" onclick="helpSearch('lila')">🤖 Asistente
+                            Lila</button>
+                        <button class="help-nav-btn" data-cat="auditoria" onclick="helpSearch('auditoria')">📋 Auditoría
+                            P3</button>
+                        <button class="help-nav-btn" data-cat="faq" onclick="helpSearch('faq')">❓ FAQ</button>
+                    </div>
+                </div>
+                <div class="help-content-wrap">
+                    <div class="help-search-bar">
+                        <input type="text" id="help-search-input"
+                            placeholder="¿En qué podemos ayudarte? (Escribe para buscar...)" onkeyup="filterHelp()">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <div id="help-articles" class="help-articles">
+                        <!-- Articles will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- HELP STYLES -->
+        <style>
+            .help-container {
+                display: grid;
+                grid-template-columns: 240px 1fr;
+                gap: 2px;
+                height: calc(100vh - 56px);
+                background: var(--border);
+            }
+
+            .help-sidebar {
+                background: var(--bg2);
+                padding: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .help-nav {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .help-nav-btn {
+                background: transparent;
+                border: 1px solid transparent;
+                color: var(--text-dim);
+                text-align: left;
+                padding: 10px 14px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 14px;
+            }
+
+            .help-nav-btn:hover,
+            .help-nav-btn.active {
+                background: rgba(0, 212, 170, 0.1);
+                color: var(--accent);
+                border-color: rgba(0, 212, 170, 0.2);
+            }
+
+            .help-content-wrap {
+                background: var(--bg3);
+                padding: 32px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .help-search-bar {
+                position: relative;
+                max-width: 600px;
+            }
+
+            #help-search-input {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border);
+                padding: 14px 48px 14px 18px;
+                border-radius: 12px;
+                color: var(--text);
+                outline: none;
+                font-size: 16px;
+                transition: border-color 0.3s, box-shadow 0.3s;
+            }
+
+            #help-search-input:focus {
+                border-color: var(--accent);
+                box-shadow: 0 0 15px rgba(0, 212, 170, 0.2);
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            .search-icon {
+                position: absolute;
+                right: 18px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-dim);
+                pointer-events: none;
+            }
+
+            .help-articles {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+                max-width: 800px;
+            }
+
+            .help-card {
+                background: var(--bg2);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 24px;
+                transition: transform 0.2s;
+            }
+
+            .help-card:hover {
+                border-color: var(--accent-dim);
+            }
+
+            .help-card h4 {
+                color: var(--accent);
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .help-card p {
+                color: var(--text-dim);
+                line-height: 1.6;
+                font-size: 14px;
+            }
+
+            .help-faq-item {
+                border-bottom: 1px solid var(--border);
+                padding: 16px 0;
+            }
+
+            .help-faq-q {
+                font-weight: bold;
+                color: var(--text);
+                margin-bottom: 8px;
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .help-faq-a {
+                color: var(--text-dim);
+                font-size: 14px;
+                display: none;
+            }
+
+            .help-faq-item.open .help-faq-a {
+                display: block;
+            }
+        </style>
 
         <!-- DASHBOARD -->
         <main id="section-dashboard" class="section active">
