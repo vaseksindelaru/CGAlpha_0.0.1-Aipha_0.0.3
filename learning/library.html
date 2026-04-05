@@ -772,6 +772,77 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 50px 20px;
+        }
+
+        .modal-content {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d4aa;
+        }
+
+        .modal-body {
+            line-height: 1.6;
+        }
+
+        .modal-body h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #00d4aa;
+        }
+
+        .modal-body h4 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #00d4aa;
+        }
+
+        .modal-body ul, .modal-body ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+
         @media (max-width: 600px) {
             #ai-assistant {
                 width: calc(100vw - 32px);
@@ -820,6 +891,15 @@
 
     <div class="notification" id="notification"></div>
 
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="modal-title" id="modal-title">Título</div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
     <!-- ===== AGENTE ASISTENTE FLOTANTE ===== -->
     <div id="ai-assistant">
         <div class="ai-header" onclick="aiToggleCollapse()" title="Haz clic para minimizar/expandir">
@@ -862,8 +942,71 @@
 
     <script>
         function showHelp() {
-            alert('CGAlpha Library - Busca contenido guardado:\n\n• Haz clic en una tarjeta para ver el contenido\n• Usa el asistente AI para buscar temas específicos');
+            const helpContent = `
+                <h3>📖 GUÍA DE CGAlpha/LIBRARY</h3>
+
+                <h4>📚 ¿Qué es la Library?</h4>
+                <p>La Library es la <strong>biblioteca de contenido</strong> de CGAlpha. Aquí se almacena todo el material de estudio que guardas durante tu aprendizaje.</p>
+
+                <h4>📚 TARJETAS DE CONTENIDO</h4>
+                <p>Las tarjetas en la pantalla representan categorías de contenido:</p>
+                <ul>
+                    <li><strong>Introducción a CGAlpha</strong>: Overview del proyecto y su metodología</li>
+                    <li><strong>Python Fundamentals</strong>: Conceptos de programación en Python</li>
+                    <li><strong>Math for Trading</strong>: Matemáticas aplicadas al trading algorítmico</li>
+                    <li><strong>Trading Algorítmico</strong>: Estrategias, gestión de riesgo, backtesting</li>
+                </ul>
+                <p><em>Haz clic en una tarjeta para ver más detalles.</em></p>
+
+                <h4>🤖 ASISTENTE AI</h4>
+                <p>El chatbot flotante te ayuda a buscar y encontrar contenido:</p>
+                <ul>
+                    <li><strong>Buscar contenido</strong>: Pregunta "busca contenido sobre Python" o "dame info sobre trading"</li>
+                    <li><strong>Explicaciones</strong>: Pide que te explique conceptos de cualquier categoría</li>
+                    <li><strong>Minimizar/Expandir</strong>: Click en el header o botón ▼/▲</li>
+                    <li><strong>Fullscreen</strong>: Botón ⛶ para modo pantalla completa</li>
+                    <li><strong>API Key</strong>: Opcional - proporciona tu Gemini API key</li>
+                </ul>
+
+                <h4>🔗 NAVEGACIÓN</h4>
+                <ul>
+                    <li><strong>Dashboard</strong>: Pantalla principal</li>
+                    <li><strong>Library</strong>: Esta página (biblioteca)</li>
+                    <li><strong>Learning</strong>: Sistema de aprendizaje por hitos</li>
+                </ul>
+
+                <h4>💡 NOTAS</h4>
+                <p>El contenido real de la Library se gestiona desde la página <strong>Learning</strong>:</p>
+                <ul>
+                    <li>Las clases se guardan con "INCLUIR .MD"</li>
+                    <li>Los extras se guardan con "AÑADIR EXTRA"</li>
+                    <li>Desde Learning puedes gestionar (ver/eliminar) todo el contenido</li>
+                </ul>
+            `;
+            showModal('AYUDA - CGAlpha Library', helpContent);
         }
+
+        function showModal(title, content) {
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            if (modal && modalTitle && modalBody) {
+                modalTitle.textContent = title;
+                modalBody.innerHTML = content;
+                modal.classList.add('active');
+            } else {
+                alert(content.replace(/<[^>]*>/g, ''));
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
 
         function openCard(cardId) {
             const cards = {

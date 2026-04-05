@@ -990,27 +990,125 @@ function appendChatMessage(type, text) {
 const HELP_DATA = [
     {
         cat: 'inicio',
-        title: 'Inicio Rápido / Mission Control',
+        title: 'Guía de Inicio Rápido (Quick Start v3.1)',
         icon: '🚀',
-        content: 'El Mission Control es el corazón del sistema. (1) Verifica que la base de datos de mercado esté VÁLIDA. (2) Usa el botón "Re-armar sistema" si hubo un incidente. (3) Monitorea los eventos en tiempo real para detectar anomalías.'
+        content: `
+            <p>Bienvenido a la Sala de Control de <strong>CGAlpha v3</strong>. Este entorno es una interfaz viva para el sistema de trading algorítmico distribuido.</p>
+            <ul style="margin-left:20px; margin-top:10px; display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                <li><strong>1. Estado del Nodo:</strong> Verifique el indicador de pulso (arriba a la derecha). Un pulso verde indica que el <em>HealthMonitor</em> está recibiendo telemetría en tiempo real (&lt;100ms).</li>
+                <li><strong>2. Capas de Protección:</strong> El sistema opera bajo tres capas: 
+                    <span style="color:var(--accent2)">Operation</span> (Ejecución), 
+                    <span style="color:var(--accent)">Audit</span> (Lila AI) y 
+                    <span style="color:var(--red)">Risk</span> (Circuit Breakers).
+                </li>
+                <li><strong>3. Interacción con Lila:</strong> Lila no es solo un chat; es la supervisora del sistema. Use el comando <code>/status</code> para obtener un reporte técnico de los SLOs actuales.</li>
+                <li><strong>4. Flujo de Experimentos:</strong> Las estrategias no se lanzan "a ciegas". Cada cambio pasa por el <em>Experiment Loop</em>, donde se valida que no haya <em>Temporal Leakage</em> antes de ir a Live.</li>
+            </ul>
+            <div style="margin-top:15px; padding:12px; background:rgba(0,212,170,0.05); border:1px solid rgba(0,212,170,0.2); border-radius:10px; font-size:12px;">
+                <strong>SOPORTE MULTI-SYMBOL:</strong> Esta versión soporta BTC, ETH y SOL con parámetros de riesgo independientes por par.
+            </div>
+        `
     },
     {
         cat: 'riesgo',
-        title: 'Gestión de Riesgos y SLOs',
+        title: 'Gestión de Riesgos (High-Frequency Safety)',
         icon: '🛡️',
-        content: 'El Dashboard de Riesgos monitorea SLOs críticos. Si el Drawdown supera el 5% o hay inconsistencias en los datos, el sistema activará los Circuit Breakers e incluso el Kill-Switch si es necesario.'
+        content: `
+            <p>El sistema de riesgo de v3.1 ha evolucionado de un modelo basado en ATR a un motor de <strong>Micro-estructura de Mercado</strong>.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div style="background:rgba(255,107,107,0.05); padding:8px; border-radius:8px; border:1px solid rgba(255,107,107,0.2);">
+                    <strong style="color:var(--red); font-size:11px;">CIRCUIT BREAKERS</strong>
+                    <p style="font-size:11px; margin-top:4px;">Se activan si el drawdown supera el 5% o si el OBI (Order Book Imbalance) muestra anomalías de liquidez extrema.</p>
+                </div>
+                <div style="background:rgba(0,212,170,0.05); padding:8px; border-radius:8px; border:1px solid rgba(0,212,170,0.2);">
+                    <strong style="color:var(--accent); font-size:11px;">KILL-SWITCH</strong>
+                    <p style="font-size:11px; margin-top:4px;">Desconexión física redundante. Latencia de ejecución: 15ms. Garantiza que ninguna posición quede huérfana.</p>
+                </div>
+            </div>
+            <p style="margin-top:10px; font-size:12px;"><strong>SLO Tracker:</strong> Monitoreamos la latencia del WebSocket. Si el <em>Data Quality</em> cae a "stale", el sistema entra automáticamente en modo "Defensive" (solo salidas permitted).</p>
+        `
     },
     {
         cat: 'lila',
-        title: 'Lila Assistant v3.1',
+        title: 'Lila: Inteligencia de Auditoría Continua',
         icon: '🤖',
-        content: 'Lila es tu compañera de IA. (1) Puede aprender de la historia del proyecto. (2) Puede auditar experimentos. (3) Usa los botones del encabezado para gestionar el historial de chat o la vista de pantalla completa.'
+        content: `
+            <p>Lila v3.1 utiliza un motor de <strong>Memoria de Retención Progresiva</strong> para evitar la degradación del conocimiento.</p>
+            <ul style="margin-left:20px; margin-top:8px; font-size:13px; color:var(--text-dim);">
+                <li><strong>Auditoría P3 (Hardening):</strong> Lila valida cada propuesta de experimento contra el historial de fallos previos (Learning Memory).</li>
+                <li><strong>Detección de Sesgo:</strong> Analiza si una estrategia está sobre-optimizada para un régimen de mercado específico.</li>
+                <li><strong>Auto-documentación:</strong> Lila traduce eventos técnicos (logs) a lenguaje natural en el panel de Mission Control.</li>
+            </ul>
+            <div style="margin-top:10px; font-family:monospace; background:#000; padding:8px; border-radius:6px; font-size:11px; color:#0f0;">
+                > Lila: "Detectado cambio de régimen (Volatilidad ↑22%). Sugiero reducir Max Position un 15%."
+            </div>
+        `
+    },
+    {
+        cat: 'doc',
+        title: 'Motor Scalping: VWAP + OBI + CumDelta',
+        icon: '🏗️',
+        content: `
+            <p>La arquitectura técnica se basa en tres componentes sincronizados con una latencia combinada de <strong>15ms</strong>:</p>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:4px solid var(--accent2);">
+                    <strong>1. VWAP Engine:</strong> Calcula barreras dinámicas usando un buffer de 300 ticks (~5 min). Detecta breakouts con precisión estadística.
+                </div>
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:4px solid var(--accent);">
+                    <strong>2. OBI (Order Book Imbalance):</strong> Analiza la presión de compra/venta en los top 10 niveles del libro. Confirma si el breakout tiene "gasolina" institucional.
+                </div>
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:4px solid var(--red);">
+                    <strong>3. Cumulative Delta:</strong> Monitorea el volumen ejecutado (Tapes). Detecta reversiones de tendencia antes de que el precio se mueva, permitiendo salidas óptimas.
+                </div>
+            </div>
+        `
+    },
+    {
+        cat: 'doc',
+        title: 'Gestión de Memoria y Teoría Live',
+        icon: '🧠',
+        content: `
+            <p>El sistema "Theory Live" permite validar hipótesis contra la biblioteca de documentos científicos (Library).</p>
+            <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:12px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
+                        <th style="padding:4px;">Nivel</th>
+                        <th style="padding:4px;">Tipo de Dato</th>
+                        <th style="padding:4px;">Uso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="color:var(--accent); padding:4px;">L0</td>
+                        <td style="padding:4px;">Logs brutos</td>
+                        <td style="padding:4px;">Debug inmediato</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="color:var(--accent); padding:4px;">L1-L2</td>
+                        <td style="padding:4px;">Evidencias</td>
+                        <td style="padding:4px;">Auditoría de señales</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--accent); padding:4px;">L3-L4</td>
+                        <td style="padding:4px;">Estrategia</td>
+                        <td style="padding:4px;">Refinamiento de Lila</td>
+                    </tr>
+                </tbody>
+            </table>
+        `
     },
     {
         cat: 'auditoria',
-        title: 'Hardening Progresivo (P3)',
+        title: 'Protocolo de Hardening P3',
         icon: '📋',
-        content: 'CGAlpha v3 ha pasado por auditorías P0 (Risk), P1 (Rollback), P2 (Memory) y P3 (Hardening). Esto garantiza integridad temporal, gates de producción y soporte multi-symbol (BTC/ETH/SOL).'
+        content: `
+            <p>La Fase P3 representa el estado de "Producción Endurecida". Incluye:</p>
+            <ul style="margin-left:20px; margin-top:8px; font-size:13px; color:var(--text-dim);">
+                <li><strong>No-Leakage E2E:</strong> Pruebas que garantizan que el sistema no conoce el futuro durante el backtesting.</li>
+                <li><strong>Rollback Atómico:</strong> Capacidad de volver a un estado estable (Snapshot) en &lt;2 segundos si se detecta deriva de métricas.</li>
+                <li><strong>Change Proposer:</strong> Todas las modificaciones al código son propuestas por Lila y deben ser validadas por el pipeline de tests automáticos.</li>
+            </ul>
+        `
     },
     {
         cat: 'faq',
@@ -1018,10 +1116,11 @@ const HELP_DATA = [
         icon: '❓',
         isFaq: true,
         items: [
-            { q: '¿Cómo accedo a los experimentos pasados?', a: 'En la pestaña "Experiment Loop" encontrarás el resumen del último experimento. El historial completo reside en la memoria de Lila.' },
-            { q: '¿Qué significa el punto verde arriba?', a: 'Significa que la conexión con el servidor Flask está activa y el HealthMonitor está reportando estado HEALTHY.' },
-            { q: '¿Cómo restauro el sistema tras un Kill-Switch?', a: 'Haz clic en "Re-armar sistema" en el panel de Mission Control.' },
-            { q: '¿El asistente guarda mis conversaciones?', a: 'Sí, todas las sesiones se guardan localmente y puedes consultarlas en la carpeta de historial de Lila.' }
+            { q: '¿Qué es el Temporal Leakage?', a: 'Es un error común donde el algoritmo usa datos del futuro (inconscientemente) para entrenarse. v3.1 tiene gates matemáticos que bloquean cualquier estrategia con leakage detectado.' },
+            { q: '¿Por qué el Kill-Switch está siempre armado?', a: 'Es un protocolo de seguridad industrial. Preferimos detener el sistema ante una duda técnica que arriesgar capital en un mercado volátil.' },
+            { q: '¿Cómo añado nuevos papers a la Library?', a: 'Vaya a la pestaña "Library" y use el formulario de Ingesta. Lila procesará el PDF/Texto y extraerá los findings automáticamente.' },
+            { q: '¿Qué significa "Regime Shift Detected"?', a: 'Significa que las condiciones del mercado (volatilidad, spread, volumen) han cambiado tanto que los modelos actuales podrían no ser válidos. El sistema sugiere recalibrar.' },
+            { q: '¿Puedo usar CGAlpha v3 para scalping manual?', a: 'Sí, a través de la pestaña "Dashboard" puede ejecutar órdenes manuales que Lila supervisará con los mismos Circuit Breakers del modo automático.' }
         ]
     }
 ];

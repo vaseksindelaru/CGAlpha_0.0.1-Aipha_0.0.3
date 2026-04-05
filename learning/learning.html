@@ -2399,19 +2399,69 @@ Guarda el resultado como markdown para que el estudiante lo pueda copiar.`;
 
         function showHelp() {
             const helpContent = `
-                <h3>CÓMO USAR ESTA INTERFAZ</h3>
+                <h3>📖 GUÍA COMPLETA DE CGAlpha/LEARNING</h3>
+                
+                <h4>🎯 EL SISTEMA DE HITOS</h4>
+                <p>El aprendizaje se estructura en <strong>hitos secuenciales</strong>. Cada hito representa un concepto que debes dominar desde 4 perspectivas diferentes:</p>
+                <ul>
+                    <li><strong>PYTHON_TUTOR</strong>: Cómo se implementa en Python (sintaxis, libs, best practices)</li>
+                    <li><strong>MATH_TUTOR</strong>: Relación con conceptos matemáticos subyacentes</li>
+                    <li><strong>TRADING_EXPERT</strong>: Aplicación práctica en trading algorítmico</li>
+                    <li><strong>ARCHITECT</strong>: Cómo encaja en la arquitectura del sistema</li>
+                </ul>
+                <p><em>Hitos actuales: Enum → @dataclass → frozen=True → __post_init__ → NewType</em></p>
+
+                <h4>🔘 BOTONES DE ACCIÓN</h4>
                 <ol>
-                    <li><strong>Crear clase</strong> -> genera prompt para tu LLM.</li>
-                    <li><strong>Incluir .MD</strong> -> guarda clase y persiste markdown.</li>
-                    <li><strong>Añadir extra</strong> -> guarda extra en una categoría:
-                        <code>PYTHON_TUTOR</code>, <code>MATH_TUTOR</code>, <code>TRADING_EXPERT</code>, <code>ARCHITECT</code>.
+                    <li><strong>1. CREAR CLASE</strong>: Genera un prompt optimizado para tu LLM. Copia el prompt, pégalo en tu modelo preferido, y guarda el resultado con la opción 2.</li>
+                    <li><strong>2. INCLUIR .MD</strong>: Guarda el contenido generado por el LLM. Puedes pegar el texto o subir un archivo .md/.txt desde tu PC. Se guarda en la Library asociado al hito actual.</li>
+                    <li><strong>3. LEER CLASE</strong>: Muestra la última clase guardada para el hito actual. Usa Prettier para formatear el código si está habilitado.</li>
+                    <li><strong>4. AÑADIR EXTRA</strong>: Guarda material adicional en una de las 4 categorías (PYTHON_TUTOR, MATH_TUTOR, TRADING_EXPERT, ARCHITECT). Es para notas, enlaces, ejercicios, etc.</li>
+                    <li><strong>5. COMPLETAR</strong>: Marca el hito como completado. Esto incrementa +5% el progreso de cada agente y avanza al siguiente hito.</li>
+                    <li><strong>6. HISTORIAL</strong>: Muestra el registro de aprendizaje (fechas, hitos completados, notas).</li>
+                    <li><strong>7. ARCHIVOS</strong>: Panel de gestión completo:
+                        <ul>
+                            <li><strong>Configurar carpeta .MD</strong>: Elegir carpeta local para guardar archivos (opcional)</li>
+                            <li><strong>Filtro por categoría</strong>: Ver solo clases o un tipo de extra</li>
+                            <li><strong>Buscar</strong>: Buscar por nombre, hito o contenido</li>
+                            <li><strong>Ver/Eliminar</strong>: Ver contenido en modal o eliminar registros</li>
+                        </ul>
                     </li>
-                    <li><strong>Archivos</strong> -> buscar por categoría y texto, ver y eliminar contenido.</li>
                 </ol>
-                <h3>PERSISTENCIA .MD</h3>
-                <p>La app intenta guardar en carpeta local si la configuras. Si no, descarga archivos <code>.md</code> automáticamente.</p>
+
+                <h4>📊 BARRA DE PROGRESO</h4>
+                <p>Muestra el progreso (%) en cada área. Se incrementa al completar hitos (+5% por agente por hito).</p>
+
+                <h4>💾 PERSISTENCIA</h4>
+                <ul>
+                    <li><strong>localStorage</strong>: Todo el estado (hito actual, progreso, clases, extras) se guarda automáticamente.</li>
+                    <li><strong>Archivos .MD</strong>: Si configuras una carpeta local, los archivos se guardan ahí. Si no, se descargan automáticamente como archivos.</li>
+                </ul>
+
+                <h4>🤖 ASISTENTE AI</h4>
+                <p>Chatbot flotante en la esquina inferior izquierda:</p>
+                <ul>
+                    <li><strong>Minimizar/Expandir</strong>: Click en el header o botón ▼/▲</li>
+                    <li><strong>Fullscreen</strong>: Botón ⛶ para modo pantalla completa</li>
+                    <li><strong>API Key</strong>: Opcional - proporciona tu Gemini API key para respuestas más inteligentes</li>
+                    <li><strong>Contexto</strong>:自动 alimenta info del hito actual, clases guardadas, extras</li>
+                    <li><strong>Sugerencias</strong>: Botones rápidos para preguntas comunes</li>
+                </ul>
+
+                <h4>⌨️ ATAJOS DE TECLADO</h4>
+                <ul>
+                    <li><strong>Enter</strong> en input AI: Enviar mensaje</li>
+                    <li><strong>Shift+Enter</strong>: Nueva línea en input</li>
+                </ul>
+
+                <h4>🔗 NAVEGACIÓN</h4>
+                <ul>
+                    <li><strong>Dashboard</strong>: Pantalla principal con acceso a Library y Learning</li>
+                    <li><strong>Library</strong>: Biblioteca de contenido guardado (clases y extras)</li>
+                    <li><strong>Learning</strong>: Sistema de aprendizaje por hitos (esta página)</li>
+                </ul>
             `;
-            showModal('AYUDA', helpContent);
+            showModal('AYUDA - CGAlpha Learning', helpContent);
         }
 
         function crearClase() {
