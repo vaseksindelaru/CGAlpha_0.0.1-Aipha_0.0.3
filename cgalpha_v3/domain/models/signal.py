@@ -27,6 +27,7 @@ class ApproachType(str, Enum):
     BREAKOUT   = "BREAKOUT"    # Cierre confirmado beyond zona
     OVERSHOOT  = "OVERSHOOT"   # Cierre beyond zona sin retorno en N velas
     FAKE_BREAK = "FAKE_BREAK"  # Cierre beyond zona con retorno en N velas
+    TRIPLE_COINCIDENCE = "TRIPLE_COINCIDENCE"  # Triple coincidencia: vela clave + zona acumulación + mini-tendencia
 
 
 # ──────────────────────────────────────────────────────────────

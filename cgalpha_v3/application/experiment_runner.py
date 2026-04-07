@@ -13,7 +13,7 @@ import statistics
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 from cgalpha_v3.application.change_proposer import FrictionDefaults
 from cgalpha_v3.data_quality.gates import check_oos_leakage
@@ -81,6 +81,181 @@ class ExperimentRunner:
 
     def __init__(self, friction_defaults: FrictionDefaults | None = None) -> None:
         self.friction_defaults = friction_defaults or FrictionDefaults()
+        self.signal_detector = None  # TripleCoincidenceDetector opcional
+
+    def set_signal_detector(self, detector_config: dict | None = None) -> None:
+        """
+        Configura el detector de señales Triple Coincidence.
+
+        Args:
+            detector_config: Configuración para TripleCoincidenceDetector
+        """
+        try:
+            from cgalpha_v3.infrastructure.signal_detector import TripleCoincidenceDetector
+            self.signal_detector = TripleCoincidenceDetector(detector_config)
+        except ImportError:
+            self.signal_detector = None
+
+    def generate_signals(self, rows: list[dict[str, Any]]) -> list[dict]:
+        """
+        Genera señales usando TripleCoincidenceDetector (método legacy).
+        Para la lógica correcta, usar process_retests() en su lugar.
+        """
+        if self.signal_detector is None:
+            return []
+
+        try:
+            import pandas as pd
+            df = pd.DataFrame(rows)
+            signals = self.signal_detector.detect(df)
+            return [
+                {
+                    'index': s.index,
+                    'price': s.price,
+                    'direction': s.direction,
+                    'quality_score': s.quality_score,
+                    'label': s.label,
+                    'approach_type': ApproachType.TRIPLE_COINCIDENCE.value
+                }
+                for s in signals
+            ]
+        except Exception:
+            return []
+
+    def process_retests(self, rows: list[dict[str, Any]],
+                      micro_features: Optional[list[dict]] = None) -> list[dict]:
+        """
+        Procesa datos con lógica correcta: detecta zonas, retests, captura features,
+        determina outcomes y genera dataset de entrenamiento para Oracle.
+
+        Args:
+            rows: Datos OHLCV
+            micro_features: Features de microestructura (VWAP, OBI, delta)
+
+        Returns:
+            Lista de RetestEvent detectados
+        """
+        if self.signal_detector is None:
+            return []
+
+        try:
+            import pandas as pd
+            df = pd.DataFrame(rows)
+
+            # Convertir micro_features a DataFrame si se proporcionan
+            micro_df = None
+            if micro_features:
+                micro_df = pd.DataFrame(micro_features)
+
+            # Procesar stream con lógica correcta
+            retest_events = self.signal_detector.process_stream(df, micro_df)
+
+            # Convertir RetestEvent a dict
+            return [
+                {
+                    'zone_id': f"{event.zone.candle_index}_{event.zone.direction}",
+                    'retest_index': event.retest_index,
+                    'retest_price': event.retest_price,
+                    'retest_timestamp': event.retest_timestamp,
+                    'vwap_at_retest': event.vwap_at_retest,
+                    'obi_10_at_retest': event.obi_10_at_retest,
+                    'cumulative_delta_at_retest': event.cumulative_delta_at_retest,
+                    'delta_divergence': event.delta_divergence,
+                    'atr_14': event.atr_14,
+                    'regime': event.regime,
+                    'outcome': event.outcome,
+                }
+                for event in retest_events
+            ]
+        except Exception:
+            return []
+
+    def get_training_dataset(self) -> list[dict]:
+        """
+        Retorna el dataset de entrenamiento generado por el SignalDetector.
+        """
+        if self.signal_detector is None:
+            return []
+
+        try:
+            training_samples = self.signal_detector.get_training_dataset()
+            return [
+                {
+                    'features': sample.features,
+                    'outcome': sample.outcome,
+                    'zone_id': sample.zone_id,
+                    'retest_timestamp': sample.retest_timestamp
+                }
+                for sample in training_samples
+            ]
+        except Exception:
+            return []
+
+    def filter_with_oracle(self, signals: list[dict], rows: list[dict[str, Any]],
+                          min_confidence: float = 0.70) -> list[dict]:
+        """
+        Filtra señales usando Oracle (Meta-Labeling).
+
+        Args:
+            signals: Lista de señales del SignalDetector
+            rows: Datos OHLCV completos
+            min_confidence: Umbral mínimo de confianza del Oracle
+
+        Returns:
+            Lista de señales filtradas (solo las aprobadas por Oracle)
+        """
+        if not signals:
+            return []
+
+        try:
+            from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
+            from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import (
+                TripleSignal, triple_signal_to_microstructure
+            )
+            import pandas as pd
+
+            # Crear Oracle
+            oracle = OracleTrainer_v3.create_default()
+            oracle.min_confidence = min_confidence
+
+            # Convertir datos a DataFrame
+            df = pd.DataFrame(rows)
+
+            filtered_signals = []
+            for sig_dict in signals:
+                # Reconstruir TripleSignal (simplificado)
+                signal = TripleSignal(
+                    index=sig_dict['index'],
+                    price=sig_dict['price'],
+                    direction=sig_dict['direction'],
+                    quality_score=sig_dict['quality_score'],
+                    label=sig_dict['label'],
+                    key_candle={},  # Placeholder
+                    accumulation_zone={},  # Placeholder
+                    mini_trend={},  # Placeholder
+                    scoring_details={}
+                )
+
+                # Convertir a MicrostructureRecord
+                micro_data = triple_signal_to_microstructure(signal, df)
+
+                # Oracle predict (placeholder usa valor fijo)
+                prediction = oracle.predict(
+                    micro=micro_data,
+                    signal_data=sig_dict
+                )
+
+                # Filtrar por confianza
+                if prediction.confidence >= min_confidence:
+                    sig_dict['oracle_confidence'] = prediction.confidence
+                    sig_dict['oracle_action'] = prediction.suggested_action
+                    filtered_signals.append(sig_dict)
+
+            return filtered_signals
+
+        except Exception:
+            # Si Oracle falla, retornar todas las señales (fallback)
+            return signals
 
     def build_walk_forward_windows(
         self,

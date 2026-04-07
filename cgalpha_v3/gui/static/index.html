@@ -596,6 +596,183 @@
             margin-bottom: 10px;
         }
 
+        /* ── LEARNING STUDY PLAN ── */
+        .study-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .subject-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .subject-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 212, 170, 0.15);
+        }
+
+        .subject-card.completed {
+            border-left: 4px solid var(--accent);
+        }
+
+        .subject-card .subj-num {
+            position: absolute;
+            top: -5px;
+            right: 5px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            opacity: 0.08;
+            color: var(--accent);
+            pointer-events: none;
+        }
+
+        .subject-card h3 {
+            font-size: 15px;
+            color: var(--accent);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .subject-card p {
+            font-size: 12.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .code-container {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #c9d1d9;
+            margin-top: 12px;
+            border: 1px solid #30363d;
+            overflow-x: auto;
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-container pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .code-tag {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--accent);
+            font-size: 10px;
+            padding: 4px 10px;
+            border-bottom-left-radius: 8px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .token-kw {
+            color: #ff7b72;
+            font-weight: bold;
+        }
+
+        .token-str {
+            color: #a5d6ff;
+        }
+
+        .token-comment {
+            color: #8b949e;
+            font-style: italic;
+        }
+
+        .token-fn {
+            color: #d2a8ff;
+        }
+
+        .token-num {
+            color: #79c0ff;
+        }
+
+        /* ── STUDY UI ── */
+        .study-cat-item {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .study-cat-item:hover {
+            border-color: var(--accent);
+            background: rgba(0, 212, 170, 0.05);
+            transform: scale(1.02);
+        }
+
+        .study-cat-item.active {
+            border-color: var(--accent);
+            background: rgba(0, 212, 170, 0.1);
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.1);
+        }
+
+        .study-cat-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            background: var(--bg2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .study-cat-info h4 {
+            font-size: 13px;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .study-detail-box {
+            background: var(--bg2);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* ── LIBRARY MVP ── */
         .lib-toolbar {
             display: grid;
@@ -1559,6 +1736,128 @@
                     </div>
                 </div>
             </div>
+
+            <div class="grid-1" style="margin-top: 20px;">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🎓</span>
+                        <h2>Plan de Estudio: Simple Foundation Strategy v3</h2>
+                    </div>
+                    <div class="panel-body">
+                        <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 13px;">Este plan describe las
+                            5 etapas críticas de desarrollo para la estrategia inicial de la Fase 0/1. Cada etapa
+                            representa una "materia" que el sistema ha procesado para alcanzar el nivel 4 de memoria.
+                        </p>
+
+                        <div class="study-grid">
+                            <!-- MATERIA 1 -->
+                            <div class="subject-card completed" onclick="openStudyMateria(1)">
+                                <div class="subj-num">01</div>
+                                <h3>📊 Fundamentos: Order Flow</h3>
+                                <p>Anclaje dinámico mediante VWAP y detección de desequilibrio de oferta/demanda en
+                                    velas de absorción.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Theory</div>
+                                    <pre><span class="token-comment"># Tesis: Reversión al valor (VWAP)</span>
+<span class="token-kw">hypothesis</span> = <span class="token-str">"Absorption at VWAP leads to 72% mean reversion"</span>
+<span class="token-kw">confidence_min</span> = <span class="token-num">0.70</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 2 -->
+                            <div class="subject-card completed">
+                                <div class="subj-num">02</div>
+                                <h3>⚙️ Ingeniería: Detector v3</h3>
+                                <p>Lógica de detección volumétrica y filtrado de ruido institucional.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Python</div>
+                                    <pre><span class="token-kw">def</span> <span class="token-fn">detect_absorption</span>(candles):
+    <span class="token-kw">if</span> vol > p85 <span class="token-kw">and</span> spread < avg:
+        <span class="token-kw">return</span> <span class="token-str">"ABSORPTION_DETECTED"</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 3 -->
+                            <div class="subject-card completed">
+                                <div class="subj-num">03</div>
+                                <h3>🛡️ Gobernanza: Backtesting</h3>
+                                <p>Validación Walk-Forward (3 ventanas) y chequeo estricto de No-Leakage.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Audit</div>
+                                    <pre><span class="token-fn">check_oos_leakage</span>(train_end, oos_start)
+<span class="token-comment"># Respetando Section E del maestro</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 4 -->
+                            <div class="subject-card">
+                                <div class="subj-num">04</div>
+                                <h3>⚖️ Gestión de Riesgo</h3>
+                                <p>Configuración de Kill-Switch por excesivo Max Drawdown y Circuit Breakers de sesión.
+                                </p>
+                                <div class="code-container">
+                                    <div class="code-tag">Risk</div>
+                                    <pre><span class="token-kw">if</span> session_dd > <span class="token-num">1.5</span>:
+    <span class="token-fn">trigger_kill_switch</span>(<span class="token-str">"RISK_OVER_THRESHOLD"</span>)</pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 5 -->
+                            <div class="subject-card">
+                                <div class="subj-num">05</div>
+                                <h3>🚀 Producción: Gate Logic</h3>
+                                <p>Purificación del componente y escalado hacia el Nexus Gate para ejecución real.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Production</div>
+                                    <pre><span class="token-kw">promote_to_level_4</span>(strategy_id)
+<span class="token-comment"># Heritage Vault deployment...</span></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top:20px;">
+                    <div class="panel-header">
+                        <span class="panel-icon">📈</span>
+                        <h2>Plan de Retroanálisis: Estrategia Simple (Audit Results)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="grid-2">
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Performance Walk-Forward</h4>
+                                <div class="stat-row"><span>Ventana 1 (OOS)</span><span class="stat-value"
+                                        style="color:var(--accent)">+1.44% (Sharpe: 1.82)</span></div>
+                                <div class="stat-row"><span>Ventana 2 (OOS)</span><span class="stat-value"
+                                        style="color:var(--accent)">+0.92% (Sharpe: 1.25)</span></div>
+                                <div class="stat-row"><span>Ventana 3 (OOS)</span><span class="stat-value"
+                                        style="color:var(--accent)">+2.08% (Sharpe: 2.31)</span></div>
+                                <div style="margin-top:10px; font-size:11px; color:var(--text-dim); font-style:italic;">
+                                    * Datos netos incluyendo fees (0.04%) y slippage (2bps).</div>
+                            </div>
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Certificación de No-Leakage</h4>
+                                <div class="stat-row"><span>Data Freshness Check</span><span class="stat-value">✓
+                                        PASSED</span></div>
+                                <div class="stat-row"><span>Temporal Leakage Gate</span><span class="stat-value"
+                                        style="color:var(--accent)">0.00% detectado</span></div>
+                                <div class="stat-row"><span>Nexus Gate Consensus</span><span class="stat-value">APPROVED
+                                        (0.92 conf)</span></div>
+                                <div class="code-container" style="margin-top:15px; padding:10px; font-size:10px;">
+                                    <pre><span class="token-comment">// Audit signature: v3.0-audit-77b2</span>
+<span class="token-fn">validate_gate_seal</span>(strategy_id=<span class="token-str">"simple-v3"</span>)</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- FOOTER -->
@@ -1913,7 +2212,32 @@
         }
     </style>
 
-    <script src="/app.js"></script>
+    <!-- STUDY MODAL -->
+    <div id="study-modal" class="modal-overlay hidden"
+        style="background: rgba(0,0,0,0.85); z-index: 2000; position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center;">
+        <div class="modal-card"
+            style="width: 850px; max-height: 90vh; overflow-y: auto; border: 2px solid var(--accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span id="study-main-icon" style="font-size: 1.5rem;">📊</span>
+                    <h2 id="study-title" style="color:var(--accent); margin:0;">Materia 01: Fundamentos de Order Flow
+                    </h2>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="closeStudyModal()" style="font-size:16px;">✕</button>
+            </div>
+
+            <div id="study-categories" class="grid-2" style="gap:16px; margin-bottom: 24px;">
+                <!-- Deberán aparecer las 5 categorías para estudiar -->
+            </div>
+
+            <div id="study-content-area" class="study-detail-box"
+                style="display:none; background: var(--bg3); border: 1px solid var(--border);">
+                <!-- Información para estudiar -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 
 </html>

@@ -159,6 +159,19 @@ def _populate_baseline_library():
             relevant_finding="Alta probabilidad en regímenes de reversión a la media.",
             applicability="Core de la Fase 0/1.",
             tags=["strategy", "foundation"]
+        ),
+        LibrarySource(
+            source_id="signal-detector-triple-coincidence",
+            title="Signal Detector — Triple Coincidence System",
+            authors=["CGAlpha Team"],
+            year=2026,
+            source_type="primary",
+            venue="cgalpha_internal",
+            url=None,
+            abstract="Sistema de detección de señales basado en triple coincidencia: vela clave + zona de acumulación + mini-tendencia.",
+            relevant_finding="Triple coincidencia (vela clave + zona acumulación + mini-tendencia) genera señales con score > 0.7.",
+            applicability="Generación de señales de alta probabilidad para Experiment Loop.",
+            tags=["signal_detection", "triple_coincidence", "technical_analysis"]
         )
     ]
     for src in baseline_sources:
@@ -194,6 +207,27 @@ _system_state: dict[str, Any] = {
         "market_live",
         "risk_dashboard",
     ],
+    "signal_detector": {
+        "enabled": False,
+        "volume_percentile_threshold": 70,
+        "body_percentage_threshold": 40,
+        "lookback_candles": 30,
+        "atr_period": 14,
+        "atr_multiplier": 1.5,
+        "volume_threshold": 1.2,
+        "min_zone_bars": 5,
+        "quality_threshold": 0.45,
+        "r2_min": 0.45,
+        "proximity_tolerance": 8,
+        "min_signal_quality": 0.65
+    },
+    "oracle": {
+        "enabled": False,
+        "min_confidence": 0.70,
+        "model_type": "placeholder",  # "random_forest" | "xgboost" | "lightgbm"
+        "retrain_interval_hours": 24,
+        "use_oracle_filtering": False
+    }
 }
 
 _events_log: list[dict[str, Any]] = []
@@ -1549,6 +1583,134 @@ def risk_params_set() -> ResponseReturnValue:
             "max_signals_per_hour": _system_state["max_signals_per_hour"],
             "min_signal_quality_score": _system_state["min_signal_quality_score"],
         },
+    })
+
+
+@app.route("/api/signal-detector/config", methods=["GET"])
+@require_auth
+def signal_detector_config_get() -> ResponseReturnValue:
+    """Leer configuración del Signal Detector."""
+    return jsonify(_system_state.get("signal_detector", {}))
+
+
+@app.route("/api/signal-detector/config", methods=["POST"])
+@require_auth
+def signal_detector_config_set() -> ResponseReturnValue:
+    """Actualizar configuración del Signal Detector."""
+    data = request.get_json() or {}
+    if "signal_detector" not in _system_state:
+        _system_state["signal_detector"] = {}
+
+    changed = []
+    valid_fields = {
+        "enabled": bool,
+        "volume_percentile_threshold": int,
+        "body_percentage_threshold": int,
+        "lookback_candles": int,
+        "atr_period": int,
+        "atr_multiplier": float,
+        "volume_threshold": float,
+        "min_zone_bars": int,
+        "quality_threshold": float,
+        "r2_min": float,
+        "proximity_tolerance": int,
+        "min_signal_quality": float,
+    }
+
+    for key, caster in valid_fields.items():
+        if key not in data:
+            continue
+        try:
+            casted = caster(data[key])
+        except (TypeError, ValueError):
+            return jsonify({"error": f"invalid_value:{key}"}), 400
+
+        # Validaciones específicas
+        if key == "min_signal_quality" and not (0 <= casted <= 1):
+            return jsonify({"error": "invalid_range:min_signal_quality"}), 400
+        if key == "quality_threshold" and not (0 <= casted <= 1):
+            return jsonify({"error": "invalid_range:quality_threshold"}), 400
+        if key == "r2_min" and not (0 <= casted <= 1):
+            return jsonify({"error": "invalid_range:r2_min"}), 400
+
+        _system_state["signal_detector"][key] = casted
+        changed.append(key)
+
+        # Si se habilita el detector, configurarlo en ExperimentRunner
+        if key == "enabled" and casted:
+            _experiment_runner.set_signal_detector(_system_state["signal_detector"])
+            _log_event("Signal Detector habilitado en ExperimentRunner")
+
+    if changed:
+        _record_control_cycle(
+            event=f"Signal Detector config actualizada: {changed}",
+            level="info",
+            trigger="signal_detector_config_set",
+            context={"updated": changed, "signal_detector": _system_state["signal_detector"]},
+        )
+
+    return jsonify({
+        "updated": changed,
+        "current": _system_state["signal_detector"],
+    })
+
+
+@app.route("/api/oracle/config", methods=["GET"])
+@require_auth
+def oracle_config_get() -> ResponseReturnValue:
+    """Leer configuración del Oracle."""
+    return jsonify(_system_state.get("oracle", {}))
+
+
+@app.route("/api/oracle/config", methods=["POST"])
+@require_auth
+def oracle_config_set() -> ResponseReturnValue:
+    """Actualizar configuración del Oracle."""
+    data = request.get_json() or {}
+    if "oracle" not in _system_state:
+        _system_state["oracle"] = {}
+
+    changed = []
+    valid_fields = {
+        "enabled": bool,
+        "min_confidence": float,
+        "model_type": str,
+        "retrain_interval_hours": int,
+        "use_oracle_filtering": bool,
+    }
+
+    for key, caster in valid_fields.items():
+        if key not in data:
+            continue
+        try:
+            casted = caster(data[key])
+        except (TypeError, ValueError):
+            return jsonify({"error": f"invalid_value:{key}"}), 400
+
+        # Validaciones específicas
+        if key == "min_confidence" and not (0 <= casted <= 1):
+            return jsonify({"error": "invalid_range:min_confidence"}), 400
+        if key == "model_type" and casted not in ["placeholder", "random_forest", "xgboost", "lightgbm"]:
+            return jsonify({"error": "invalid_model_type"}), 400
+
+        _system_state["oracle"][key] = casted
+        changed.append(key)
+
+        # Si se habilita el filtering, configurarlo en ExperimentRunner
+        if key == "use_oracle_filtering" and casted:
+            _log_event("Oracle filtering habilitado en ExperimentRunner")
+
+    if changed:
+        _record_control_cycle(
+            event=f"Oracle config actualizada: {changed}",
+            level="info",
+            trigger="oracle_config_set",
+            context={"updated": changed, "oracle": _system_state["oracle"]},
+        )
+
+    return jsonify({
+        "updated": changed,
+        "current": _system_state["oracle"],
     })
 
 
