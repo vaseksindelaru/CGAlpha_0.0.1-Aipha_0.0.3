@@ -1,0 +1,246 @@
+{
+  "iteration": "2026-04-07_09-11",
+  "generated_at": "2026-04-07T09:11:03.281945+00:00",
+  "trigger": "experiment_run",
+  "phase": "CGAlpha v3 / Construction",
+  "completed_tasks": [
+    "Registro automático de ciclo real desde GUI",
+    "EXPERIMENT: ejecución completada exp-dba44d41"
+  ],
+  "blocked_tasks": [],
+  "gui_events_published": [
+    "CGAlpha v3 / Control Room iniciado",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Long)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Long)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Long)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Short)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Short)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Short)",
+    "AUTOPROPOSER: Nueva recomendación de mejora (b7676204)",
+    "AUTOPROPOSER: Nueva recomendación de mejora (b7e064dc)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Short)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Short)",
+    "AUTOPROPOSER: Nueva recomendación de mejora (2896283f)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Long)",
+    "TRINITY UPDATE: OBI/Delta Shift detectado (Long)",
+    "AUTOPROPOSER: Nueva recomendación de mejora (1ec85e7d)",
+    "EXPERIMENT: ejecución completada exp-dba44d41"
+  ],
+  "tests_status": {
+    "gui_runtime_cycle": "registrado automáticamente en ejecución real"
+  },
+  "risk_assessment_status": "N/A - ciclo de control GUI",
+  "kill_switch_status": "armed",
+  "circuit_breaker": "inactive",
+  "data_quality": "valid",
+  "drawdown_session_pct": 0.0,
+  "primary_source_gap": 0.73,
+  "risk_parameters": {
+    "max_drawdown_session_pct": 5.0,
+    "max_position_size_pct": 2.0,
+    "max_signals_per_hour": 10,
+    "min_signal_quality_score": 0.65
+  },
+  "experiment_loop": {
+    "status": "completed",
+    "has_proposal": true,
+    "has_experiment": true,
+    "proposal": {
+      "proposal_id": "prop-foundation-default",
+      "agent_id": "lila-baseline",
+      "generated_at": "2026-04-07T09:08:54.268350+00:00",
+      "session_id": "baseline-session",
+      "hypothesis": "Rebotes en VWAP con confirmación de absorción en ventana de 5m. (Auto-generada)",
+      "approach_types_targeted": [
+        "TOUCH",
+        "RETEST"
+      ],
+      "risk_assessment": {
+        "max_drawdown_impact_pct": 1.5,
+        "position_sizing_impact": "linear_risk_adjusted",
+        "kill_switch_threshold": "drawdown_session > 5%",
+        "circuit_breaker_interaction": "pause_60m"
+      },
+      "namespace": "v3",
+      "scientific_justification": {},
+      "backtesting": {
+        "frictions": {
+          "fee_taker_pct": 0.04,
+          "slippage_bps": 2.0
+        },
+        "walk_forward_windows": 3
+      },
+      "expected_impact": {},
+      "validation_plan": {},
+      "status": "pending"
+    },
+    "latest_experiment": {
+      "experiment_id": "exp-dba44d41",
+      "proposal_id": "prop-foundation-default",
+      "generated_at": "2026-04-07T09:11:03.281676+00:00",
+      "friction": {
+        "fee_taker_pct": 0.05,
+        "fee_maker_pct": 0.02,
+        "slippage_bps": 2.0,
+        "latency_ms": 100.0
+      },
+      "walk_forward_windows": [
+        {
+          "window_id": 1,
+          "train_start_ts": 1775499063.27695,
+          "train_end_ts": 1775509863.27695,
+          "validation_start_ts": 1775509863.27695,
+          "validation_end_ts": 1775513463.27695,
+          "oos_start_ts": 1775513463.27695,
+          "oos_end_ts": 1775517063.27695,
+          "train_rows": 36,
+          "validation_rows": 12,
+          "oos_rows": 12
+        },
+        {
+          "window_id": 2,
+          "train_start_ts": 1775517063.27695,
+          "train_end_ts": 1775527863.27695,
+          "validation_start_ts": 1775527863.27695,
+          "validation_end_ts": 1775531463.27695,
+          "oos_start_ts": 1775531463.27695,
+          "oos_end_ts": 1775535063.27695,
+          "train_rows": 36,
+          "validation_rows": 12,
+          "oos_rows": 12
+        },
+        {
+          "window_id": 3,
+          "train_start_ts": 1775535063.27695,
+          "train_end_ts": 1775545863.27695,
+          "validation_start_ts": 1775545863.27695,
+          "validation_end_ts": 1775549463.27695,
+          "oos_start_ts": 1775549463.27695,
+          "oos_end_ts": 1775553063.27695,
+          "train_rows": 36,
+          "validation_rows": 12,
+          "oos_rows": 12
+        }
+      ],
+      "metrics": {
+        "gross_return_pct": -0.1318,
+        "friction_cost_pct": 1.001,
+        "net_return_pct": -1.1328,
+        "sharpe_like": -8.0759,
+        "max_drawdown_pct": 0.2414,
+        "trades": 33.0,
+        "walk_forward_windows": 3.0
+      },
+      "window_metrics": [
+        {
+          "window_id": 1,
+          "gross_return_pct": -0.1682,
+          "friction_cost_pct": 1.001,
+          "net_return_pct": -1.1692,
+          "sharpe_like": -8.0884,
+          "max_drawdown_pct": 0.2823,
+          "trades": 11,
+          "oos_rows": 12,
+          "approach_type_histogram": {
+            "TOUCH": 11,
+            "RETEST": 0,
+            "REJECTION": 1,
+            "BREAKOUT": 0,
+            "OVERSHOOT": 0,
+            "FAKE_BREAK": 0
+          }
+        },
+        {
+          "window_id": 2,
+          "gross_return_pct": -0.0799,
+          "friction_cost_pct": 1.001,
+          "net_return_pct": -1.0809,
+          "sharpe_like": -6.2678,
+          "max_drawdown_pct": 0.2496,
+          "trades": 11,
+          "oos_rows": 12,
+          "approach_type_histogram": {
+            "TOUCH": 10,
+            "RETEST": 0,
+            "REJECTION": 2,
+            "BREAKOUT": 0,
+            "OVERSHOOT": 0,
+            "FAKE_BREAK": 0
+          }
+        },
+        {
+          "window_id": 3,
+          "gross_return_pct": -0.1472,
+          "friction_cost_pct": 1.001,
+          "net_return_pct": -1.1482,
+          "sharpe_like": -9.8716,
+          "max_drawdown_pct": 0.1923,
+          "trades": 11,
+          "oos_rows": 12,
+          "approach_type_histogram": {
+            "TOUCH": 10,
+            "RETEST": 0,
+            "REJECTION": 2,
+            "BREAKOUT": 0,
+            "OVERSHOOT": 0,
+            "FAKE_BREAK": 0
+          }
+        }
+      ],
+      "approach_type_histogram": {
+        "TOUCH": 31,
+        "RETEST": 0,
+        "REJECTION": 5,
+        "BREAKOUT": 0,
+        "OVERSHOOT": 0,
+        "FAKE_BREAK": 0
+      },
+      "no_leakage_checked": true
+    },
+    "history_count": 1
+  },
+  "learning_memory": {
+    "total_entries": 0,
+    "levels": {
+      "0a": 0,
+      "0b": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    "fields": {
+      "codigo": 0,
+      "math": 0,
+      "trading": 0,
+      "architect": 0,
+      "memory_librarian": 0
+    },
+    "stale_entries": 0,
+    "expiring_within_24h": 0,
+    "last_regime_shift": null,
+    "regime_events_count": 0
+  },
+  "incident_open_count": 0,
+  "adr_count": 0,
+  "namespace": "v3",
+  "production_ready": false,
+  "production_gate_reason": "P0/P1/P2 pendientes según checklist de implementación",
+  "rollback_available": false,
+  "rollback_note": "Sin snapshots disponibles",
+  "context": {
+    "experiment_id": "exp-dba44d41",
+    "proposal_id": "prop-foundation-default",
+    "metrics": {
+      "gross_return_pct": -0.1318,
+      "friction_cost_pct": 1.001,
+      "net_return_pct": -1.1328,
+      "sharpe_like": -8.0759,
+      "max_drawdown_pct": 0.2414,
+      "trades": 33.0,
+      "walk_forward_windows": 3.0
+    },
+    "walk_forward_windows": 3,
+    "no_leakage_checked": true
+  }
+}

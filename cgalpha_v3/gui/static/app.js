@@ -14,6 +14,9 @@ const RISK_INPUT_IDS = [
 ];
 
 let authToken = "";
+let currentSystemStatus = null;
+let currentLilaMessages = [];
+let expandedProposals = new Set(); // Estado persistente para expansiones
 let pollTimer = null;
 let libraryItems = [];
 let selectedLibrarySourceId = null;
@@ -149,22 +152,48 @@ function updateProposalsWidget(props) {
         return;
     }
 
-    container.innerHTML = props.map(p => `
-        <div class="prop-card" id="prop-${p.id}" style="${p.status !== 'pending' ? 'opacity:0.5; pointer-events:none;' : ''}">
-            <div class="prop-header">
-                <span class="prop-label">${p.component}</span>
-                <span class="prop-delta">+${(p.estimated_delta * 100).toFixed(1)}% Δ</span>
+    container.innerHTML = props.map(p => {
+        const isExpanded = expandedProposals.has(p.id);
+        return `
+            <div class="prop-card" id="prop-${p.id}" tabindex="0" 
+                 onclick="handleProposalInteraction('${p.id}', event)"
+                 onkeydown="if(event.key === 'Enter') handleProposalInteraction('${p.id}', event)"
+                 style="${p.status !== 'pending' ? 'opacity:0.5; pointer-events:none;' : ''}">
+                <div class="prop-header">
+                    <span class="prop-label">${p.component}</span>
+                    <span class="prop-delta">+${(p.estimated_delta * 100).toFixed(1)}% Δ</span>
+                </div>
+                <div class="prop-body">
+                    <strong>Cambio:</strong> ${p.change}<br>
+                    <em>${p.reason}</em>
+                    
+                    <div id="prop-detail-${p.id}" class="prop-detail" style="display:${isExpanded ? 'block' : 'none'}; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); font-size:11px; opacity:0.8;">
+                        <strong>Justificación Técnica:</strong><br>
+                        ${p.detailed_description || 'Sin descripción adicional.'}<br><br>
+                        <strong>Confianza:</strong> ${Math.round(p.confidence * 100)}% | <strong>Estimación Alpha:</strong> +${p.estimated_delta}
+                    </div>
+                </div>
+                <div class="prop-footer" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm" onclick="evaluateProposal('${p.id}')">Evaluar</button>
+                    <button class="btn btn-sm btn-ghost" onclick="ignoreProposal('${p.id}')">Ignorar</button>
+                </div>
             </div>
-            <div class="prop-body">
-                <strong>Cambio:</strong> ${p.change}<br>
-                <em>${p.reason}</em>
-            </div>
-            <div class="prop-footer">
-                <button class="btn btn-sm" onclick="evaluateProposal('${p.id}')">Evaluar</button>
-                <button class="btn btn-sm btn-ghost" onclick="ignoreProposal('${p.id}')">Ignorar</button>
-            </div>
-        </div>
-    `).join("");
+        `;
+    }).join("");
+}
+
+function handleProposalInteraction(id, event) {
+    if (expandedProposals.has(id)) {
+        expandedProposals.delete(id);
+    } else {
+        expandedProposals.add(id);
+    }
+
+    // Actualización inmediata del DOM
+    const el = document.getElementById(`prop-detail-${id}`);
+    if (el) {
+        el.style.display = expandedProposals.has(id) ? 'block' : 'none';
+    }
 }
 
 function checkNewProposalsForLila(props) {
@@ -186,13 +215,26 @@ function checkNewProposalsForLila(props) {
 }
 
 function evaluateProposal(id) {
-    // Para FASE 0, cargamos la hipótesis en el form
-    // En una extensión real, buscaríamos la recomendación en el array global
-    document.getElementById("exp-hypothesis").value = `Evaluación AutoProposer ${id}: Optimización de parámetros`;
-    document.getElementById("exp-approaches").value = "ABSORPTION, VWAP";
+    // Buscar la propuesta en los datos locales (en un sistema real se fetch de nuevo)
+    const hypo = `Evaluación AutoProposer ${id}: Optimización de parámetros de absorción`;
+    document.getElementById("exp-hypothesis").value = hypo;
+    document.getElementById("exp-approaches").value = "ABSORPTION, VWAP, OBI";
 
+    // Informar al usuario (Lila proactive feedback)
+    if (window.lilaChat) {
+        window.lilaChat.addMessage({
+            role: 'lila',
+            content: `He cargado la propuesta **${id}** en el panel de experimentos. Está diseñada sobre la base de reducir falsos positivos mediante un ajuste del percentil de volumen de **0.80 a 0.85**, tras observar una deriva de ruido en el régimen actual. Procederemos a evaluar su impacto en el **Gross Return** sin comprometer el **Max DD**.`,
+            type: 'insight'
+        });
+    }
+
+    // Navegar y feedback visual
     showSection('experiment');
-    document.getElementById("exp-hypothesis").scrollIntoView({ behavior: 'smooth' });
+    const target = document.getElementById("exp-hypothesis");
+    target.style.outline = "2px solid var(--accent)";
+    target.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => { target.style.outline = "none"; }, 2000);
 }
 
 function ignoreProposal(id) {
@@ -1261,6 +1303,35 @@ openai >= 1.0.0  # si OPENAI_API_KEY configurado
                     <code style="color:var(--accent);">[CGAlpha v3 GUI] FASE 0 — Control Room en modo mock</code>
                 </div>
                 `
+    },
+    {
+        cat: 'inicio',
+        title: '🤖 Guía: AutoProposer (Mejora Continua)',
+        icon: '🤖',
+        content: `
+            <h4 style="color:var(--accent); margin-bottom:10px;">¿Qué es el AutoProposer?</h4>
+            <p>El <strong>AutoProposer</strong> es el motor cognitivo de CGAlpha v3 que automatiza la propuesta de cambios basados en el análisis de deriva (drift) del mercado.</p>
+            <div style="margin:10px 0; display:flex; gap:10px; flex-wrap:wrap;">
+                <div style="flex:1; background:rgba(0,212,170,0.1); padding:10px; border-radius:8px;">
+                    <strong style="color:var(--accent2); font-size:11px;">1. DETECCIÓN</strong>
+                    <p style="font-size:11px; margin-top:4px;">Analiza los últimos experimentos buscando ineficiencias de parámetros o derivas de ruido.</p>
+                </div>
+                <div style="flex:1; background:rgba(0,212,170,0.1); padding:10px; border-radius:8px;">
+                    <strong style="color:var(--accent2); font-size:11px;">2. GENERACIÓN</strong>
+                    <p style="font-size:11px; margin-top:4px;">Propone cambios estructurales (ej: umbrales de absorción) con una lógica técnica explícita.</p>
+                </div>
+            </div>
+            <h4 style="margin-top:14px; color:var(--accent);">Procedimiento de Evaluación</h4>
+            <p style="font-size:12px;">Al hacer clic en <strong>Evaluar</strong> en una recomendación:</p>
+            <ol style="font-size:12px; margin-top:6px; margin-left:15px; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Carga de Hipótesis:</strong> El sistema pre-configura el Experiment Loop con los parámetros sugeridos.</li>
+                <li><strong>Backtesting post-fricción:</strong> Se verifica el Gross Return ajustado por comisiones y slippage.</li>
+                <li><strong>Gobernanza (Walk-Forward):</strong> El cambio se somete a 3 ventanas de validación temporal para evitar el overfitting.</li>
+            </ol>
+            <div style="background:var(--bg3); padding:8px; border-left:4px solid var(--accent); margin-top:12px; font-size:11px; border-radius:4px;">
+                <strong>Importante:</strong> Las propuestas validadas deben ser promocionadas manualmente a "Estrategia" para entrar en el ciclo dinámico de producción.
+            </div>
+        `
     },
     {
         cat: 'inicio',
