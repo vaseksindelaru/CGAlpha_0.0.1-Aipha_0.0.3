@@ -1022,10 +1022,16 @@
                             Riesgos</button>
                         <button class="help-nav-btn" data-cat="lila" onclick="helpSearch('lila')">🤖 Asistente
                             Lila</button>
+                        <button class="help-nav-btn" data-cat="micro" onclick="helpSearch('micro')">📡
+                            Microestructura</button>
+                        <button class="help-nav-btn" data-cat="boveda" onclick="helpSearch('boveda')">🏛️ Bóveda &amp;
+                            ADN</button>
                         <button class="help-nav-btn" data-cat="doc" onclick="helpSearch('doc')">📚
                             Documentación</button>
                         <button class="help-nav-btn" data-cat="auditoria" onclick="helpSearch('auditoria')">📋 Auditoría
                             P3</button>
+                        <button class="help-nav-btn" data-cat="glosario" onclick="helpSearch('glosario')">📖
+                            Glosario</button>
                         <button class="help-nav-btn" data-cat="faq" onclick="helpSearch('faq')">❓ FAQ</button>
                     </div>
                 </div>
@@ -1745,9 +1751,12 @@
                     </div>
                     <div class="panel-body">
                         <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 13px;">Este plan describe las
-                            5 etapas críticas de desarrollo para la estrategia <strong>Triple Coincidence v3</strong>.
-                            Cada etapa representa un hito de aprendizaje que el sistema ha procesado: detección de zonas,
-                            lógica de retest, captura de microestructura, entrenamiento del Oracle y promoción al ADN Permanente.
+                            <strong>7 etapas críticas</strong> de desarrollo para la estrategia <strong>Triple
+                                Coincidence v3</strong>.
+                            Cada etapa representa un hito de aprendizaje validado: detección de zonas, retest,
+                            microestructura,
+                            Oracle ML, gestión de riesgo, Bóveda y promoción al ADN Permanente. Etapas ✅ verificadas en
+                            Fase 0.
                         </p>
 
                         <div class="study-grid">
@@ -1755,7 +1764,8 @@
                             <div class="subject-card completed" onclick="openStudyMateria(1)">
                                 <div class="subj-num">01</div>
                                 <h3>🎯 Zonas: Triple Coincidence</h3>
-                                <p>Detección de zonas de alta probabilidad por convergencia de vela clave + acumulación + mini-tendencia (ZigZag + R² > 0.45).</p>
+                                <p>Detección de zonas de alta probabilidad por convergencia de vela clave + acumulación
+                                    + mini-tendencia (ZigZag + R² > 0.45).</p>
                                 <div class="code-container">
                                     <div class="code-tag">Theory</div>
                                     <pre><span class="token-comment"># Tesis: Triple Coincidencia → Zona Activa</span>
@@ -1769,7 +1779,8 @@
                             <div class="subject-card completed">
                                 <div class="subj-num">02</div>
                                 <h3>⏳ Retest: Captura de Features</h3>
-                                <p>Monitoreo de zona activa hasta el retest. Captura de VWAP, OBI y CumDelta en el MOMENTO exacto del retest.</p>
+                                <p>Monitoreo de zona activa hasta el retest. Captura de VWAP, OBI y CumDelta en el
+                                    MOMENTO exacto del retest.</p>
                                 <div class="code-container">
                                     <div class="code-tag">Python</div>
                                     <pre><span class="token-kw">if</span> <span class="token-fn">zone.is_retested</span>(price):
@@ -1783,7 +1794,8 @@
                             <div class="subject-card completed">
                                 <div class="subj-num">03</div>
                                 <h3>🧠 Oracle: Meta-Labeling</h3>
-                                <p>El Oracle predice BOUNCE vs BREAKOUT usando features del retest. Entrena con outcomes reales observados (N velas lookahead).</p>
+                                <p>El Oracle predice BOUNCE vs BREAKOUT usando features del retest. Entrena con outcomes
+                                    reales observados (N velas lookahead).</p>
                                 <div class="code-container">
                                     <div class="code-tag">ML</div>
                                     <pre><span class="token-comment"># Oracle predice calidad del retest</span>
@@ -1796,7 +1808,8 @@
                             <div class="subject-card">
                                 <div class="subj-num">04</div>
                                 <h3>⚖️ Riesgo: Kill-Switch y DD</h3>
-                                <p>Configuración de Kill-Switch por excesivo Max Drawdown y Circuit Breakers de sesión. Protección en 2 pasos.
+                                <p>Configuración de Kill-Switch por excesivo Max Drawdown y Circuit Breakers de sesión.
+                                    Protección en 2 pasos.
                                 </p>
                                 <div class="code-container">
                                     <div class="code-tag">Risk</div>
@@ -1809,12 +1822,95 @@
                             <div class="subject-card">
                                 <div class="subj-num">05</div>
                                 <h3>🚀 Promoción: Nexus Gate</h3>
-                                <p>Promoción al ADN Permanente (Capa 2) tras validación Walk-Forward (≥3 ventanas OOS) y aprobación humana.</p>
+                                <p>Promoción al ADN Permanente (Capa 2) tras validación Walk-Forward (≥3 ventanas OOS) y
+                                    aprobación humana.</p>
                                 <div class="code-container">
                                     <div class="code-tag">Production</div>
                                     <pre><span class="token-kw">gate.evaluate_performance</span>(report)
 <span class="token-comment"># → PROMOTED_TO_LAYER_2</span></pre>
                                 </div>
+                            </div>
+
+                            <!-- MATERIA 6 -->
+                            <div class="subject-card">
+                                <div class="subj-num">06</div>
+                                <h3>🏛️ Bóveda: Capa 1 → Capa 2</h3>
+                                <p>Gestión de componentes: legacy vault (Capa 1) → Mosaic Bridge → validación ΔCausal →
+                                    ADN Permanente (Capa 2).</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Vault</div>
+                                    <pre><span class="token-comment"># Mosaic Bridge: 5-phase protocol</span>
+<span class="token-fn">discovery</span>() → <span class="token-fn">wrap</span>() → <span class="token-fn">audit</span>()
+→ <span class="token-fn">register</span>() → <span class="token-fn">canary_push</span>()
+<span class="token-comment"># ΔCausal > 0 → LAYER_2</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 7 -->
+                            <div class="subject-card">
+                                <div class="subj-num">07</div>
+                                <h3>🚀 Walk-Forward + NexusGate</h3>
+                                <p>Promoción: Walk-Forward ≥3 ventanas, Sharpe > 1.5, ΔCausal > 0, test_coverage ≥ 80%,
+                                    human_approval.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Production</div>
+                                    <pre><span class="token-comment"># NexusGate: binary gate</span>
+<span class="token-fn">gate.evaluate</span>(delta_causal > <span class="token-num">0</span>,
+    coverage >= <span class="token-num">0.80</span>,
+    human_approval == <span class="token-num">True</span>)
+<span class="token-comment"># → PROMOTE | REJECT</span></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FASE 0 HARVEST RESULTS -->
+                <div class="panel" style="margin-top:20px;">
+                    <div class="panel-header">
+                        <span class="panel-icon">🌾</span>
+                        <h2>Fase 0: Cosecha y Observabilidad — Resultados</h2>
+                    </div>
+                    <div class="panel-body">
+                        <p style="margin-bottom:16px; color:var(--text-dim); font-size:12px;">
+                            Resultados de <code>phase0_harvest.py</code> — 500 velas sintéticas (1h, BTCUSDT).
+                            Pipeline Triple Coincidence procesó el stream completo y generó 21 muestras de
+                            entrenamiento.
+                        </p>
+                        <div class="grid-2">
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Detección &amp; Retests</h4>
+                                <div class="stat-row"><span>Velas procesadas</span><span class="stat-value"
+                                        style="color:var(--accent)">500</span></div>
+                                <div class="stat-row"><span>Retests detectados</span><span class="stat-value"
+                                        style="color:var(--accent)">21</span></div>
+                                <div class="stat-row"><span>BOUNCE</span><span class="stat-value"
+                                        style="color:var(--accent)">19 (90.5%)</span></div>
+                                <div class="stat-row"><span>BREAKOUT</span><span class="stat-value"
+                                        style="color:var(--red)">2 (9.5%)</span></div>
+                                <div class="stat-row"><span>Direction bullish</span><span class="stat-value">17</span>
+                                </div>
+                                <div class="stat-row"><span>Direction bearish</span><span class="stat-value">4</span>
+                                </div>
+                            </div>
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Features de Microestructura (en Retest)</h4>
+                                <div class="stat-row"><span>VWAP μ / σ</span><span class="stat-value"
+                                        style="color:var(--accent)">62,923 / 2,786</span></div>
+                                <div class="stat-row"><span>OBI μ / σ</span><span class="stat-value"
+                                        style="color:var(--accent)">0.042 / 0.151</span></div>
+                                <div class="stat-row"><span>CumDelta μ / σ</span><span class="stat-value"
+                                        style="color:var(--accent)">−283 / 241</span></div>
+                                <div class="stat-row"><span>Oracle status</span><span class="stat-value">placeholder
+                                        (0.85 fijo)</span></div>
+                                <div style="margin-top:10px; font-size:10px; color:var(--text-dim); font-style:italic;">
+                                    * Datos sintéticos (seed=42). Próximo paso: CSVs reales de Binance Vision.</div>
                             </div>
                         </div>
                     </div>

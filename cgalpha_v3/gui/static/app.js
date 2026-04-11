@@ -1981,8 +1981,332 @@ GET /api/vault/status → Verificar 7 componentes ACTIVE
     },
 
     // ═══════════════════════════════════════════════════
-    // CATEGORÍA: FAQ
+    // CATEGORÍA: MICROESTRUCTURA
     // ═══════════════════════════════════════════════════
+    {
+        cat: 'micro',
+        title: '📡 La Trinidad de Microestructura: VWAP + OBI + CumDelta',
+        icon: '📡',
+        content: `
+            <p style="margin-bottom:12px;">El motor sensorial de CGAlpha v3. Estas tres señales de microestructura son los <strong>ojos del sistema</strong> en el order book en tiempo real. Se capturan EN el momento del retest, no en la detección de la zona.</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:12px 0;">
+                <div style="background:rgba(0,212,170,0.08); padding:12px; border-radius:8px; border-top:3px solid var(--accent);">
+                    <strong style="font-size:13px;">VWAP</strong><br>
+                    <span style="font-size:10px; color:var(--text-dim);">Volume-Weighted Average Price</span>
+                    <p style="font-size:11px; margin-top:6px;">Precio ponderado por volumen acumulado del día. Indica el "precio justo". Si el retest ocurre CERCA del VWAP, la zona tiene mayor probabilidad de BOUNCE (el mercado respeta el "consenso").</p>
+                    <div style="background:var(--bg3); padding:6px; border-radius:4px; font-family:monospace; font-size:10px; margin-top:6px;">
+                        VWAP = Σ(TP × Vol) / Σ(Vol)<br>
+                        TP = (H + L + C) / 3
+                    </div>
+                </div>
+                <div style="background:rgba(0,174,240,0.08); padding:12px; border-radius:8px; border-top:3px solid var(--accent2);">
+                    <strong style="font-size:13px;">OBI</strong><br>
+                    <span style="font-size:10px; color:var(--text-dim);">Order Book Imbalance (10 niveles)</span>
+                    <p style="font-size:11px; margin-top:6px;">Mide el desequilibrio entre bids y asks en los 10 primeros niveles del order book. OBI > 0 = presión compradora dominante. OBI < 0 = presión vendedora. Rango: [-1, +1].</p>
+                    <div style="background:var(--bg3); padding:6px; border-radius:4px; font-family:monospace; font-size:10px; margin-top:6px;">
+                        OBI = (Σbids - Σasks) / (Σbids + Σasks)
+                    </div>
+                </div>
+                <div style="background:rgba(148,100,255,0.08); padding:12px; border-radius:8px; border-top:3px solid var(--purple);">
+                    <strong style="font-size:13px;">CumDelta</strong><br>
+                    <span style="font-size:10px; color:var(--text-dim);">Cumulative Delta Volume</span>
+                    <p style="font-size:11px; margin-top:6px;">Acumulación de volumen de compradores vs vendedores desde apertura de sesión. Si el precio baja pero el CumDelta sube = BULLISH_ABSORPTION (institucionales comprando la caída).</p>
+                    <div style="background:var(--bg3); padding:6px; border-radius:4px; font-family:monospace; font-size:10px; margin-top:6px;">
+                        Δ = Σ(buy_vol) - Σ(sell_vol)
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:12px; padding:10px; background:rgba(0,212,170,0.08); border-radius:8px; font-size:11px; border-left:3px solid var(--accent);">
+                <strong>Origen:</strong> Sección 4 del NORTH_STAR — "Alpha Core: La Trinidad de Microestructura reemplaza ATR como motor primario de la estrategia de scalping 1-5min."
+            </div>
+        `
+    },
+    {
+        cat: 'micro',
+        title: '🔬 Delta Divergence — Señales de Absorción',
+        icon: '🔬',
+        content: `
+            <p style="margin-bottom:10px;">La <strong>divergencia de delta</strong> es la señal más poderosa de la microestructura. Indica que la actividad del order book contradice el movimiento del precio visible.</p>
+
+            <table style="width:100%; border-collapse:collapse; font-size:11px; margin:12px 0;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
+                        <th style="padding:6px;">Tipo</th>
+                        <th style="padding:6px;">Precio</th>
+                        <th style="padding:6px;">CumDelta</th>
+                        <th style="padding:6px;">Interpretación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">BULLISH_ABSORPTION</td>
+                        <td style="padding:6px;">Bajando ↓</td>
+                        <td style="padding:6px;">Subiendo ↑</td>
+                        <td style="padding:6px;">Institucionales comprando la caída. Probable BOUNCE.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--red); font-family:monospace;">BEARISH_EXHAUSTION</td>
+                        <td style="padding:6px;">Subiendo ↑</td>
+                        <td style="padding:6px;">Bajando ↓</td>
+                        <td style="padding:6px;">Compradores agotándose pese a subida. Probable reversión.</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px; font-family:monospace;">NEUTRAL</td>
+                        <td style="padding:6px;">—</td>
+                        <td style="padding:6px;">—</td>
+                        <td style="padding:6px;">Sin divergencia significativa. No accionable.</td>
+                    </tr>
+                </tbody>
+            </table>
+        `
+    },
+    {
+        cat: 'micro',
+        title: '🌡️ Régimen de Mercado: TREND | LATERAL | HIGH_VOL',
+        icon: '🌡️',
+        content: `
+            <p style="margin-bottom:10px;">El sistema clasifica automáticamente el régimen de mercado actual. Esto afecta cómo el Oracle interpreta los retests (un retest en LATERAL tiene diferente semántica que uno en HIGH_VOL).</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:12px 0; font-size:11px;">
+                <div style="background:rgba(0,212,170,0.05); padding:10px; border-radius:8px; border:1px solid rgba(0,212,170,0.2);">
+                    <strong style="color:var(--accent);">TREND</strong>
+                    <p style="margin-top:4px;">Movimiento direccional sostenido. ATR creciente. R² alto en regresión lineal. Las zonas de acumulación son <em>breakout candidates</em>.</p>
+                </div>
+                <div style="background:rgba(245,158,11,0.05); padding:10px; border-radius:8px; border:1px solid rgba(245,158,11,0.2);">
+                    <strong style="color:#f59e0b;">LATERAL</strong>
+                    <p style="margin-top:4px;">Precio consolidando. ATR bajo. Volumen promedio estable. Las zonas de acumulación son <em>bounce candidates</em> — mejor escenario para la estrategia TC.</p>
+                </div>
+                <div style="background:rgba(255,107,107,0.05); padding:10px; border-radius:8px; border:1px solid rgba(255,107,107,0.2);">
+                    <strong style="color:var(--red);">HIGH_VOL</strong>
+                    <p style="margin-top:4px;">Volatilidad extrema (&gt;2σ ATR). Circuit breakers pueden activarse. Señales menos confiables. AutoProposer reduce position size automáticamente.</p>
+                </div>
+            </div>
+
+            <div style="padding:8px; background:rgba(148,100,255,0.08); border-radius:6px; font-size:11px; margin-top:8px;">
+                <strong>Regime Shift Detection (NORTH_STAR §2.4):</strong> Si la volatilidad supera 2σ del baseline durante &gt;20 sesiones, el MemoryPolicyEngine degrada conocimiento del régimen anterior (TTL reducido 50%).
+            </div>
+        `
+    },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: BÓVEDA Y ADN
+    // ═══════════════════════════════════════════════════
+    {
+        cat: 'boveda',
+        title: '🏛️ Bóveda de Dos Capas: Provisional → Permanente',
+        icon: '🏛️',
+        content: `
+            <p style="margin-bottom:10px;">La Bóveda es el sistema de gestión de componentes de CGAlpha v3. Implementa una jerarquía estricta donde solo el código que demuestra <strong>ΔCausal &gt; 0</strong> en datos OOS sobrevive.</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0;">
+                <div style="background:rgba(245,158,11,0.05); padding:14px; border-radius:10px; border:1px solid rgba(245,158,11,0.2);">
+                    <h4 style="color:#f59e0b; font-size:13px; margin-bottom:8px;">⏳ Capa 1 — Provisional</h4>
+                    <p style="font-size:11px;"><strong>Ubicación:</strong> <code>legacy_vault/</code></p>
+                    <p style="font-size:11px;"><strong>Contenido:</strong> Herencia bruta de v1/v2</p>
+                    <p style="font-size:11px;"><strong>Destino:</strong> Eliminación progresiva</p>
+                    <p style="font-size:11px; margin-top:6px; color:var(--text-dim);">Componentes que no han sido validados con ΔCausal. Permanecen aquí como materia prima para el Mosaic Bridge.</p>
+                </div>
+                <div style="background:rgba(0,212,170,0.05); padding:14px; border-radius:10px; border:1px solid rgba(0,212,170,0.2);">
+                    <h4 style="color:var(--accent); font-size:13px; margin-bottom:8px;">🧬 Capa 2 — ADN Permanente</h4>
+                    <p style="font-size:11px;"><strong>Ubicación:</strong> <code>cgalpha_v3/</code></p>
+                    <p style="font-size:11px;"><strong>Contenido:</strong> 7 componentes validados</p>
+                    <p style="font-size:11px;"><strong>Destino:</strong> Producción</p>
+                    <p style="font-size:11px; margin-top:6px; color:var(--text-dim);">Solo código con ΔCausal &gt; 0, test_coverage ≥ 80%, y human_approval alcanza esta capa.</p>
+                </div>
+            </div>
+
+            <div style="padding:10px; background:var(--bg3); border-radius:8px; font-size:11px;">
+                <strong>Principio (NORTH_STAR §3):</strong> "La Bóveda Provisional tiene fecha de muerte. Tú [Lila] decides cuándo. El ADN Permanente solo acepta lo que lo merece."
+            </div>
+        `
+    },
+    {
+        cat: 'boveda',
+        title: '🌉 Mosaic Bridge: De Legacy a v3',
+        icon: '🌉',
+        content: `
+            <p style="margin-bottom:10px;">El <strong>Mosaic Bridge</strong> (Sección 7 del NORTH_STAR) es el protocolo técnico para extraer, adaptar y validar componentes del legacy vault hacia v3.</p>
+
+            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; line-height:1.6; overflow-x:auto;">
+FASE 1: DISCOVERY
+  legacy_vault/ → Identificar componente candidato
+  Evaluar: ¿Tiene lógica reutilizable? ¿Tests existentes?
+
+FASE 2: WRAP
+  Crear Mosaic Adapter (Wrapper Pattern)
+  Mantener lógica interna intacta
+  Añadir inputs/outputs tipados (MicrostructureRecord, etc.)
+
+FASE 3: AUDIT
+  Ejecutar tests unitarios heredados
+  Verificar no-regresión: pytest legacy_vault/tests/
+
+FASE 4: REGISTER
+  ComponentManifest(name, heritage_source, v3_adaptations)
+  Registrar en TripleCoincidencePipeline
+
+FASE 5: CANARY PUSH
+  Ejecutar en shadow mode (ShadowTrader)
+  Medir ΔCausal en datos OOS
+  Si ΔCausal > 0 → PROMOTE_TO_LAYER_2
+  Si ΔCausal ≤ 0 → REJECT_TO_LEARNING_VAULT</pre>
+
+            <div style="margin-top:10px; padding:8px; background:rgba(0,212,170,0.08); border-radius:6px; font-size:11px;">
+                <strong>7 componentes adaptados:</strong> BinanceVisionFetcher, TripleCoincidenceDetector, ZonePhysicsMonitor, ShadowTrader, OracleTrainer, NexusGate, AutoProposer — cada uno con su <code>ComponentManifest</code> y <code>heritage_contribution</code>.
+            </div>
+        `
+    },
+    {
+        cat: 'boveda',
+        title: '⚗️ Ciclo de Vida del Componente: Cosecha → Purga',
+        icon: '⚗️',
+        content: `
+            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; line-height:1.8; overflow-x:auto;">
+┌─────────────────────────────────┐
+│   BÓVEDA CAPA 1 (Provisional)  │
+│   legacy_vault/ — Herencia Bruta│
+└──────────────┬──────────────────┘
+               │ Cosecha (Mosaic Bridge)
+               ▼
+┌─────────────────────────────────┐
+│   SIMPLE FOUNDATION STRATEGY   │
+│   Pipeline 7 componentes       │
+│   Shadow Trading → MFE/MAE     │
+└──────────────┬──────────────────┘
+               │ Resultados reales OOS
+               ▼
+┌─────────────────────────────────┐
+│   ORACLE TRAINER (Meta-Label)  │
+│   Entrena → Valida → Auto-Prop │
+└──────────────┬──────────────────┘
+               │ ΔCausal > umbral
+               ▼
+┌─────────────────────────────────┐
+│   NEXUS GATE (Aprobación)      │
+│   delta_causal > 0             │
+│   blind_test_ratio ≤ 0.25      │
+│   test_coverage ≥ 0.80         │
+│   human_approval == True       │
+└──────────────┬──────────────────┘
+               │ Aprobado
+               ▼
+┌─────────────────────────────────┐
+│   BÓVEDA CAPA 2 (Permanente)   │
+│   ADN de v3 — Solo lo validado │
+└──────────────┬──────────────────┘
+               │ Purga del origen
+               ▼
+┌─────────────────────────────────┐
+│   CAPA 1: Componente PURGADO   │
+│   Marcado → Archivado → Borrado│
+└─────────────────────────────────┘</pre>
+        `
+    },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: GLOSARIO TÉCNICO
+    // ═══════════════════════════════════════════════════
+    {
+        cat: 'glosario',
+        title: '📖 Glosario Técnico Completo',
+        icon: '📖',
+        content: `
+            <p style="margin-bottom:12px; font-size:12px;">Referencia rápida de todos los términos técnicos del sistema, compilados de <code>TripleCoincidenceStrategy_v3.md</code>, <code>LILA_v3_NORTH_STAR.md</code>, <code>SYSTEM_DEEP_DIVE.md</code> y <code>CHECKLIST_IMPLEMENTACION.md</code>.</p>
+
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
+                        <th style="padding:6px; width:30%;">Término</th>
+                        <th style="padding:6px;">Definición</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Triple Coincidence</td>
+                        <td style="padding:6px;">Convergencia de vela clave + zona de acumulación + mini-tendencia. Los 3 deben coincidir en ≤ proximity_tolerance velas.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Retest</td>
+                        <td style="padding:6px;">Retorno del precio a una zona previamente detectada. El evento central de la estrategia: aquí se capturan features.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">ActiveZone</td>
+                        <td style="padding:6px;">Zona en monitoreo activo esperando retest. Expira tras retest_timeout_bars velas sin contacto.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">RetestEvent</td>
+                        <td style="padding:6px;">Evento de retest con features de microestructura capturadas (VWAP, OBI, CumDelta, ATR, regime).</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">TrainingSample</td>
+                        <td style="padding:6px;">Par {features_retest, outcome} para entrenamiento del Oracle. Generado por TripleCoincidenceDetector.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Meta-Labeling</td>
+                        <td style="padding:6px;">Técnica ML (López de Prado) donde un modelo secundario predice si la señal primaria será exitosa.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">ΔCausal</td>
+                        <td style="padding:6px;">Mejora neta en performance atribuible causalmente al componente. Calculada en OOS. Requisito para Capa 2.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">BOUNCE</td>
+                        <td style="padding:6px;">El precio respeta la zona y revierte → señal exitosa para el Oracle.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">BREAKOUT</td>
+                        <td style="padding:6px;">El precio rompe la zona definitivamente → señal fallida.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">OOS</td>
+                        <td style="padding:6px;">Out-of-Sample — datos no vistos durante entrenamiento. Obligatorio para validación.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Walk-Forward</td>
+                        <td style="padding:6px;">Backtesting con ventanas deslizantes (Train/Val/OOS). Mínimo 3 ventanas en CGAlpha.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Temporal Leakage</td>
+                        <td style="padding:6px;">Error de usar datos futuros en backtesting. CGAlpha lo detecta automáticamente con TemporalLeakageError.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">ADN Permanente</td>
+                        <td style="padding:6px;">Capa 2 de la Bóveda: componentes validados con ΔCausal &gt; 0 en datos reales OOS.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Mosaic Bridge</td>
+                        <td style="padding:6px;">Protocolo para extraer, adaptar y validar componentes del legacy vault hacia v3 (5 fases).</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">ComponentManifest</td>
+                        <td style="padding:6px;">Metadatos de cada componente v3: name, heritage_source, v3_adaptations, causal_score.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">Regime Shift</td>
+                        <td style="padding:6px;">Cambio brusco en mercado (vol &gt; 2σ baseline). Dispara degradación de memoria y ajuste de parámetros.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">NexusGate</td>
+                        <td style="padding:6px;">Gate binario final: PROMOTE_TO_LAYER_2 | REJECT. 5 condiciones obligatorias incluyendo human_approval.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">ShadowTrader</td>
+                        <td style="padding:6px;">Ejecuta posiciones virtuales (sin capital real). Captura MFE/MAE para validación Walk-Forward.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">MFE / MAE</td>
+                        <td style="padding:6px;">Max Favorable Excursion / Max Adverse Excursion — lo máximo que una posición ganó o perdió antes de cerrar.</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">CGA_Ops</td>
+                        <td style="padding:6px;">Semáforo de recursos (psutil): 🟢 RAM &lt;60% (operar), 🟡 60-80% (pausar), 🔴 señal trading detectada (kill).</td>
+                    </tr>
+                </tbody>
+            </table>
+        `
+    },
     {
         cat: 'faq',
         title: 'Preguntas Frecuentes (FAQ)',
