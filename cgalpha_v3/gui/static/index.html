@@ -1741,59 +1741,62 @@
                 <div class="panel">
                     <div class="panel-header">
                         <span class="panel-icon">🎓</span>
-                        <h2>Plan de Estudio: Simple Foundation Strategy v3</h2>
+                        <h2>Plan de Estudio: Triple Coincidence Strategy v3</h2>
                     </div>
                     <div class="panel-body">
                         <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 13px;">Este plan describe las
-                            5 etapas críticas de desarrollo para la estrategia inicial de la Fase 0/1. Cada etapa
-                            representa una "materia" que el sistema ha procesado para alcanzar el nivel 4 de memoria.
+                            5 etapas críticas de desarrollo para la estrategia <strong>Triple Coincidence v3</strong>.
+                            Cada etapa representa un hito de aprendizaje que el sistema ha procesado: detección de zonas,
+                            lógica de retest, captura de microestructura, entrenamiento del Oracle y promoción al ADN Permanente.
                         </p>
 
                         <div class="study-grid">
                             <!-- MATERIA 1 -->
                             <div class="subject-card completed" onclick="openStudyMateria(1)">
                                 <div class="subj-num">01</div>
-                                <h3>📊 Fundamentos: Order Flow</h3>
-                                <p>Anclaje dinámico mediante VWAP y detección de desequilibrio de oferta/demanda en
-                                    velas de absorción.</p>
+                                <h3>🎯 Zonas: Triple Coincidence</h3>
+                                <p>Detección de zonas de alta probabilidad por convergencia de vela clave + acumulación + mini-tendencia (ZigZag + R² > 0.45).</p>
                                 <div class="code-container">
                                     <div class="code-tag">Theory</div>
-                                    <pre><span class="token-comment"># Tesis: Reversión al valor (VWAP)</span>
-<span class="token-kw">hypothesis</span> = <span class="token-str">"Absorption at VWAP leads to 72% mean reversion"</span>
-<span class="token-kw">confidence_min</span> = <span class="token-num">0.70</span></pre>
+                                    <pre><span class="token-comment"># Tesis: Triple Coincidencia → Zona Activa</span>
+<span class="token-kw">zone</span> = <span class="token-fn">detect_if_key_candle</span>() <span class="token-kw">and</span>
+       <span class="token-fn">detect_accumulation</span>() <span class="token-kw">and</span>
+       <span class="token-fn">detect_mini_trend</span>(r2_min=<span class="token-num">0.45</span>)</pre>
                                 </div>
                             </div>
 
                             <!-- MATERIA 2 -->
                             <div class="subject-card completed">
                                 <div class="subj-num">02</div>
-                                <h3>⚙️ Ingeniería: Detector v3</h3>
-                                <p>Lógica de detección volumétrica y filtrado de ruido institucional.</p>
+                                <h3>⏳ Retest: Captura de Features</h3>
+                                <p>Monitoreo de zona activa hasta el retest. Captura de VWAP, OBI y CumDelta en el MOMENTO exacto del retest.</p>
                                 <div class="code-container">
                                     <div class="code-tag">Python</div>
-                                    <pre><span class="token-kw">def</span> <span class="token-fn">detect_absorption</span>(candles):
-    <span class="token-kw">if</span> vol > p85 <span class="token-kw">and</span> spread < avg:
-        <span class="token-kw">return</span> <span class="token-str">"ABSORPTION_DETECTED"</span></pre>
+                                    <pre><span class="token-kw">if</span> <span class="token-fn">zone.is_retested</span>(price):
+    features = {<span class="token-str">'vwap'</span>: vwap,
+                <span class="token-str">'obi'</span>: obi_10,
+                <span class="token-str">'delta'</span>: cum_delta}</pre>
                                 </div>
                             </div>
 
                             <!-- MATERIA 3 -->
                             <div class="subject-card completed">
                                 <div class="subj-num">03</div>
-                                <h3>🛡️ Gobernanza: Backtesting</h3>
-                                <p>Validación Walk-Forward (3 ventanas) y chequeo estricto de No-Leakage.</p>
+                                <h3>🧠 Oracle: Meta-Labeling</h3>
+                                <p>El Oracle predice BOUNCE vs BREAKOUT usando features del retest. Entrena con outcomes reales observados (N velas lookahead).</p>
                                 <div class="code-container">
-                                    <div class="code-tag">Audit</div>
-                                    <pre><span class="token-fn">check_oos_leakage</span>(train_end, oos_start)
-<span class="token-comment"># Respetando Section E del maestro</span></pre>
+                                    <div class="code-tag">ML</div>
+                                    <pre><span class="token-comment"># Oracle predice calidad del retest</span>
+<span class="token-fn">oracle.predict</span>(features_retest)
+<span class="token-comment"># confidence > 0.70 → operar</span></pre>
                                 </div>
                             </div>
 
                             <!-- MATERIA 4 -->
                             <div class="subject-card">
                                 <div class="subj-num">04</div>
-                                <h3>⚖️ Gestión de Riesgo</h3>
-                                <p>Configuración de Kill-Switch por excesivo Max Drawdown y Circuit Breakers de sesión.
+                                <h3>⚖️ Riesgo: Kill-Switch y DD</h3>
+                                <p>Configuración de Kill-Switch por excesivo Max Drawdown y Circuit Breakers de sesión. Protección en 2 pasos.
                                 </p>
                                 <div class="code-container">
                                     <div class="code-tag">Risk</div>
@@ -1805,12 +1808,12 @@
                             <!-- MATERIA 5 -->
                             <div class="subject-card">
                                 <div class="subj-num">05</div>
-                                <h3>🚀 Producción: Gate Logic</h3>
-                                <p>Purificación del componente y escalado hacia el Nexus Gate para ejecución real.</p>
+                                <h3>🚀 Promoción: Nexus Gate</h3>
+                                <p>Promoción al ADN Permanente (Capa 2) tras validación Walk-Forward (≥3 ventanas OOS) y aprobación humana.</p>
                                 <div class="code-container">
                                     <div class="code-tag">Production</div>
-                                    <pre><span class="token-kw">promote_to_level_4</span>(strategy_id)
-<span class="token-comment"># Heritage Vault deployment...</span></pre>
+                                    <pre><span class="token-kw">gate.evaluate_performance</span>(report)
+<span class="token-comment"># → PROMOTED_TO_LAYER_2</span></pre>
                                 </div>
                             </div>
                         </div>
@@ -1820,7 +1823,7 @@
                 <div class="panel" style="margin-top:20px;">
                     <div class="panel-header">
                         <span class="panel-icon">📈</span>
-                        <h2>Plan de Retroanálisis: Estrategia Simple (Audit Results)</h2>
+                        <h2>Plan de Retroanálisis: Triple Coincidence (Audit Results)</h2>
                     </div>
                     <div class="panel-body">
                         <div class="grid-2">
@@ -1967,7 +1970,7 @@
                 </div>
             </div>
             <div id="lila-strategy-overlay" class="hidden">
-                <div class="history-header">Simple Foundation Strategy (v3.0.0)</div>
+                <div class="history-header">Triple Coincidence Strategy (v3.0.0)</div>
                 <div id="lila-strategy-content"
                     style="padding:15px; font-size:12px; height: calc(100% - 40px); overflow-y: auto;">
                     <div id="strategy-pipeline-view" style="display: flex; flex-direction: column; gap: 8px;">

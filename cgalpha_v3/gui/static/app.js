@@ -18,6 +18,8 @@ let pollTimer = null;
 let libraryItems = [];
 let selectedLibrarySourceId = null;
 let theorySnapshot = null;
+const expandedProposals = new Set();
+const knownProposalIds = new Set();
 let experimentSnapshot = null;
 
 // ── LOGIN ─────────────────────────────────────────────
@@ -66,6 +68,7 @@ async function apiFetch(path, opts = {}) {
 function startPolling() {
     fetchStatus();
     fetchEvents();
+    fetchAutoProposals();
     fetchRollbacks();
     fetchLibraryStatus();
     fetchLibrarySources();
@@ -76,6 +79,7 @@ function startPolling() {
     pollTimer = setInterval(() => {
         fetchStatus();
         fetchEvents();
+        fetchAutoProposals();
         fetchRollbacks();
         fetchLibraryStatus();
         fetchLibrarySources();
@@ -108,6 +112,239 @@ async function fetchEvents() {
         const events = await apiFetch(`/api/events?limit=${EVENTS_N}`);
         renderEvents(events);
     } catch { /* silencioso */ }
+}
+
+// ── AUTO-PROPOSALS (Triple Coincidence Strategy) ──────
+async function fetchAutoProposals() {
+    try {
+        const props = await apiFetch("/api/experiment/proposals");
+        updateProposalsWidget(props);
+        checkNewProposalsForLila(props);
+    } catch (e) {
+        console.warn("Error fetching proposals:", e);
+    }
+}
+
+function updateProposalsWidget(props) {
+    const container = document.getElementById("prop-list");
+    const countEl = document.getElementById("prop-count");
+    const badge = document.getElementById("exp-badge");
+    if (!container) return;
+
+    const pending = props.filter(p => p.status === "pending");
+    if (countEl) countEl.textContent = `${pending.length} pendientes`;
+    if (badge) {
+        if (pending.length > 0) {
+            badge.textContent = pending.length;
+            badge.style.display = "inline-block";
+        } else {
+            badge.style.display = "none";
+        }
+    }
+
+    if (props.length === 0) {
+        container.innerHTML = `
+            <div class="placeholder">
+                <span class="ph-icon">🤖</span>
+                Analizando historial para detectar oportunidades de mejora...
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = props.map(p => {
+        const isExpanded = expandedProposals.has(p.id);
+        return `
+            <div class="prop-card" id="prop-${p.id}" tabindex="0"
+                 onclick="handleProposalInteraction('${p.id}', event)"
+                 onkeydown="if(event.key === 'Enter') handleProposalInteraction('${p.id}', event)"
+                 style="${p.status !== 'pending' ? 'opacity:0.5; pointer-events:none;' : ''}">
+                <div class="prop-header">
+                    <span class="prop-label">${p.component}</span>
+                    <span class="prop-delta">+${(p.estimated_delta * 100).toFixed(1)}% Δ</span>
+                </div>
+                <div class="prop-body">
+                    <strong>Cambio:</strong> ${p.change}<br>
+                    <em>${p.reason}</em>
+                    <div id="prop-detail-${p.id}" class="prop-detail" style="display:${isExpanded ? 'block' : 'none'}; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); font-size:11px; opacity:0.8;">
+                        <strong>Justificación Técnica:</strong><br>
+                        ${p.detailed_description || 'Sin descripción adicional.'}<br><br>
+                        <strong>Confianza:</strong> ${Math.round(p.confidence * 100)}% | <strong>Estimación Alpha:</strong> +${p.estimated_delta}
+                    </div>
+                </div>
+                <div class="prop-footer" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm" onclick="evaluateProposal('${p.id}')">Evaluar</button>
+                    <button class="btn btn-sm btn-ghost" onclick="ignoreProposal('${p.id}')">Ignorar</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function handleProposalInteraction(id, event) {
+    if (expandedProposals.has(id)) {
+        expandedProposals.delete(id);
+    } else {
+        expandedProposals.add(id);
+    }
+    const el = document.getElementById(`prop-detail-${id}`);
+    if (el) el.style.display = expandedProposals.has(id) ? 'block' : 'none';
+}
+
+function checkNewProposalsForLila(props) {
+    const pending = props.filter(p => p.status === "pending");
+    pending.forEach(p => {
+        if (!knownProposalIds.has(p.id)) {
+            knownProposalIds.add(p.id);
+            const ev = new CustomEvent("lila:insight", {
+                detail: {
+                    text: `He detectado una oportunidad de mejora en **${p.component}**. Estimación de impacto: **+${(p.estimated_delta * 100).toFixed(1)}%**. ¿Deseas evaluarla en el Experiment Loop?`,
+                    source: "autoproposer",
+                    proposalId: p.id
+                }
+            });
+            window.dispatchEvent(ev);
+        }
+    });
+}
+
+function evaluateProposal(id) {
+    const hypo = `Evaluación AutoProposer ${id}: Optimización de parámetros Triple Coincidence`;
+    const hypEl = document.getElementById("exp-hypothesis");
+    if (hypEl) hypEl.value = hypo;
+    const appEl = document.getElementById("exp-approaches");
+    if (appEl) appEl.value = "TRIPLE_COINCIDENCE, RETEST, BOUNCE";
+    showSection('experiment');
+    if (hypEl) {
+        hypEl.style.outline = "2px solid var(--accent)";
+        hypEl.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => { hypEl.style.outline = "none"; }, 2000);
+    }
+}
+
+function ignoreProposal(id) {
+    const card = document.getElementById(`prop-${id}`);
+    if (card) {
+        card.style.opacity = "0.3";
+        card.style.transform = "scale(0.95)";
+        card.style.pointerEvents = "none";
+    }
+}
+
+// ── LILA LLM STATUS & PROVIDER ────────────────────────
+async function fetchLilaLLMStatus() {
+    try {
+        const data = await apiFetch("/api/lila/llm/status");
+        const provEl = document.getElementById("lila-provider-name");
+        if (provEl) provEl.textContent = data.provider || "Unknown";
+        const circEl = document.getElementById("lila-circuit-status");
+        if (circEl) circEl.textContent = data.circuit_breaker_status || "OK";
+        if (data.memory_levels) updateLilaMemoryStats(data.memory_levels);
+    } catch (e) {
+        console.warn("LLM status fetch error:", e);
+    }
+}
+
+async function switchLilaProvider(provider) {
+    try {
+        const response = await fetch('/api/lila/llm/switch', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ provider })
+        });
+        const data = await response.json();
+        if (data.error) {
+            alert(`Error switching provider: ${data.error}`);
+        } else {
+            console.log(`Provider switched to ${provider}`);
+            fetchLilaLLMStatus();
+        }
+    } catch (err) {
+        console.error('Error switching provider:', err);
+    }
+}
+
+function updateLilaMemoryStats(levels) {
+    const keys = ["0a", "0b", "1", "2", "3", "4"];
+    keys.forEach(k => {
+        const el = document.getElementById(`mem-${k}`);
+        if (el) el.innerText = levels[k] || 0;
+    });
+}
+
+// ── VAULT & ACTIVE STRATEGY (Triple Coincidence) ──────
+async function toggleLilaActiveStrategy() {
+    const strat = document.getElementById("lila-strategy-overlay");
+    if (!strat) return;
+    strat.classList.toggle("hidden");
+    if (!strat.classList.contains("hidden")) {
+        document.getElementById("lila-history-overlay")?.classList.add("hidden");
+        document.getElementById("lila-settings-overlay")?.classList.add("hidden");
+        document.getElementById("lila-vault-overlay")?.classList.add("hidden");
+        fetchStrategyStatus();
+    }
+}
+
+async function fetchStrategyStatus() {
+    const view = document.getElementById("strategy-pipeline-view");
+    if (!view) return;
+    try {
+        const data = await apiFetch("/api/vault/status");
+        view.innerHTML = `
+            <div style="background:rgba(0,212,170,0.05); padding:12px; border-radius:10px; border:1px solid var(--accent); margin-bottom:15px;">
+                <strong style="color:var(--accent); font-size:13px;">Triple Coincidence Strategy</strong>
+                <div style="font-size:11px; margin:8px 0;">Hit Rate OOS: <strong style="color:#4f4;">${data.metrics.hit_rate_oos}</strong></div>
+                <button class="btn" style="width:100%;" onclick="executePipelineCycle()">Execute Massive Cycle</button>
+            </div>
+            ${data.components.map(c => `<div style="background:#0f1b2d; padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:bold; font-size:11px; color:var(--accent);">${c.name}</span>
+                <span style="font-size:9px; color:#4f4;">${c.status}</span>
+            </div>`).join("")}
+        `;
+    } catch { view.innerHTML = "<p>Error syncing pipeline v3.</p>"; }
+}
+
+async function executePipelineCycle() {
+    if (!confirm("¿Deseas iniciar un Ciclo Masivo de Cosecha y Entrenamiento?")) return;
+    try {
+        const resp = await apiFetch("/api/lila/execute-cycle", { method: 'POST', body: JSON.stringify({ symbol: "BTCUSDT" }) });
+        alert(`Ciclo Completado: ${resp.nexus_decision}`);
+        fetchStrategyStatus();
+    } catch (err) { alert("Error: " + err.message); }
+}
+
+async function toggleLilaVault() {
+    const vault = document.getElementById("lila-vault-overlay");
+    if (!vault) return;
+    vault.classList.toggle("hidden");
+    if (!vault.classList.contains("hidden")) {
+        document.getElementById("lila-history-overlay")?.classList.add("hidden");
+        document.getElementById("lila-settings-overlay")?.classList.add("hidden");
+        document.getElementById("lila-strategy-overlay")?.classList.add("hidden");
+        fetchVaultStatus();
+    }
+}
+
+async function fetchVaultStatus() {
+    const listEl = document.getElementById("vault-layers-view");
+    if (!listEl) return;
+    try {
+        const data = await apiFetch("/api/vault/status");
+        listEl.innerHTML = `
+            <h4 style="color:var(--accent); font-size:12px;">Layer 2: Permanent DNA</h4>
+            <div style="background:rgba(0,212,170,0.1); padding:10px; border-radius:10px; border:1px solid var(--accent); margin-bottom:15px;">
+                <span style="font-weight:bold;">Verified Components: ${data.layers.layer_2_permanent_dna.total} ACTIVE</span>
+            </div>
+            <h4 style="font-size:11px; opacity:0.7;">Layer 1: Provisional Vault</h4>
+            ${Object.entries(data.layers.layer_1_provisional).map(([k, v]) => `
+                <div style="background:#0f1b2d; padding:6px; margin-bottom:4px; font-size:10px; display:flex; justify-content:space-between;">
+                    <span>${k}</span><strong>${v}</strong>
+                </div>
+            `).join("")}
+        `;
+    } catch { listEl.innerHTML = "<p>Error syncing vault.</p>"; }
 }
 
 // ── MISSION CONTROL ────────────────────────────────────
@@ -927,6 +1164,18 @@ function startNewLilaChat() {
     msgs.innerHTML = `<div class="msg lila-msg">Hi. I'm Lila, your v3 audit assistant. New session started. How can I help?</div>`;
 }
 
+function toggleLilaSettings() {
+    document.getElementById("lila-history-overlay")?.classList.add("hidden");
+    document.getElementById("lila-strategy-overlay")?.classList.add("hidden");
+    document.getElementById("lila-vault-overlay")?.classList.add("hidden");
+    const overlay = document.getElementById("lila-settings-overlay");
+    if (!overlay) return;
+    overlay.classList.toggle("hidden");
+    if (!overlay.classList.contains("hidden")) {
+        fetchLilaLLMStatus();
+    }
+}
+
 function toggleLilaHistory() {
     const overlay = document.getElementById("lila-history-overlay");
     overlay.classList.toggle("hidden");
@@ -988,6 +1237,9 @@ function appendChatMessage(type, text) {
 
 // ── HELP CENTER DATA ──────────────────────────────────
 const HELP_DATA = [
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: INICIO
+    // ═══════════════════════════════════════════════════
     {
         cat: 'inicio',
         title: '🚀 Quick Start — Arranque del Sistema',
@@ -995,160 +1247,250 @@ const HELP_DATA = [
         content: `
             <h4 style="color:var(--accent); margin-bottom:10px;">Requisitos</h4>
             <div style="background:var(--bg3); padding:12px; border-radius:8px; font-family:monospace; font-size:12px; margin-bottom:12px;">
-# Dependencias mínimas
-Python >= 3.11
-flask >= 2.3.0
-
-# Opcional para LLM Assistant
-openai >= 1.0.0  # si OPENAI_API_KEY configurado
+Python >= 3.11<br>
+flask >= 2.3.0<br>
+pandas >= 2.0.0<br>
+numpy >= 1.24.0<br>
+scikit-learn >= 1.3.0  # Para OracleTrainer (Meta-Labeling)<br><br>
+# Opcional<br>
+openai >= 1.0.0  # Lila LLM Assistant
             </div>
-            
+
             <h4 style="color:var(--accent); margin-bottom:10px;">Arranque del servidor</h4>
             <div style="background:var(--bg3); padding:12px; border-radius:8px; font-family:monospace; font-size:12px; margin-bottom:12px;">
-# Variables de entorno (opcional)
-export CGV3_AUTH_TOKEN="tu-token-seguro-aqui"
-export CGV3_HOST="127.0.0.1"
-export CGV3_PORT="8080"
-
-# Iniciar servidor
+# Variables de entorno (opcional, defaults seguros para dev)<br>
+export CGV3_AUTH_TOKEN="cgalpha-v3-local-dev"<br>
+export CGV3_HOST="0.0.0.0"<br>
+export CGV3_PORT="5000"<br><br>
+# Iniciar Control Room<br>
 python cgalpha_v3/gui/server.py
             </div>
-            
+
             <div style="background:rgba(0,212,170,0.08); padding:10px; border-radius:8px; border-left:3px solid var(--accent); font-size:12px;">
                 <strong>Output esperado:</strong><br>
-                <code style="color:var(--accent);">[CGAlpha v3 GUI] Iniciando en http://127.0.0.1:8080</code><br>
-                <code style="color:var(--accent);">[CGAlpha v3 GUI] Auth token activo: tu-token...</code><br>
-                <code style="color:var(--accent);">[CGAlpha v3 GUI] FASE 0 — Control Room en modo mock</code>
+                <code style="color:var(--accent);">[CGAlpha v3 / Control Room] Iniciando en http://0.0.0.0:5000</code><br>
+                <code style="color:var(--accent);">[CGAlpha v3 / Control Room] Active Builder v3.0 iniciado</code>
             </div>
         `
     },
     {
         cat: 'inicio',
-        title: '🔍 Verificación con curl / httpie',
-        icon: '🔍',
+        title: '🎯 Triple Coincidence Strategy — Flujo Completo',
+        icon: '🎯',
         content: `
-            <h4 style="color:var(--accent); margin-bottom:10px;">Test de conectividad</h4>
-            
-            <div style="margin-bottom:16px;">
-                <strong style="font-size:11px; color:var(--text-dim);">Con curl:</strong>
-                <div style="background:var(--bg3); padding:12px; border-radius:8px; font-family:monospace; font-size:11px; margin-top:6px;">
-curl -H "Authorization: Bearer cgalpha-v3-local-dev" \\<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://127.0.0.1:8080/api/status | jq .
+            <h4 style="color:var(--accent); margin-bottom:10px;">Principio Fundamental</h4>
+            <p style="margin-bottom:8px; font-size:12px;">La estrategia detecta zonas por <strong>triple coincidencia</strong> de tres señales independientes, luego <em>espera el retest del precio</em>, captura features de microestructura <strong>EN ESE MOMENTO</strong> y entrena al Oracle con el outcome real.</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:12px 0;">
+                <div style="background:rgba(0,212,170,0.08); padding:10px; border-radius:8px; border-top:3px solid var(--accent); font-size:11px;">
+                    <strong>Pilar I: Vela Clave</strong><br>
+                    Alto volumen + cuerpo comprimido → absorción institucional
+                </div>
+                <div style="background:rgba(0,174,240,0.08); padding:10px; border-radius:8px; border-top:3px solid var(--accent2); font-size:11px;">
+                    <strong>Pilar II: Acumulación</strong><br>
+                    Rango estrecho + volumen elevado → consolidación
+                </div>
+                <div style="background:rgba(148,100,255,0.08); padding:10px; border-radius:8px; border-top:3px solid var(--purple); font-size:11px;">
+                    <strong>Pilar III: Mini-Tendencia</strong><br>
+                    ZigZag + R² &gt; 0.45 → dirección confirmada
                 </div>
             </div>
-            
-            <div style="margin-bottom:16px;">
-                <strong style="font-size:11px; color:var(--text-dim);">Con httpie:</strong>
-                <div style="background:var(--bg3); padding:12px; border-radius:8px; font-family:monospace; font-size:11px; margin-top:6px;">
-http :8080/api/status "Authorization: Bearer cgalpha-v3-local-dev"
-                </div>
-            </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:10px;">Acceso via navegador</h4>
-            <div style="background:var(--bg3); padding:12px; border-radius:8px; font-size:12px;">
-                <strong>URL:</strong> <code>http://localhost:8080</code><br>
-                <strong>Token default:</strong> <code style="color:var(--accent);">cgalpha-v3-local-dev</code>
-            </div>
-            
-            <div style="margin-top:12px; padding:10px; background:rgba(255,107,107,0.08); border-radius:8px; font-size:11px;">
-                <strong style="color:var(--red);">⚠️ PRODUCCIÓN:</strong> Cambiar CGV3_AUTH_TOKEN por valor criptográficamente seguro (mínimo 32 caracteres).
+
+            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; overflow-x:auto; line-height:1.5; margin-top:12px;">[1] BinanceVisionFetcher_v3
+     ↓ OHLCV + microestructura (VWAP, OBI, CumDelta)
+[2] TripleCoincidenceDetector
+     ↓ Detecta zona: Vela Clave + Acumulación + Mini-Tendencia
+     ↓ Monitorea zona → Espera retest del precio
+     ↓ Captura features EN el retest (VWAP, OBI, CumDelta)
+     ↓ Determina outcome (BOUNCE vs BREAKOUT, N velas lookahead)
+[3] ZonePhysicsMonitor_v3
+     ↓ Confirma REBOTE_CONFIRMADO
+[4] OracleTrainer_v3 (Meta-Labeling)
+     ↓ Predice: ¿Este retest resultará en BOUNCE?
+     ↓ confidence &gt; 0.70 → Ejecutar
+[5] ShadowTrader
+     ↓ Captura MFE/MAE → Estadísticas Walk-Forward
+[6] NexusGate
+     ↓ PROMOTE_TO_LAYER_2 | REJECT
+[7] AutoProposer
+     ↓ Detecta drift → Propone ajustes paramétricos</pre>
+
+            <div style="margin-top:12px; padding:10px; background:rgba(0,212,170,0.08); border-radius:8px; font-size:11px; border-left:3px solid var(--accent);">
+                <strong>Key insight:</strong> Las features se capturan EN el retest, no en la detección de la zona. El Oracle evalúa las <em>condiciones del mercado en el momento del retest</em>, que son significativamente más predictivas que las condiciones en el momento de la detección.
             </div>
         `
     },
     {
         cat: 'inicio',
-        title: '🏗️ Arquitectura del Sistema',
+        title: '🧬 Scoring de Triple Coincidencia',
+        icon: '🧬',
+        content: `
+            <p style="margin-bottom:12px; font-size:12px;">El score final combina componentes básicos (70%) y factores avanzados (30%):</p>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Componentes Básicos (70%)</h4>
+            <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:12px;">
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:6px; color:var(--accent); font-weight:bold;">Zona (35%)</td>
+                    <td style="padding:6px;">(quality_score - 0.45) / 0.4</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:6px; color:var(--accent2); font-weight:bold;">Tendencia (35%)</td>
+                    <td style="padding:6px;">R² × direction_alignment × slope_normalized</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px; color:var(--purple); font-weight:bold;">Vela Clave (30%)</td>
+                    <td style="padding:6px;">0.6 × volume_score + 0.4 × morphology</td>
+                </tr>
+            </table>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Factores Avanzados (30%)</h4>
+            <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:12px;">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:6px;">Convergencia (20%)</td>
+                    <td style="padding:6px;">Proximidad espacial y temporal de los 3 pilares</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:6px;">Fiabilidad (15%)</td>
+                    <td style="padding:6px;">Bonus si R² &gt; 0.75</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px;">Potencial (15%)</td>
+                    <td style="padding:6px;">Estimated move / ATR</td>
+                </tr>
+            </table>
+
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; font-size:10px; text-align:center;">
+                <div style="padding:6px; background:rgba(255,255,255,0.03); border-radius:4px;">⚪ &lt;0.5<br>Débil</div>
+                <div style="padding:6px; background:rgba(245,158,11,0.1); border-radius:4px; color:#f59e0b;">🟡 0.5-0.6<br>Moderada</div>
+                <div style="padding:6px; background:rgba(255,107,107,0.1); border-radius:4px; color:#ff6b6b;">🟠 0.6-0.7<br>Fuerte</div>
+                <div style="padding:6px; background:rgba(0,212,170,0.1); border-radius:4px; color:var(--accent);">🟢 &gt;0.7<br>Premium</div>
+            </div>
+        `
+    },
+    {
+        cat: 'inicio',
+        title: '🏗️ Arquitectura del Sistema CGAlpha v3',
         icon: '🏗️',
         content: `
-            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; overflow-x:auto; line-height:1.3;">
-┌─────────────────────────────────────────┐
-│           BROWSER (Frontend)             │
-│  index.html │ style.css │ app.js         │
-└─────────────────────────────────────────┘
-                    │ HTTP/WS
-                    ▼
-┌─────────────────────────────────────────┐
-│         SERVER.PY (Flask)                │
-│  ┌──────────┐ ┌────────┐ ┌──────────┐   │
-│  │Auth Layer│ │Routes  │ │Serialize │   │
-│  └──────────┘ └────────┘ └──────────┘   │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│           DOMAIN LAYER                   │
-│  Signal │ Proposal │ MemoryEntry         │
-│  ApproachType │ MemoryLevel             │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│         APPLICATION LAYER                │
-│  RollbackManager │ ExperimentRunner      │
-│  ChangeProposer │ PromotionValidator     │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│           SUBSYSTEMS                     │
-│  Lila Library │ MemoryPolicyEngine       │
-│  ProjectHistoryLearner                   │
-└─────────────────────────────────────────┘
-            </pre>
+            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; overflow-x:auto; line-height:1.4;">
+┌─────────────────────────────────────────────────┐
+│              BROWSER (Frontend)                  │
+│  index.html │ style.css │ app.js                 │
+│  Dashboard │ Risk │ Library │ Theory │ Learning  │
+└───────────────────────┬─────────────────────────┘
+                        │ HTTP/REST (polling 5s)
+                        ▼
+┌─────────────────────────────────────────────────┐
+│              server.py (Flask)                   │
+│  ┌──────────┐ ┌──────────────┐ ┌─────────────┐  │
+│  │Auth Layer│ │ API Routes   │ │State Manager│  │
+│  │(Bearer)  │ │ 30+ endpoints│ │(_system_st) │  │
+│  └──────────┘ └──────────────┘ └─────────────┘  │
+└───────────────────────┬─────────────────────────┘
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ DOMAIN LAYER │ │ APPLICATION  │ │ LILA ENGINE  │
+│              │ │              │ │              │
+│ Signal       │ │ Pipeline     │ │ Library      │
+│ ApproachType │ │ Experiment   │ │ Memory(0a-4) │
+│ MemoryLevel  │ │ Rollback     │ │ Oracle(ML)   │
+│ MicroRecord  │ │ ChangeProposer│ │ Backlog     │
+└──────────────┘ └──────────────┘ └──────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────┐
+│           INFRASTRUCTURE LAYER                   │
+│  TripleCoincidenceDetector │ BinanceVisionFetcher│
+│  ZonePhysicsMonitor │ ShadowTrader              │
+│  OracleTrainer │ NexusGate │ AutoProposer       │
+└─────────────────────────────────────────────────┘</pre>
         `
     },
     {
         cat: 'inicio',
-        title: '📊 Flujo de Datos Principal',
+        title: '📊 Pipeline de Datos: Del Tick al ADN Permanente',
         icon: '📊',
         content: `
-            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; overflow-x:auto; line-height:1.4;">
-Usuario ──► GUI ──► API Endpoint ──► Manager/Service
-                │
-                ▼
-          _record_control_cycle()
-                │
-                ├──► _log_event() ──► _events_log[]
-                ├──► _persist_iteration_artifacts()
-                │    └──► memory/iterations/
-                ├──► _capture_memory_librarian_event()
-                ├──► _register_incident()
-                │    └──► docs/post_mortems/
-                └──► _register_adr()
-                     └──► docs/adr/
-            </pre>
-            
-            <p style="margin-top:12px; font-size:12px; color:var(--text-dim);">
-                Cada acción de control ejecutada via GUI dispara <code>_record_control_cycle()</code> 
-                para garantizar trazabilidad automática.
-            </p>
+            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; overflow-x:auto; line-height:1.5;">
+DATOS BRUTOS                         PROCESAMIENTO                        RESULTADO
+─────────────                        ──────────────                       ─────────
+Binance Vision ──► OHLCV 5m/1h ──► TripleCoincidence ──► ActiveZone
+                                         │
+                   Microestructura       │ retest detected
+                   (VWAP,OBI,Delta) ──► Features@Retest ──► RetestEvent
+                                         │
+                                         ▼
+                                    Outcome Observation
+                                    (N velas lookahead)
+                                         │
+                                    ┌─────┴─────┐
+                                    │           │
+                                  BOUNCE    BREAKOUT
+                                    │           │
+                                    ▼           ▼
+                              TrainingSample{features, outcome}
+                                    │
+                                    ▼
+                              OracleTrainer_v3
+                              .load_training_dataset()
+                              .train_model()
+                                    │
+                                    ▼
+                              Oracle.predict(new_retest)
+                              confidence &gt; 0.70 → OPERAR
+                                    │
+                                    ▼
+                              ShadowTrader(virtual)
+                              MFE/MAE → NexusGate
+                                    │
+                              ΔCausal &gt; 0 + human
+                                    │
+                                    ▼
+                              ADN PERMANENTE (Capa 2)</pre>
         `
     },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: RIESGO
+    // ═══════════════════════════════════════════════════
     {
         cat: 'riesgo',
-        title: 'Gestión de Riesgos (Kill-Switch y Circuit Breakers)',
+        title: '🛡️ Kill-Switch y Circuit Breakers',
         icon: '🛡️',
         content: `
-            <p>En esta fase de control, el sistema implementa protecciones mediante <strong>Kill-Switch</strong> (apagado controlado) y <strong>Circuit Breaker</strong> (pausa automática ante anomalías).</p>
+            <p>El sistema implementa protecciones multinivel siguiendo el principio <strong>"primero sobrevivir, después optimizar"</strong>.</p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                <div style="background:rgba(255,107,107,0.05); padding:8px; border-radius:8px; border:1px solid rgba(255,107,107,0.2);">
-                    <strong style="color:var(--red); font-size:11px;">CIRCUIT BREAKERS</strong>
-                    <p style="font-size:11px; margin-top:4px;">Se activan si el drawdown de sesión supera el límite configurado (por defecto 5%) o si la calidad de datos es inválida. Bloquea generación de nuevas señales.</p>
+                <div style="background:rgba(255,107,107,0.05); padding:12px; border-radius:8px; border:1px solid rgba(255,107,107,0.2);">
+                    <strong style="color:var(--red); font-size:11px;">🚨 CIRCUIT BREAKERS</strong>
+                    <p style="font-size:11px; margin-top:4px;">Se activan automáticamente si:</p>
+                    <ul style="font-size:10px; margin-left:15px; margin-top:4px; color:var(--text-dim);">
+                        <li>Drawdown de sesión &gt; límite configurado (default: 5%)</li>
+                        <li>Data quality gate = "corrupted"</li>
+                        <li>3 señales rechazadas consecutivas por Oracle</li>
+                        <li>Latencia API &gt; 1000ms p95 sostenida &gt;60s</li>
+                    </ul>
                 </div>
-                <div style="background:rgba(0,212,170,0.05); padding:8px; border-radius:8px; border:1px solid rgba(0,212,170,0.2);">
-                    <strong style="color:var(--accent); font-size:11px;">KILL-SWITCH</strong>
-                    <p style="font-size:11px; margin-top:4px;">Protocolo de dos pasos (armar + confirmar) que detiene operación inmediatamente. Se reactiva manualmente desde la GUI o vía API sin reiniciar el servidor.</p>
+                <div style="background:rgba(0,212,170,0.05); padding:12px; border-radius:8px; border:1px solid rgba(0,212,170,0.2);">
+                    <strong style="color:var(--accent); font-size:11px;">⚡ KILL-SWITCH (2-PASOS)</strong>
+                    <p style="font-size:11px; margin-top:4px;">Protocolo de seguridad humana:</p>
+                    <ol style="font-size:10px; margin-left:15px; margin-top:4px; color:var(--text-dim);">
+                        <li><code>POST /api/kill-switch/arm</code> → solicitar</li>
+                        <li><code>POST /api/kill-switch/confirm</code> → confirmar</li>
+                        <li>Todas las señales suspendidas inmediatamente</li>
+                        <li><code>POST /api/kill-switch/reset</code> → re-armar</li>
+                    </ol>
                 </div>
             </div>
-            <p style="margin-top:10px; font-size:12px;"><strong>SLO actual (mock):</strong> Se monitorea calidad de datos por polling REST (cada 5s). Si data_quality cae a "stale", el sistema marca el estado como degradado y registra incidente.</p>
         `
     },
     {
         cat: 'riesgo',
-        title: 'Parámetros de Riesgo (Globales)',
+        title: '📉 Parámetros de Riesgo',
         icon: '📉',
         content: `
-            <p>En la fase actual, los parámetros de riesgo son <strong>globales</strong> (aplican a todas las operaciones). Se configuran desde el panel <em>Risk Management</em> o vía API <code>/api/risk/params</code>.</p>
+            <p>Parámetros <strong>globales</strong> configurables desde el panel Risk o vía API <code>/api/risk/params</code>:</p>
             <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:11px;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--border); text-align:left;">
@@ -1161,499 +1503,407 @@ Usuario ──► GUI ──► API Endpoint ──► Manager/Service
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px;">Max Drawdown Sesión</td>
                         <td style="padding:6px; color:var(--accent);">5.0%</td>
-                        <td style="padding:6px;">Si supera este valor se activa Circuit Breaker</td>
+                        <td style="padding:6px;">Dispara Circuit Breaker si se supera</td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px;">Max Position Size</td>
                         <td style="padding:6px;">2.0%</td>
-                        <td style="padding:6px;">Límite de exposición por señal</td>
+                        <td style="padding:6px;">% del capital por singal (exposición máxima)</td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px;">Max Signals/Hora</td>
                         <td style="padding:6px;">10</td>
-                        <td style="padding:6px;">Frecuencia máxima de señales</td>
+                        <td style="padding:6px;">Limita sobre-trading en alta volatilidad</td>
                     </tr>
                     <tr>
                         <td style="padding:6px;">Min Signal Quality</td>
                         <td style="padding:6px;">0.65</td>
-                        <td style="padding:6px;">Score mínimo para aceptar señal (0–1)</td>
+                        <td style="padding:6px;">Score mínimo Triple Coincidence + Oracle confidence</td>
                     </tr>
                 </tbody>
             </table>
-            <p style="margin-top:10px; font-size:11px; color:var(--text-dim);">Los cambios aplican inmediatamente vía API; no requieren reinicio.</p>
+            <p style="margin-top:10px; font-size:11px; color:var(--text-dim);">Los cambios aplican inmediatamente vía API POST; no requieren reinicio del servidor.</p>
         `
     },
-    {
-        cat: 'riesgo',
-        title: 'Drawdown y Exposición (FASE 0)',
-        icon: '📊',
-        content: `
-            <p>En la fase actual se monitorean métricas básicas de riesgo (simuladas/mock):</p>
-            <ul style="margin-left:20px; margin-top:8px; font-size:12px; color:var(--text-dim);">
-                <li><strong>Drawdown de sesión:</strong> Caída desde el pico de capital inicial de la sesión. Dispara Circuit Breaker si supera el límite configurado.</li>
-                <li><strong>Exposición por señal:</strong> Controlada por <em>Max Position Size</em> (% del capital por operación).</li>
-                <li><strong>Frecuencia:</strong> Limitada por <em>Max Signals/Hora</em> para evitar sobre-trading.</li>
-                <li><strong>Calidad mínima:</strong> Señales deben superar <em>Min Signal Quality Score</em> (0–1).</li>
-            </ul>
-            <div style="margin-top:12px; padding:10px; background:rgba(255,107,107,0.08); border-radius:8px; font-size:11px;">
-                <strong style="color:var(--red);">⚠️ Alcance FASE 0:</strong> Las métricas de riesgo avanzadas (Greeks, correlación de cartera, drawdown histórico real) se habilitarán en fases posteriores con conexión a datos de mercado reales.
-            </div>
-        `
-    },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: LILA
+    // ═══════════════════════════════════════════════════
     {
         cat: 'lila',
-        title: 'Lila: Motor de Memoria y Validación',
-        icon: '🤖',
+        title: '🧠 Lila: Motor de Conocimiento y Biblioteca Inteligente',
+        icon: '🧠',
         content: `
-            <p>Lila es el componente de <strong>gobierno del conocimiento</strong> que gestiona la Library y el ciclo de vida de la memoria:</p>
-            <ul style="margin-left:20px; margin-top:8px; font-size:13px; color:var(--text-dim);">
-                <li><strong>Library Manager:</strong> Valida ingestion de fuentes, detecta duplicados, y gestiona contradicciones entre papers.</li>
-                <li><strong>Validación de Claims:</strong> Verifica que hipótesis tengan soporte en fuentes primary (ev_level=1) antes de permitir experimentos.</li>
-                <li><strong>Memory Policy:</strong> Gestiona TTL (time-to-live) de entradas de memoria y detecta regime shifts que requieren degradar conocimiento obsoleto.</li>
-            </ul>
-            <p style="margin-top:10px; font-size:12px; color:var(--text-dim);">En FASE 0, Lila opera como orquestador de validaciones, no como asistente conversacional automatizado. Las interacciones son vía API y formularios de la GUI.</p>
-        `
-    },
-    {
-        cat: 'lila',
-        title: 'Comandos de Lila',
-        icon: '⌨️',
-        content: `
-            <p>Lila acepta los siguientes comandos en el chat:</p>
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; font-size:12px;">
-                <div style="background:var(--bg3); padding:8px; border-radius:6px;">
-                    <code style="color:var(--accent);">/status</code> - Reporte completo de SLOs y estado del sistema
+            <p style="margin-bottom:10px;">Lila es el <strong>cerebro epistémico</strong> de CGAlpha v3. No es un chatbot; es un sistema de gobernanza del conocimiento con 4 subsistemas:</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px;">
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:3px solid var(--accent);">
+                    <strong>Library Manager</strong><br>
+                    Ingesta, clasificación (primary/secondary/tertiary) y deduplicación de fuentes científicas. Valida venues contra lista de journals reconocidos.
                 </div>
-                <div style="background:var(--bg3); padding:8px; border-radius:6px;">
-                    <code style="color:var(--accent);">/risk</code> - Resumen de exposición y métricas de riesgo
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:3px solid var(--accent2);">
+                    <strong>Claim Validator</strong><br>
+                    Verifica que hipótesis tengan soporte en fuentes primary (ev_level=1). Detecta primary_source_gap y genera backlog adaptativo.
                 </div>
-                <div style="background:var(--bg3); padding:8px; border-radius:6px;">
-                    <code style="color:var(--accent);">/experiments</code> - Lista de experimentos activos y sus métricas
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:3px solid var(--purple);">
+                    <strong>Memory Policy Engine</strong><br>
+                    Gestiona TTL de entradas de memoria (0a→4). Detecta regime shifts que requieren degradar conocimiento obsoleto. Retención selectiva.
                 </div>
-                <div style="background:var(--bg3); padding:8px; border-radius:6px;">
-                    <code style="color:var(--accent);">/memory</code> - Historial de decisiones y aprendizajes
-                </div>
-                <div style="background:var(--bg3); padding:8px; border-radius:6px;">
-                    <code style="color:var(--accent);">/regime</code> - Análisis del régimen de mercado actual
-                </div>
-                <div style="background:var(--bg3); padding:8px; border-radius:6px;">
-                    <code style="color:var(--accent);">/help</code> - Muestra esta guía de comandos
+                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:3px solid var(--red);">
+                    <strong>AutoProposer</strong><br>
+                    Analiza drift en métricas del sistema. Propone ajustes paramétricos con estimated_delta y justificación causal. Requiere aprobación humana.
                 </div>
             </div>
         `
     },
     {
         cat: 'lila',
-        title: 'Change Proposer (Propuestas de Mejora)',
+        title: '🗂️ Memoria Inteligente: 5 Niveles (0a → 4)',
+        icon: '🗂️',
+        content: `
+            <p style="margin-bottom:10px;">El sistema de memoria implementa una jerarquía de confianza con TTL progresivo y aprobadores diferenciados:</p>
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
+                        <th style="padding:6px;">Nivel</th>
+                        <th style="padding:6px;">Nombre</th>
+                        <th style="padding:6px;">TTL</th>
+                        <th style="padding:6px;">Aprobador</th>
+                        <th style="padding:6px;">Contenido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">0a</td>
+                        <td style="padding:6px;">Meta-Cognitivo: Principios</td>
+                        <td style="padding:6px;">24h</td>
+                        <td style="padding:6px;">Auto</td>
+                        <td style="padding:6px;">DML, Meta-Labeling, EconML — axiomas teóricos</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">0b</td>
+                        <td style="padding:6px;">Meta-Cognitivo: Papers</td>
+                        <td style="padding:6px;">7d</td>
+                        <td style="padding:6px;">Auto</td>
+                        <td style="padding:6px;">Papers de trading (VWAP, OBI, CumDelta)</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">1</td>
+                        <td style="padding:6px;">Operacional: Almacenamiento</td>
+                        <td style="padding:6px;">30d</td>
+                        <td style="padding:6px;">Lila</td>
+                        <td style="padding:6px;">DuckDB, bridge.jsonl — datos persistidos</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">2</td>
+                        <td style="padding:6px;">Operacional: Recuperación</td>
+                        <td style="padding:6px;">90d</td>
+                        <td style="padding:6px;">Lila</td>
+                        <td style="padding:6px;">Búsqueda semántica vectorial, relaciones</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">3</td>
+                        <td style="padding:6px;">Operacional: Aplicación</td>
+                        <td style="padding:6px;">∞</td>
+                        <td style="padding:6px;">Humano</td>
+                        <td style="padding:6px;">ΔCausal, propuestas validadas, playbooks</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px; color:var(--accent); font-family:monospace;">4</td>
+                        <td style="padding:6px;">Estrategia (ADN)</td>
+                        <td style="padding:6px;">∞</td>
+                        <td style="padding:6px;">Humano</td>
+                        <td style="padding:6px;">Estrategias validadas con Sharpe &gt; 1.5 + NexusGate</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="margin-top:10px; padding:8px; background:rgba(0,212,170,0.08); border-radius:6px; font-size:11px;">
+                <strong>Política de retención:</strong> Las entradas expiran según su TTL. Las de nivel 3-4 son permanentes pero pueden ser degradadas si el MemoryPolicyEngine detecta un regime shift (volatilidad &gt; 2σ del baseline).
+            </div>
+        `
+    },
+    {
+        cat: 'lila',
+        title: '🔬 Oracle Meta-Labeling: Entrenamiento y Predicción',
+        icon: '🔬',
+        content: `
+            <p style="margin-bottom:10px;">El <strong>OracleTrainer_v3</strong> implementa Meta-Labeling: un modelo ML secundario que predice si una señal del detector primario será exitosa.</p>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Dataset de Entrenamiento</h4>
+            <div style="background:var(--bg3); padding:10px; border-radius:6px; font-size:11px; margin-bottom:12px;">
+                <strong>Origen:</strong> TripleCoincidenceDetector.get_training_dataset()<br>
+                <strong>Formato:</strong> TrainingSample{features: Dict, outcome: "BOUNCE"|"BREAKOUT"}<br>
+                <strong>Features:</strong> vwap_at_retest, obi_10_at_retest, cumulative_delta_at_retest,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delta_divergence, atr_14, regime, direction
+            </div>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Features Capturadas EN el Retest</h4>
+            <table style="width:100%; border-collapse:collapse; font-size:10px;">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">vwap_at_retest</td>
+                    <td style="padding:4px;">VWAP en el momento exacto del retest</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">obi_10_at_retest</td>
+                    <td style="padding:4px;">Order Book Imbalance (10 niveles del order book)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">cumulative_delta</td>
+                    <td style="padding:4px;">Delta acumulado de volumen (presión compradora/vendedora)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">delta_divergence</td>
+                    <td style="padding:4px;">BULLISH_ABSORPTION | BEARISH_EXHAUSTION | NEUTRAL</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">regime</td>
+                    <td style="padding:4px;">Régimen de mercado: TREND | LATERAL | HIGH_VOL</td>
+                </tr>
+            </table>
+
+            <div style="margin-top:10px; padding:8px; background:rgba(0,212,170,0.08); border-radius:6px; font-size:11px;">
+                <strong>Umbral operativo:</strong> confidence &gt; 0.70 → operar. Señales con confidence 0.70-0.72 muestran win rate solo 3% sobre baseline aleatorio (candidatas a ajuste por AutoProposer).
+            </div>
+        `
+    },
+    {
+        cat: 'lila',
+        title: '🔄 Change Proposer y Ciclo Evolutivo',
         icon: '🔄',
         content: `
-            <p>El módulo <strong>Change Proposer</strong> analiza el estado del sistema y sugiere ajustes cuando detecta anomalías:</p>
+            <p style="margin-bottom:10px;">El <strong>AutoProposer</strong> detecta drift y propone mejoras basándose en datos reales:</p>
             <ol style="margin-left:20px; margin-top:8px; font-size:12px; color:var(--text-dim);">
-                <li><strong>Anomaly Detection:</strong> Detecta desviaciones en métricas (drawdown alto, calidad de datos baja, etc.).</li>
-                <li><strong>Historical Pattern Matching:</strong> Compara situación actual con incidentes previos registrados en memoria.</li>
-                <li><strong>Sugerencias:</strong> Propone ajustes de parámetros de riesgo o revisión de hipótesis.</li>
+                <li><strong>Drift Detection:</strong> Monitorea métricas (win rate, drawdown, latencia) vs. baseline. Alerta si caen 2σ.</li>
+                <li><strong>Propuesta Paramétrica:</strong> Genera ajuste con estimated_delta (mejora causal estimada) y justificación técnica.</li>
+                <li><strong>Búsqueda Teórica:</strong> Lila busca en la Library fuentes que respalden o contradigan la propuesta. Si no hay soporte primary, genera backlog_item.</li>
+                <li><strong>Validación:</strong> Se re-ejecuta Walk-Forward con parámetros nuevos. Solo se aplica si ΔCausal &gt; 0.</li>
+                <li><strong>Aprobación Humana:</strong> Ningún cambio se aplica sin aprobación explícita.</li>
             </ol>
-            <p style="margin-top:10px; font-size:11px;">Cada propuesta incluye: justificación, datos de soporte, y requiere aprobación humana explícita para aplicarse. No hay ejecución automática de cambios.</p>
+            <div style="margin-top:10px; padding:8px; background:rgba(255,107,107,0.08); border-radius:6px; font-size:11px;">
+                <strong>Filosofía:</strong> Las mejoras no son predefinidas. Emergen del <em>pensamiento de la IA sobre los datos reales obtenidos</em>, se corroboran con teoría, y cada paso genera el siguiente.
+            </div>
         `
     },
-    {
-        cat: 'lila',
-        title: 'Auditoría y Trazabilidad',
-        icon: '📋',
-        content: `
-            <p>El sistema mantiene registro completo de decisiones para auditoría:</p>
-            <ul style="margin-left:20px; margin-top:8px; font-size:12px; color:var(--text-dim);">
-                <li><strong>Traceability:</strong> Cada acción de control genera entradas en <code>memory/iterations/</code> con timestamp y parámetros.</li>
-                <li><strong>Event Log:</strong> Últimos 200 eventos en memoria (info/warning/critical) visibles en Dashboard y vía <code>/api/events</code>.</li>
-                <li><strong>Incident Registry:</strong> Errores y anomalías se registran automáticamente con severity y contexto.</li>
-                <li><strong>ADR Registry:</strong> Decisiones arquitectónicas importantes se documentan en <code>docs/adr/</code>.</li>
-            </ul>
-            <p style="margin-top:10px; font-size:11px; color:var(--text-dim);">Nota: En FASE 0 los logs se mantienen en memoria y se persisten en snapshots. La exportación a CSV/PDF y almacenamiento a largo plazo están planificados para fases posteriores.</p>
-        `
-    },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: DOCUMENTACIÓN TÉCNICA
+    // ═══════════════════════════════════════════════════
     {
         cat: 'doc',
-        title: '📡 API Reference — Endpoints Críticos',
+        title: '📡 API Reference — Endpoints Principales',
         icon: '📡',
         content: `
             <h4 style="color:var(--accent); margin-bottom:8px;">Sistema y Estado</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
 GET /api/status          → Snapshot completo del sistema<br>
-GET /api/events?limit=N  → Últimos N eventos
+GET /api/events?limit=N  → Últimos N eventos (info/warning/critical)
             </div>
-            
+
             <h4 style="color:var(--accent); margin-bottom:8px;">Kill-Switch (2-pasos)</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
 POST /api/kill-switch/arm     → Paso 1: Solicitar activación<br>
 POST /api/kill-switch/confirm → Paso 2: Confirmar<br>
-POST /api/kill-switch/reset   → Re-armar
+POST /api/kill-switch/reset   → Re-armar (desactivar)
             </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:8px;">Rollback</h4>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Signal Detector &amp; Oracle</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
-GET  /api/rollback/list    → Snapshots disponibles<br>
-POST /api/rollback/restore → Restaurar (body: {"path": "..."})
+GET  /api/signal-detector/config → Config del TripleCoincidenceDetector<br>
+POST /api/signal-detector/config → Actualizar parámetros (JSON body)<br>
+GET  /api/oracle/config          → Config del OracleTrainer_v3<br>
+POST /api/oracle/config          → Actualizar (min_confidence, etc.)
             </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:8px;">Library (Lila)</h4>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Library &amp; Theory</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
-GET  /api/library/status              → Estado biblioteca<br>
-GET  /api/library/sources?query=...   → Búsqueda<br>
-POST /api/library/ingest              → Ingestar fuente<br>
-POST /api/library/claims/validate     → Validar claim
+GET  /api/library/status              → Estado de la biblioteca<br>
+GET  /api/library/sources?query=...   → Búsqueda de fuentes<br>
+POST /api/library/ingest              → Ingestar nueva fuente<br>
+POST /api/library/claims/validate     → Validar claim técnico<br>
+GET  /api/theory/live                 → Snapshot teórico en vivo
             </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:8px;">Experiment Loop</h4>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Experiment Loop &amp; Memory</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px;">
-GET  /api/experiment/status   → Estado del loop<br>
-POST /api/experiment/propose  → Crear propuesta<br>
-POST /api/experiment/run      → Ejecutar (walk-forward ≥3 ventanas)
-            </div>
-        `
-    },
-    {
-        cat: 'doc',
-        title: '📡 API Reference — Memory & Learning',
-        icon: '🧠',
-        content: `
-            <h4 style="color:var(--accent); margin-bottom:8px;">Learning & Memory</h4>
-            <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
-GET  /api/learning/memory/status         → Snapshot motor memoria<br>
-GET  /api/learning/memory/entries        → Lista entradas<br>
-POST /api/learning/memory/ingest         → Ingestar entrada<br>
-POST /api/learning/memory/promote       → Promover nivel<br>
+GET  /api/experiment/status     → Estado del loop<br>
+POST /api/experiment/propose    → Crear propuesta<br>
+POST /api/experiment/run        → Ejecutar (walk-forward ≥3 ventanas)<br>
+GET  /api/learning/memory/status → Motor de memoria<br>
+POST /api/learning/memory/ingest → Ingestar entrada de memoria<br>
 POST /api/learning/memory/retention/run → Ejecutar retención TTL<br>
-POST /api/learning/memory/regime/check  → Detectar cambio régimen
-            </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:8px;">Risk Parameters</h4>
-            <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
-GET  /api/risk/params → Leer parámetros actuales<br>
-POST /api/risk/params → Actualizar (body: {"max_drawdown_session_pct": 4.0})
-            </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:8px;">LLM Assistant</h4>
-            <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px;">
-POST /api/assistant/chat       → Chat con Lila<br>
-POST /api/learning/ingest/history → Ingesta iteraciones/ADRs
+POST /api/vault/status          → Estado de Bóveda v3 (7 componentes)
             </div>
         `
     },
     {
         cat: 'doc',
-        title: '🏷️ Modelos de Dominio — ApproachType',
+        title: '🏷️ Modelos de Dominio — Taxonomía Completa',
         icon: '🏷️',
         content: `
-            <p style="margin-bottom:10px;">Taxonomía de acercamientos a zona de precio:</p>
+            <h4 style="color:var(--accent); margin-bottom:8px;">ApproachType (Acercamiento a zona)</h4>
+            <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:16px;">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">TOUCH</td>
+                    <td style="padding:4px;">Precio alcanza zona sin cierre beyond</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">RETEST</td>
+                    <td style="padding:4px;">Regresa tras haber cerrado fuera (el evento más importante para Oracle)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">REJECTION</td>
+                    <td style="padding:4px;">Mecha opuesta &gt;60% del rango → rechazo violento</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">BREAKOUT</td>
+                    <td style="padding:4px;">Cierre confirmado beyond zona</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">OVERSHOOT</td>
+                    <td style="padding:4px;">Cierre beyond sin retorno en N velas</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">FAKE_BREAK</td>
+                    <td style="padding:4px;">Cierre beyond con retorno — trampa institucional</td>
+                </tr>
+            </table>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">SourceType (Clasificación de fuentes)</h4>
             <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
-                        <th style="padding:6px;">Valor</th>
-                        <th style="padding:6px;">Descripción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">TOUCH</td>
-                        <td style="padding:6px;">Precio alcanza zona sin cierre beyond</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">RETEST</td>
-                        <td style="padding:6px;">Regresa tras haber cerrado fuera</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">REJECTION</td>
-                        <td style="padding:6px;">Mecha opuesta >60% del rango</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">BREAKOUT</td>
-                        <td style="padding:6px;">Cierre confirmado beyond zona</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">OVERSHOOT</td>
-                        <td style="padding:6px;">Cierre beyond zona sin retorno en N velas</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">FAKE_BREAK</td>
-                        <td style="padding:6px;">Cierre beyond zona con retorno en N velas</td>
-                    </tr>
-                </tbody>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">primary (ev=1)</td>
+                    <td style="padding:4px;">Peer-reviewed, venue reconocido (ACL, NeurIPS, JOF, etc.)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">secondary (ev=2)</td>
+                    <td style="padding:4px;">Blogs técnicos, whitepapers, documentación interna</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px; color:var(--accent); font-family:monospace;">tertiary (ev=3)</td>
+                    <td style="padding:4px;">Social media, foros, opiniones (mínimo peso)</td>
+                </tr>
             </table>
         `
     },
     {
         cat: 'doc',
-        title: '📊 Modelos de Dominio — MemoryLevel',
+        title: '📊 Métricas de Performance y Walk-Forward',
         icon: '📊',
         content: `
-            <p style="margin-bottom:10px;">Jerarquía de memoria con TTL y aprobadores:</p>
-            <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
-                        <th style="padding:6px;">Nivel</th>
-                        <th style="padding:6px;">Código</th>
-                        <th style="padding:6px;">TTL</th>
-                        <th style="padding:6px;">Aprobador</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px;">RAW</td>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">0a</td>
-                        <td style="padding:6px;">24h</td>
-                        <td style="padding:6px;">Automático</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px;">NORMALIZED</td>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">0b</td>
-                        <td style="padding:6px;">7d</td>
-                        <td style="padding:6px;">Automático</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px;">FACTS</td>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">1</td>
-                        <td style="padding:6px;">30d</td>
-                        <td style="padding:6px;">Lila</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px;">RELATIONS</td>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">2</td>
-                        <td style="padding:6px;">90d</td>
-                        <td style="padding:6px;">Lila</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px;">PLAYBOOKS</td>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">3</td>
-                        <td style="padding:6px;">∞</td>
-                        <td style="padding:6px;">Humano</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:6px;">STRATEGY</td>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">4</td>
-                        <td style="padding:6px;">∞</td>
-                        <td style="padding:6px;">Humano</td>
-                    </tr>
-                </tbody>
-            </table>
-            <p style="margin-top:10px; font-size:11px; color:var(--text-dim);">
-                Promoción a STRATEGY requiere experimento validado con <code>sharpe_like > 1.5</code>
-            </p>
-        `
-    },
-    {
-        cat: 'doc',
-        title: '📚 Modelos de Dominio — SourceType',
-        icon: '📚',
-        content: `
-            <p style="margin-bottom:10px;">Clasificación de fuentes de conocimiento:</p>
-            <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
-                        <th style="padding:6px;">Tipo</th>
-                        <th style="padding:6px;">ev_level</th>
-                        <th style="padding:6px;">Requisitos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">primary</td>
-                        <td style="padding:6px;">1</td>
-                        <td style="padding:6px;">Peer-reviewed, venue reconocido</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">secondary</td>
-                        <td style="padding:6px;">2</td>
-                        <td style="padding:6px;">Blogs, docs técnicas, whitepapers</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:6px; color:var(--accent); font-family:monospace;">tertiary</td>
-                        <td style="padding:6px;">3</td>
-                        <td style="padding:6px;">Social media, foros, opiniones</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <h4 style="color:var(--accent); margin:12px 0 8px 0;">Venues primarios reconocidos</h4>
-            <div style="background:var(--bg3); padding:10px; border-radius:6px; font-size:10px; font-family:monospace;">
-acl, nips, neurips, icml, jof, journal_of_finance,<br>
-journal_of_financial_economics, review_of_financial_studies,<br>
-management_science, quantitative_finance
-            </div>
-        `
-    },
-    {
-        cat: 'doc',
-        title: 'Arquitectura de Ejecución (Futuro)',
-        icon: '⚡',
-        content: `
-            <p>Esta sección describe la <strong>arquitectura objetivo</strong> para fases posteriores de CGAlpha (ejecución de alta frecuencia):</p>
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:4px solid var(--accent2);">
-                    <strong>1. VWAP Engine:</strong> Calcula barreras dinámicas usando buffer de ticks. Detecta breakouts estadísticos.
-                </div>
-                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:4px solid var(--accent);">
-                    <strong>2. OBI (Order Book Imbalance):</strong> Analiza presión compra/venta en niveles superiores del libro.
-                </div>
-                <div style="background:var(--bg3); padding:10px; border-radius:8px; border-left:4px solid var(--red);">
-                    <strong>3. Cumulative Delta:</strong> Monitorea volumen ejecutado para detectar reversiones tempranas.
-                </div>
-            </div>
-            <p style="margin-top:12px; font-size:11px; color:var(--text-dim);">Nota: Esta arquitectura requiere conexión WebSocket a exchanges y está planificada para fases posteriores. FASE 0 opera en modo polling REST con datos mock.</p>
-        `
-    },
-    {
-        cat: 'doc',
-        title: 'Gestión de Memoria y Teoría Live',
-        icon: '🧠',
-        content: `
-            <p>El sistema "Theory Live" permite validar hipótesis contra la biblioteca de documentos científicos (Library).</p>
-            <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:12px;">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--border); text-align:left;">
-                        <th style="padding:4px;">Nivel</th>
-                        <th style="padding:4px;">Tipo de Dato</th>
-                        <th style="padding:4px;">Uso</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="color:var(--accent); padding:4px;">L0</td>
-                        <td style="padding:4px;">Logs brutos</td>
-                        <td style="padding:4px;">Debug inmediato</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="color:var(--accent); padding:4px;">L1-L2</td>
-                        <td style="padding:4px;">Evidencias</td>
-                        <td style="padding:4px;">Auditoría de señales</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--accent); padding:4px;">L3-L4</td>
-                        <td style="padding:4px;">Estrategia</td>
-                        <td style="padding:4px;">Refinamiento de Lila</td>
-                    </tr>
-                </tbody>
-            </table>
-        `
-    },
-    {
-        cat: 'doc',
-        title: 'Biblioteca de Estrategias',
-        icon: '📚',
-        content: `
-            <p>La Library contiene estrategias categorizadas y versionadas:</p>
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
-                <div><strong style="color:var(--accent2);">📈 Trend Following:</strong> Media móvil, MACD, RSI-Stoch combo</div>
-                <div><strong style="color:var(--accent);">🎯 Mean Reversion:</strong> Bollinger Bands, Z-Score, pairs trading</div>
-                <div><strong style="color:var(--purple);">⚡ Arbitrage:</strong> Cross-exchange, triangular, funding rate</div>
-                <div><strong style="color:var(--red);">🛡️ Market Making:</strong> Spread capture, inventory management</div>
-            </div>
-            <p style="margin-top:10px; font-size:11px; color:var(--text-dim);">Cada estrategia incluye: código fuente, backtest results, notes de uso, y compatibilidad con símbolos.</p>
-        `
-    },
-    {
-        cat: 'doc',
-        title: 'Experiment Loop y Validación',
-        icon: '🧪',
-        content: `
-            <p>El pipeline de experimentos valida hipótesis antes de promover a estrategia de producción:</p>
-            <ol style="margin-left:20px; margin-top:8px; font-size:12px; color:var(--text-dim);">
-                <li><strong>Proposal:</strong> Definir hipótesis, approach_types y justificación científica.</li>
-                <li><strong>Backtest (Walk-Forward):</strong> Validación temporal con ≥3 ventanas (in-sample + out-of-sample). Bloquea automáticamente si detecta temporal leakage.</li>
-                <li><strong>Evaluación:</strong> Métricas calculadas: Sharpe, Sortino, Max Drawdown, Win Rate.</li>
-                <li><strong>Hardening (P3):</strong> Revisión final antes de permitir promoción a STRATEGY.</li>
-                <li><strong>Promoción:</strong> Requiere sharpe_like > 1.5 + aprobación humana para alcanzar MemoryLevel.STRATEGY.</li>
-            </ol>
-            <div style="margin-top:10px; padding:8px; background:rgba(0,212,170,0.05); border-radius:6px; font-size:11px;">
-                <strong>Nota:</strong> El Experiment Loop actual ejecuta en foreground (síncrono). La GUI muestra progreso y resultado final.
-            </div>
-        `
-    },
-    {
-        cat: 'doc',
-        title: 'Métricas de Performance',
-        icon: '📊',
-        content: `
-            <p>El sistema calcula y muestra las siguientes métricas:</p>
-            <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:11px;">
+            <h4 style="color:var(--accent); margin-bottom:8px;">Métricas Calculadas</h4>
+            <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:12px;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--border);">
                         <th style="padding:4px; text-align:left;">Métrica</th>
-                        <th style="padding:4px; text-align:left;">Descripción</th>
                         <th style="padding:4px; text-align:left;">Target</th>
+                        <th style="padding:4px; text-align:left;">Descripción</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:4px;">Sharpe Ratio</td>
+                        <td style="padding:4px; color:var(--accent);">&gt; 2.0</td>
                         <td style="padding:4px;">Retorno ajustado por volatilidad</td>
-                        <td style="padding:4px; color:var(--accent);">> 2.0</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:4px;">Sortino Ratio</td>
-                        <td style="padding:4px;">Sharpe considerando downside</td>
-                        <td style="padding:4px; color:var(--accent);">> 2.5</td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:4px;">Max Drawdown</td>
-                        <td style="padding:4px;">Pérdida máxima desde pico</td>
                         <td style="padding:4px; color:var(--red);">&lt; 10%</td>
+                        <td style="padding:4px;">Pérdida máxima desde pico</td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:4px;">Calmar Ratio</td>
-                        <td style="padding:4px;">Return / Max DD anualizado</td>
-                        <td style="padding:4px; color:var(--accent);">> 2.0</td>
+                        <td style="padding:4px;">Win Rate</td>
+                        <td style="padding:4px; color:var(--accent);">&gt; 55%</td>
+                        <td style="padding:4px;">% trades (retests) rentables</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:4px;">Oracle Accuracy</td>
+                        <td style="padding:4px; color:var(--accent);">&gt; 65%</td>
+                        <td style="padding:4px;">Precisión del Meta-Labeling model</td>
                     </tr>
                     <tr>
-                        <td style="padding:4px;">Win Rate</td>
-                        <td style="padding:4px;">% trades rentables</td>
-                        <td style="padding:4px; color:var(--accent);">> 55%</td>
+                        <td style="padding:4px;">Calmar Ratio</td>
+                        <td style="padding:4px; color:var(--accent);">&gt; 2.0</td>
+                        <td style="padding:4px;">Return / Max DD anualizado</td>
                     </tr>
                 </tbody>
             </table>
+
+            <h4 style="color:var(--accent); margin-bottom:8px;">Walk-Forward Validation</h4>
+            <p style="font-size:11px; margin-bottom:8px;">Mínimo 3 ventanas temporales. Cada ventana: periodo in-sample (train) + out-of-sample (OOS). El No-Leakage Gate verifica que ningún feature use información futura. Si <code>train_end ≥ oos_start</code>, el experimento es rechazado automáticamente.</p>
+            <div style="padding:8px; background:rgba(0,212,170,0.05); border-radius:6px; font-size:11px;">
+                Promoción a nivel 4 (STRATEGY) requiere: <strong>sharpe_like &gt; 1.5</strong> + aprobación humana + NexusGate.
+            </div>
         `
     },
     {
+        cat: 'doc',
+        title: '📚 Estructura del Proyecto CGAlpha v3',
+        icon: '📚',
+        content: `
+            <pre style="background:var(--bg3); padding:12px; border-radius:8px; font-size:10px; overflow-x:auto; line-height:1.4;">
+CGAlpha_0.0.1-Aipha_0.0.3/
+├── LILA_v3_NORTH_STAR.md          # Documento fundacional (1300+ líneas)
+├── cgalpha_v3/                    # Código fuente v3
+│   ├── application/               # Capa de aplicación
+│   │   ├── pipeline.py            # TripleCoincidencePipeline
+│   │   ├── experiment_runner.py   # Walk-Forward validation
+│   │   ├── change_proposer.py     # AutoProposer
+│   │   └── rollback_manager.py    # Snapshot/restore
+│   ├── domain/                    # Modelos de dominio
+│   │   ├── models/signal.py       # ApproachType, TRIPLE_COINCIDENCE
+│   │   └── records.py             # MicrostructureRecord, ZoneState
+│   ├── infrastructure/            # Infraestructura
+│   │   ├── signal_detector/       # TripleCoincidenceDetector
+│   │   └── binance_data.py        # BinanceVisionFetcher_v3
+│   ├── indicators/                # Indicadores técnicos
+│   │   ├── zone_monitors.py       # ZonePhysicsMonitor_v3
+│   │   └── legacy_signals.py      # VWAP, OBI, CumDelta
+│   ├── lila/                      # Motor de conocimiento
+│   │   ├── llm/oracle.py          # OracleTrainer_v3 (ML)
+│   │   ├── llm/proposer.py        # AutoProposer
+│   │   ├── nexus/gate.py          # NexusGate
+│   │   └── library_manager.py     # Gestión de fuentes
+│   ├── trading/shadow_trader.py   # ShadowTrader (virtual)
+│   ├── gui/                       # Frontend + Backend
+│   │   ├── server.py              # Flask (1900+ líneas, 30+ endpoints)
+│   │   └── static/                # HTML/CSS/JS
+│   ├── docs/                      # Documentación técnica
+│   ├── memory/                    # Persistencia de memoria
+│   └── tests/                     # 118 tests automatizados
+└── legacy_vault/                  # Bóveda Capa 1 (herencia)</pre>
+        `
+    },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: AUDITORÍA
+    // ═══════════════════════════════════════════════════
+    {
         cat: 'auditoria',
-        title: 'Protocolo de Hardening P3',
+        title: '🔒 Protocolo de Hardening P3',
         icon: '🔒',
         content: `
             <p>La Fase P3 representa el estado de "Producción Endurecida". Incluye:</p>
             <ul style="margin-left:20px; margin-top:8px; font-size:13px; color:var(--text-dim);">
-                <li><strong>No-Leakage E2E:</strong> Pruebas que garantizan que el sistema no conoce el futuro durante el backtesting.</li>
-                <li><strong>Rollback Atómico:</strong> Capacidad de volver a un estado estable (Snapshot) en &lt;2 segundos si se detecta deriva de métricas.</li>
-                <li><strong>Change Proposer:</strong> Todas las modificaciones al código son propuestas por Lila y deben ser validadas por el pipeline de tests automáticos.</li>
+                <li><strong>No-Leakage E2E:</strong> Pruebas matemáticas que garantizan que el sistema no usa información del futuro durante backtesting. Gate automático en cada ExperimentRunner.run().</li>
+                <li><strong>Rollback Atómico:</strong> Capacidad de volver a un estado estable (Snapshot) si se detecta deriva de métricas. Snapshots automáticos + manuales desde GUI.</li>
+                <li><strong>Change Proposer:</strong> Todas las modificaciones son propuestas por Lila/AutoProposer y deben ser validadas por Walk-Forward + aprobación humana.</li>
+                <li><strong>ADN Permanente:</strong> Solo componentes con ΔCausal &gt; 0 verificado en OOS alcanzan Capa 2. El resto permanece en Capa 1 (provisional) hasta validación.</li>
             </ul>
         `
     },
     {
         cat: 'auditoria',
-        title: 'Logs y Debugging',
-        icon: '📝',
-        content: `
-            <p>Sistema de logging multinivel:</p>
-            <ul style="margin-left:20px; margin-top:8px; font-size:12px; color:var(--text-dim);">
-                <li><strong style="color:var(--red);">ERROR:</strong> Fallos críticos que requieren acción inmediata</li>
-                <li><strong style="color:orange;">WARN:</strong> Anomalías que no bloquean pero deben investigarse</li>
-                <li><strong style="color:var(--accent);">INFO:</strong> Eventos normales del sistema</li>
-                <li><strong>DEBUG:</strong> Detalle técnico para troubleshooting</li>
-            </ul>
-            <p style="margin-top:10px; font-size:11px;">Filtre logs por: símbolo, nivel, timestamp, o módulo. Exporte a archivo para análisis offline.</p>
-        `
-    },
-    {
-        cat: 'auditoria',
-        title: 'Rollback y Recovery',
+        title: '↩️ Rollback y Recovery',
         icon: '↩️',
         content: `
             <p>El sistema mantiene snapshots para recovery:</p>
             <ol style="margin-left:20px; margin-top:8px; font-size:12px; color:var(--text-dim);">
-                <li><strong>Auto-snapshot:</strong> Cada 10 minutos o antes de cambios significativos</li>
-                <li><strong>Manual snapshot:</strong> Antes de updates mayores</li>
-                <li><strong>Restore:</strong> Seleccione snapshot y confirme - sistema reinicia en ~30s</li>
-                <li><strong>Diff:</strong> Compare dos snapshots para ver qué cambió</li>
+                <li><strong>Auto-snapshot:</strong> Antes de cada cambio de parámetros o ejecución de experimento</li>
+                <li><strong>Manual snapshot:</strong> Disponible desde Mission Control (botón Restaurar)</li>
+                <li><strong>Restore:</strong> Seleccione snapshot → Restaurar → sistema reinicia con configuración del snapshot</li>
             </ol>
             <div style="margin-top:10px; padding:8px; background:rgba(255,107,107,0.08); border-radius:6px; font-size:11px;">
-                <strong style="color:var(--red);">⚠️ Importante:</strong> El restore solo afecta la config/estrategias. Las posiciones reales deben cerrarse manualmente.
+                <strong style="color:var(--red);">⚠️ Importante:</strong> El restore solo afecta config, memoria y estado de experimentos. Los datos de mercado son externos e inmutables.
             </div>
         `
     },
@@ -1674,37 +1924,37 @@ management_science, quantitative_finance
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px; color:var(--red); font-family:monospace;">Unauthorized</td>
                         <td style="padding:6px;">Token faltante o incorrecto</td>
-                        <td style="padding:6px;">Agregar header <code>Authorization: Bearer &lt;token&gt;</code></td>
+                        <td style="padding:6px;">Header <code>Authorization: Bearer &lt;token&gt;</code></td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px; color:var(--red); font-family:monospace;">temporal_leakage</td>
-                        <td style="padding:6px;">Feature timestamp > OOS start</td>
-                        <td style="padding:6px;">Verificar timestamps en datos de entrada</td>
+                        <td style="padding:6px;">Feature usa datos del futuro</td>
+                        <td style="padding:6px;">Verificar train_end &lt; oos_start</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:6px; color:var(--red); font-family:monospace;">primary_source_gap</td>
+                        <td style="padding:6px;">Claim sin fuente primary</td>
+                        <td style="padding:6px;">Ingestar fuente con source_type=primary</td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px; color:var(--red); font-family:monospace;">production_gate_rejected</td>
                         <td style="padding:6px;">Promoción sin validación</td>
-                        <td style="padding:6px;">Ejecutar experimento con sharpe > 1.5</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--red); font-family:monospace;">primary_source_gap</td>
-                        <td style="padding:6px;">Claim sin fuente primaria</td>
-                        <td style="padding:6px;">Ingestar fuente con source_type=primary</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:6px; color:var(--red); font-family:monospace;">invalid_approach_type</td>
-                        <td style="padding:6px;">Valor no en taxonomía</td>
-                        <td style="padding:6px;">Usar TOUCH|RETEST|REJECTION|BREAKOUT|OVERSHOOT|FAKE_BREAK</td>
+                        <td style="padding:6px;">Ejecutar experimento con sharpe &gt; 1.5</td>
                     </tr>
                     <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px; color:var(--red); font-family:monospace;">insufficient_windows</td>
-                        <td style="padding:6px;">Walk-forward < 3 ventanas</td>
+                        <td style="padding:6px;">Walk-forward &lt; 3 ventanas</td>
                         <td style="padding:6px;">Proporcionar más datos históricos</td>
                     </tr>
-                    <tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                         <td style="padding:6px; color:var(--red); font-family:monospace;">regime_shift_detected</td>
-                        <td style="padding:6px;">Volatilidad > 2σ del baseline</td>
-                        <td style="padding:6px;">Revisar parámetros o degradar memoria</td>
+                        <td style="padding:6px;">Volatilidad &gt; 2σ del baseline</td>
+                        <td style="padding:6px;">Revisar parámetros, degradar memoria si necesario</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px; color:var(--red); font-family:monospace;">ImportError</td>
+                        <td style="padding:6px;">Módulo no encontrado</td>
+                        <td style="padding:6px;">Verificar PYTHONPATH e instalación de dependencias</td>
                     </tr>
                 </tbody>
             </table>
@@ -1712,55 +1962,45 @@ management_science, quantitative_finance
     },
     {
         cat: 'auditoria',
-        title: '🔒 Producción — Consideraciones de Seguridad',
+        title: '🔒 Producción — Seguridad',
         icon: '🔒',
         content: `
             <h4 style="color:var(--accent); margin-bottom:8px;">Token de autenticación</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-family:monospace; font-size:11px; margin-bottom:12px;">
-# Generar token seguro (32+ caracteres)
+# Generar token seguro (32+ caracteres)<br>
 export CGV3_AUTH_TOKEN="$(openssl rand -hex 32)"
             </div>
-            
-            <h4 style="color:var(--accent); margin-bottom:8px;">Reverse Proxy (nginx)</h4>
-            <div style="background:var(--bg3); padding:10px; border-radius:6px; font-size:11px; margin-bottom:12px;">
-server {<br>
-&nbsp;&nbsp;listen 443 ssl;<br>
-&nbsp;&nbsp;server_name control.tudominio.com;<br>
-&nbsp;&nbsp;ssl_certificate /path/to/cert.pem;<br>
-&nbsp;&nbsp;ssl_certificate_key /path/to/key.pem;<br>
-<br>
-&nbsp;&nbsp;location / {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://127.0.0.1:8080;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host $host;<br>
-&nbsp;&nbsp;}<br>
-}
-            </div>
-            
+
             <h4 style="color:var(--accent); margin-bottom:8px;">Health Checks</h4>
             <div style="background:var(--bg3); padding:10px; border-radius:6px; font-size:11px;">
 GET /api/status → Monitorear system_status, data_quality<br>
-GET /api/events → Alertar si hay eventos con severity=critical
+GET /api/events → Alertar si hay eventos con severity=critical<br>
+GET /api/vault/status → Verificar 7 componentes ACTIVE
             </div>
         `
     },
+
+    // ═══════════════════════════════════════════════════
+    // CATEGORÍA: FAQ
+    // ═══════════════════════════════════════════════════
     {
         cat: 'faq',
         title: 'Preguntas Frecuentes (FAQ)',
         icon: '❓',
         isFaq: true,
         items: [
-            { q: '¿Qué es el Temporal Leakage?', a: 'Es un error común donde el algoritmo usa datos del futuro (inconscientemente) para entrenarse. CGAlpha tiene gates matemáticos que bloquean cualquier experimento con leakage detectado (error: temporal_leakage).' },
-            { q: '¿Por qué el Kill-Switch está armado por defecto?', a: 'Es un protocolo de seguridad operativa. Al arrancar, el sistema debe estar en estado “armed” para poder detenerse inmediatamente ante una anomalía detectada por Risk Dashboard.' },
-            { q: '¿Cómo añado nuevos papers a la Library?', a: 'Ve a la pestaña Library, rellena el formulario de Ingesta (título, autores, venue, abstract, etc.) y haz clic en “Ingestar”. Si el venue está en la lista de primarios (ACL, NeurIPS, JOF, etc.), se clasificará automáticamente como primary.' },
-            { q: '¿Qué significa "Regime Shift Detected"?', a: 'El MemoryPolicyEngine detectó que la volatilidad actual supera 2 desviaciones estándar del baseline. Esto puede degradar automáticamente entradas de memoria de nivel alto (PLAYBOOKS/STRATEGY) a nivel más bajo para evitar decisiones obsoletas.' },
-            { q: '¿Puedo operar en modo live con dinero real?', a: 'No en FASE 0. La GUI actual es “Control Room” con datos mock (precios simulados). La fase actual sirve para validar lógica de riesgo, Library y Memory antes de conectar exchanges reales.' },
-            { q: '¿Cómo funciona el Experiment Loop?', a: 'Crea una Proposal (hipótesis + approach_types), ejecútala con “Run Experiment”. El sistema hará walk-forward validation (≥3 ventanas) y calculará métricas (sharpe, sortino, max_dd). Solo con sharpe > 1.5 y aprobación humana se puede promover a STRATEGY.' },
-            { q: '¿Qué pasa si el servidor pierde conexión?', a: 'La GUI dejará de recibir polling (cada 5s). El indicador de pulso se apagará (gris) y mostrará último estado conocido. Al recuperar conexión, se sincroniza automáticamente vía /api/status.' },
-            { q: '¿Cómo hago rollback si algo sale mal?', a: 'En Mission Control se listan los snapshots disponibles. Selecciona uno y pulsa “Restaurar”. Esto recupera configuración, memoria y estado de experimentos al momento del snapshot (SLA <60s).' },
-            { q: '¿Cómo contacto soporte?', a: 'Revisa la documentación en Help > Documentación y README.md. Para consultas técnicas, usa el chat de Lila con comandos como /status o /risk. No hay soporte telefónico ni email en esta versión.' },
-            { q: '¿Cuántas ventanas mínimas necesita walk-forward?', a: 'Mínimo 3 ventanas para validación estadística. Cada ventana debe tener suficientes datos para entrenamiento (in-sample) y test out-of-sample (OOS).' },
-            { q: '¿Cómo promuevo una entrada de memoria a STRATEGY?', a: 'Requisitos: (1) Experimento validado con sharpe_like > 1.5, (2) Aprobación humana (approver_by), (3) Ejecutar POST /api/learning/memory/promote con target_level=4. El Production Gate validará automáticamente.' },
-            { q: '¿Qué significa "primary_source_gap"?', a: 'Aparece cuando intentas validar un claim (hipótesis) pero no hay fuentes primary (ev_level=1) en la Library que lo respalden. Solución: ingesta al menos una fuente primary relacionada con el claim.' }
+            { q: '¿Qué es la Triple Coincidence Strategy?', a: 'Es la estrategia fundacional de CGAlpha v3. Detecta zonas de alta probabilidad cuando tres señales independientes convergen: vela clave (absorción institucional), zona de acumulación (consolidación + volumen), y mini-tendencia (ZigZag con R² > 0.45). A diferencia de la v2, NO opera en la detección sino que espera el retest y captura features de microestructura en ESE momento.' },
+            { q: '¿Por qué las features se capturan EN el retest y no en la detección?', a: 'Porque las condiciones del mercado en el momento del retest son más predictivas que las condiciones en la detección. La zona puede haberse detectado hace 30 velas, pero el estado del order book (OBI), el delta acumulado y el VWAP EN el retest reflejan la presión actual del mercado, que es lo que determina si el precio rebotará (BOUNCE) o romperá (BREAKOUT).' },
+            { q: '¿Qué es el Oracle y cómo funciona?', a: 'El OracleTrainer_v3 implementa Meta-Labeling: un modelo ML secundario que predice si una señal del detector primario será exitosa. Se entrena con pares {features_retest → outcome}. Su predicción (confidence score) filtra señales: solo con confidence > 0.70 se opera. El modelo se re-entrena incrementalmente con cada nuevo retest observado.' },
+            { q: '¿Qué es el Temporal Leakage?', a: 'Error donde el algoritmo usa datos del futuro. CGAlpha tiene gates matemáticos en cada ExperimentRunner que bloquean cualquier experimento con leakage. Si train_end >= oos_start, el experimento es rechazado automáticamente con error: temporal_leakage.' },
+            { q: '¿Cómo funciona la memoria de 5 niveles?', a: 'Nivel 0a (Meta-Cognitivo/Principios, TTL 24h) → 0b (Papers, TTL 7d) → 1 (Almacenamiento operacional, TTL 30d) → 2 (Recuperación semántica, TTL 90d) → 3 (Playbooks, permanente, aprobación humana) → 4 (Estrategia/ADN, permanente, requiere NexusGate + Sharpe > 1.5).' },
+            { q: '¿Cómo funciona el Experiment Loop?', a: 'Crea una Proposal (hipótesis + approach_types), ejecútala con "Run Experiment". El sistema hace Walk-Forward validation (≥3 ventanas temporal) calculando métricas netas post-fricción (fees + slippage). Solo con sharpe > 1.5, human_approval y ΔCausal > 0 se puede promover a nivel 4 (STRATEGY).' },
+            { q: '¿Puedo operar en modo live?', a: 'No en Fase 0. La GUI actual es Control Room con datos mock (precios simulados). El pipeline está diseñado para generar dataset de entrenamiento del Oracle via backtesting intensivo. La conexión WebSocket a Binance para datos reales está planificada para fases posteriores.' },
+            { q: '¿Qué es el NexusGate?', a: 'El NexusGate es el árbitro final del pipeline. Su gate es binario: PROMOTE_TO_LAYER_2 o REJECT. Condiciones: ΔCausal > 0 (mejora causal demostrada en OOS), blind_test_ratio ≤ 0.25, test_coverage ≥ 0.80, oos_hit_rate_improvement > 0, y human_approval == True.' },
+            { q: '¿Cómo se evoluciona la estrategia sin predefinir los pasos?', a: 'El ciclo evolutivo es emergente: (1) ejecutar estrategia → (2) analizar datos reales → (3) AutoProposer detecta drift y propone mejora → (4) Lila busca soporte teórico en Library → (5) si hay gap, genera backlog para buscar fuentes → (6) se valida con Walk-Forward → (7) el resultado genera la siguiente propuesta. Cada paso nace del anterior, no de un plan predefinido.' },
+            { q: '¿Qué es "primary_source_gap"?', a: 'Aparece cuando intentas validar un claim (hipótesis) pero no hay fuentes primary (peer-reviewed, ev_level=1) en la Library que lo respalden. Solución: ingestar al menos una fuente primary. Esto asegura que las decisiones del sistema tienen base científica verificable.' },
+            { q: '¿Cómo hago rollback si algo sale mal?', a: 'En Mission Control se listan los snapshots disponibles. Selecciona uno y pulsa "Restaurar". Esto recupera configuración, memoria y estado de experimentos al momento del snapshot.' },
+            { q: '¿Qué son los 7 componentes del ADN Permanente?', a: 'BinanceVisionFetcher_v3 (datos), TripleCoincidenceDetector (detección + retest), ZonePhysicsMonitor_v3 (física del retest), ShadowTrader (posiciones virtuales), OracleTrainer_v3 (Meta-Labeling), NexusGate (gate binario), AutoProposer (drift + mejoras). Cada componente tiene su origen en la Bóveda legacy y ha sido adaptado y validado para v3.' }
         ]
     }
 ];
@@ -1824,18 +2064,18 @@ function renderHelpArticles(data, searchQuery = '') {
                 const qHtml = searchQuery ? highlightMatch(faq.q, searchQuery) : faq.q;
                 const aHtml = searchQuery ? highlightMatch(faq.a, searchQuery) : faq.a;
                 fdiv.innerHTML = `
-                    <div class="help-faq-q" onclick="toggleFaq('${item.cat}', ${idx})">${qHtml} <span class="faq-arrow">▼</span></div>
-                    <div class="help-faq-a" id="faq-${item.cat}-${idx}">${aHtml}</div>
-                `;
+<div class="help-faq-q" onclick="toggleFaq('${item.cat}', ${idx})">${qHtml} <span class="faq-arrow">▼</span></div>
+                                                                                                                <div class="help-faq-a" id="faq-${item.cat}-${idx}">${aHtml}</div>
+                                                                                                                `;
                 div.appendChild(fdiv);
             });
         } else {
             const titleHtml = searchQuery ? highlightMatch(item.title, searchQuery) : item.title;
             const contentHtml = searchQuery ? highlightMatch(item.content, searchQuery) : item.content;
             div.innerHTML = `
-                <h4>${item.icon} ${titleHtml}</h4>
-                <p>${contentHtml}</p>
-            `;
+                                                                                                                <h4>${item.icon} ${titleHtml}</h4>
+                                                                                                                <p>${contentHtml}</p>
+                                                                                                                `;
         }
         fragment.appendChild(div);
     });
