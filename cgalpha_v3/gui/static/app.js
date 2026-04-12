@@ -1688,6 +1688,54 @@ Binance Vision ──► OHLCV 5m/1h ──► TripleCoincidence ──► Activ
     // ═══════════════════════════════════════════════════
     {
         cat: 'riesgo',
+        title: '🛑 Panic Button — Cierre de Emergencia',
+        icon: '🛑',
+        content: `
+            <p style="margin-bottom:10px; font-size:12px;">Situado en el <strong>Risk Dashboard</strong>, el botón <strong style="color:var(--red);">PANIC CLOSE ALL</strong> es la medida de seguridad definitiva.</p>
+            <ul style="font-size:11px; color:var(--text-dim); padding-left:15px; margin-bottom:12px;">
+                <li>Liquida instantáneamente todas las posiciones abiertas (BTC y ETH).</li>
+                <li>Cancela cualquier orden pendiente en el ShadowTrader.</li>
+                <li>Registra un evento de 'USER_PANIC' en los logs de auditoría para análisis post-mortem.</li>
+            </ul>
+            <div style="background:rgba(255,107,107,0.08); padding:10px; border-radius:8px; border-left:3px solid var(--red); font-size:11px;">
+                <strong>Uso recomendado:</strong> Durante eventos de cisne negro o anomalías técnicas imprevistas.
+            </div>
+        `
+    },
+    {
+        cat: 'riesgo',
+        title: '🎯 Profit Target & Daily Stop',
+        icon: '🎯',
+        content: `
+            <p style="margin-bottom:10px; font-size:12px;">El sistema implementa un <strong>Kill-Switch Psicológico</strong> para proteger las ganancias y limitar las rachas negativas.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                <div style="background:rgba(0,212,170,0.08); padding:10px; border-radius:8px; border-top:3px solid var(--accent);">
+                    <strong style="color:var(--accent);">Daily Profit: +2.0%</strong><br>
+                    Al alcanzar este hito, el sistema se pausa (READY → PAUSED).
+                </div>
+                <div style="background:rgba(255,107,107,0.08); padding:10px; border-radius:8px; border-top:3px solid var(--red);">
+                    <strong style="color:var(--red);">Daily Stop: -1.5%</strong><br>
+                    Límite máximo de pérdida por sesión para preservar capital.
+                </div>
+            </div>
+            <p style="font-size:11px;">El estado actual puede monitorearse en el campo <strong>Daily Target</strong> de la sección Mission Control.</p>
+        `
+    },
+    {
+        cat: 'riesgo',
+        title: '🔊 Alertas Audibles y Mute',
+        icon: '🔊',
+        content: `
+            <p style="margin-bottom:10px; font-size:12px;">Manténgase informado sin mirar la pantalla mediante el motor de audio sintético.</p>
+            <ul style="font-size:11px; color:var(--text-dim); padding-left:15px; margin-bottom:12px;">
+                <li><strong>Señal Detectada:</strong> Emite un tono de 440Hz (La) cada vez que una señal supera el umbral del Oracle.</li>
+                <li><strong>Control de Silencio:</strong> Use el icono de altavoz en el TopBar para alternar entre 🔊 y 🔇.</li>
+            </ul>
+            <p style="font-size:11px; opacity:0.8;">El sistema no requiere archivos de audio externos; genera los tonos dinámicamente usando la Web Audio API.</p>
+        `
+    },
+    {
+        cat: 'riesgo',
         title: '🛡️ Kill-Switch y Circuit Breakers',
         icon: '🛡️',
         content: `
