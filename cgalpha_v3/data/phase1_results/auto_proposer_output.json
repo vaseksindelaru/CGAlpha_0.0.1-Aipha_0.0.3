@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-04-12T01:15:09.808996+00:00",
+  "input_metrics": {
+    "oracle_accuracy_oos": 1.0,
+    "oracle_precision_oos": 1.0,
+    "oracle_recall_oos": 1.0,
+    "max_drawdown_pct": 0.25046666666666667,
+    "win_rate_pct": 50.0,
+    "sharpe_neto": 1.1372333333333333,
+    "feature_importances": {
+      "vwap_at_retest": 0.0758,
+      "obi_10_at_retest": 0.0571,
+      "cumulative_delta_at_retest": 0.072,
+      "delta_divergence": 0.0037,
+      "atr_14": 0.0776,
+      "regime": 0.0433,
+      "direction": 0.0037
+    },
+    "net_return_pct": 1.4124333333333334
+  },
+  "proposals": [
+    {
+      "change_type": "feature",
+      "target_file": "cgalpha_v3/lila/llm/oracle.py",
+      "target_attribute": "feature:delta_divergence",
+      "old_value": 0.0037,
+      "new_value": 0.0,
+      "reason": "Feature 'delta_divergence' tiene importancia=0.0037 (<5%). Candidata a simplificación o eliminación.",
+      "causal_score_est": 0.3,
+      "confidence": 0.5
+    },
+    {
+      "change_type": "feature",
+      "target_file": "cgalpha_v3/lila/llm/oracle.py",
+      "target_attribute": "feature:regime",
+      "old_value": 0.0433,
+      "new_value": 0.0,
+      "reason": "Feature 'regime' tiene importancia=0.0433 (<5%). Candidata a simplificación o eliminación.",
+      "causal_score_est": 0.3,
+      "confidence": 0.5
+    },
+    {
+      "change_type": "feature",
+      "target_file": "cgalpha_v3/lila/llm/oracle.py",
+      "target_attribute": "feature:direction",
+      "old_value": 0.0037,
+      "new_value": 0.0,
+      "reason": "Feature 'direction' tiene importancia=0.0037 (<5%). Candidata a simplificación o eliminación.",
+      "causal_score_est": 0.3,
+      "confidence": 0.5
+    }
+  ]
+}
