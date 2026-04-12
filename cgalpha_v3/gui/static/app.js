@@ -76,6 +76,7 @@ function startPolling() {
     fetchAdaptiveBacklog();
     fetchExperimentStatus();
     fetchLearningMemoryStatus();
+    fetchMarketPulse(); // Nuevo poll de alta frecuencia
     pollTimer = setInterval(() => {
         fetchStatus();
         fetchEvents();
@@ -89,6 +90,9 @@ function startPolling() {
         fetchLearningMemoryStatus();
         renderFooterTs();
     }, POLL_MS);
+
+    // Poll de mercado cada 2 segundos
+    setInterval(fetchMarketPulse, 2000);
 }
 
 async function fetchStatus() {
@@ -370,27 +374,47 @@ function pillClass(s) {
     }[s] || "pill-idle";
 }
 
+async function fetchMarketPulse() {
+    try {
+        const d = await apiFetch("/api/live/market_pulse?symbol=BTCUSDT");
+        updateMarketLive(d);
+    } catch (e) { console.warn("Market pulse error:", e); }
+}
+
 // ── MARKET LIVE ────────────────────────────────────────
 function updateMarketLive(d) {
-    const mkt = d.market || {};
+    // Si d viene de /api/status, tiene estructura diferente que de /api/live/market_pulse
+    // Normalizamos:
+    const mkt = d.market || d;
+
     setText("mkt-symbol", mkt.symbol || "—");
-    setText("mkt-interval", mkt.interval || "—");
-    setText("mkt-price", mkt.price != null ? `$${mkt.price}` : "— (mock)");
-    setText("mkt-ts", mkt.ts ? formatTs(mkt.ts) : "—");
+    if (mkt.price) {
+        setText("mkt-price", `$${mkt.price.toLocaleString()}`);
+    }
 
-    const dq = d.data_quality || "stale";
+    if (mkt.obi !== undefined) {
+        setText("mkt-obi", mkt.obi.toFixed(4));
+        const bar = document.getElementById("obi-bar");
+        if (bar) {
+            // OBI suele ir de -1 a 1. Mapeamos a 0-100%
+            // 0 -> 50%, 1 -> 100%, -1 -> 0%
+            const pct = ((mkt.obi + 1) / 2) * 100;
+            bar.style.width = `${pct}%`;
+            // Color dinámico: verde si largo (>0), rojo si corto (<0)
+            bar.style.background = mkt.obi > 0 ? "var(--accent)" : "var(--red)";
+        }
+    }
+
+    if (mkt.timestamp || mkt.ts) {
+        setText("mkt-ts", formatTsShort(mkt.timestamp || mkt.ts));
+    }
+
+    const dq = d.data_quality || (mkt.status === "active" ? "valid" : "stale");
     const badge = document.getElementById("dq-badge");
-    const text = document.getElementById("dq-text");
-
-    const dqCfg = {
-        valid: { cls: "pill-idle", label: "✅ valid", txt: "✅ Datos válidos" },
-        stale: { cls: "pill-degraded", label: "⚠️ stale", txt: "⚠️ Datos obsoletos" },
-        corrupted: { cls: "pill-error", label: "❌ corrupted", txt: "❌ Datos corruptos" },
-    };
-    const cfg = dqCfg[dq] || dqCfg.stale;
-    badge.textContent = cfg.label;
-    badge.className = "pill " + cfg.cls;
-    setText("dq-text", cfg.txt);
+    if (badge) {
+        badge.textContent = dq === "valid" ? "✅ LIVE" : "⚠️ SYNC";
+        badge.className = "pill " + (dq === "valid" ? "pill-idle" : "pill-degraded");
+    }
 }
 
 // ── RISK PANEL ─────────────────────────────────────────

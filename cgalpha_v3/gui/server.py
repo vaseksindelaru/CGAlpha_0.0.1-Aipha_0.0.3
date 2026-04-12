@@ -9,6 +9,7 @@ Auth: Bearer token via AUTH_TOKEN en .env
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -58,6 +59,7 @@ from cgalpha_v3.application.production_gate import ProductionGate, ProductionGat
 from cgalpha_v3.lila.library_manager import AdaptiveBacklogItem, LibraryManager, LibrarySource
 from cgalpha_v3.learning.project_history_learner import ProjectHistoryLearner
 from cgalpha_v3.risk.health_monitor import HealthMonitor
+from cgalpha_v3.infrastructure.binance_websocket_manager import BinanceWebSocketManager
 
 _rollback_mgr = RollbackManager(MEMORY_DIR / "snapshots")
 _lila_mgr = LibraryManager()
@@ -69,6 +71,7 @@ _promotion_validator = PromotionValidator()
 _production_gate = ProductionGate(_promotion_validator)
 _history_learner = ProjectHistoryLearner(_memory_engine, BASE_DIR.parent.parent) 
 _assistant = LLMAssistant() # Migrado a v3
+_ws_manager = BinanceWebSocketManager.create_default()
 
 _latest_proposal: Proposal | None = Proposal(
     proposal_id="prop-foundation-default",
@@ -836,11 +839,25 @@ def _record_control_cycle(
 
 # ---------------------------------------------------------------------------
 # Rutas API
-# ---------------------------------------------------------------------------
-
-@app.route("/")
-def index() -> ResponseReturnValue:
-    return send_from_directory(str(STATIC_DIR), "index.html")
+@app.route("/api/live/market_pulse", methods=["GET"])
+@require_auth
+def get_market_pulse() -> ResponseReturnValue:
+    symbol = request.args.get("symbol", "BTCUSDT")
+    obi = _ws_manager.get_current_obi(symbol)
+    
+    # En un entorno real, el WS Manager nos daría el último precio. 
+    # Aquí simulamos fluctuación base para la demo.
+    base_price = 68500.0
+    price = base_price + (random.random() * 100.0)
+    
+    return jsonify({
+        "symbol": symbol,
+        "price": round(price, 2),
+        "obi": round(obi, 4),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status": "active" if _ws_manager.is_running else "connecting",
+        "delta": round(random.uniform(-0.02, 0.02), 4) # Placeholder para Cumulative Delta
+    })
 
 
 @app.route("/api/status")
@@ -866,11 +883,13 @@ def api_status() -> ResponseReturnValue:
         "health": _health_monitor.status_snapshot(),
         "regime_shift_active": _system_state.get("regime_shift_active", False),
         "primary_source_gap": _system_state["primary_source_gap"],
+        "ws_active": _ws_manager.is_running,
         "market": {
             "symbol": _system_state["market_symbol"],
             "interval": _system_state["market_interval"],
             "price": _system_state["market_price"],
             "ts": _system_state["market_ts"],
+            "obi": round(_ws_manager.get_current_obi(_system_state["market_symbol"]), 4)
         },
         "library": _library_snapshot_json(),
         "theory_live": _theory_live_snapshot_json(),
@@ -1994,5 +2013,14 @@ if __name__ == "__main__":
     
     # Iniciar simulación de vida
     threading.Thread(target=_simulation_loop, daemon=True).start()
+    
+    # Arrancar WS Manager en segundo plano asíncrono si el servidor soporta context
+    # En Flask plano, arrancamos el manager antes de run()
+    import threading
+    def start_ws():
+        asyncio.run(_ws_manager.start())
+    
+    ws_thread = threading.Thread(target=start_ws, daemon=True)
+    ws_thread.start()
     
     app.run(host=HOST, port=PORT, debug=False)

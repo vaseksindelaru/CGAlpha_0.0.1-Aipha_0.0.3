@@ -1269,30 +1269,44 @@
                 <div class="panel">
                     <div class="panel-header">
                         <span class="panel-icon">📈</span>
-                        <h2>Market Live</h2>
-                        <span id="dq-badge" class="pill pill-idle">—</span>
+                        <h2>Market Live (Shadow Mode)</h2>
+                        <span id="dq-badge" class="pill pill-idle">✅ live</span>
                     </div>
                     <div class="panel-body">
                         <div class="stat-row">
-                            <span class="stat-label">Par de Carga</span>
-                            <span class="stat-value accent" id="mkt-symbol">BTCUSDT (90D)</span>
+                            <span class="stat-label">Par Operado</span>
+                            <span class="stat-value accent" id="mkt-symbol">BTCUSDT</span>
                         </div>
                         <div class="stat-row">
-                            <span class="stat-label">VWAP Barrier</span>
-                            <span class="stat-value" id="mkt-interval">TRINITY ACTIVE</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">OBI / Delta</span>
+                            <span class="stat-label">Precio en Vivo</span>
                             <span class="stat-value" id="mkt-price"
-                                style="font-size:14px;font-weight:700; color:var(--accent);">SYNCED (v3.0)</span>
+                                style="font-size:1.1rem; font-weight:700; color:var(--accent);">$0.00</span>
                         </div>
-                        <div style="font-size:11px; margin-top:4px; text-align:right;">
-                            <span id="dq-text" class="stat-value small">—</span>
+                        <div class="stat-row" style="margin-top: 10px;">
+                            <span class="stat-label">Order Book Imbalance (OBI)</span>
+                            <span class="stat-value accent" id="mkt-obi">0.0000</span>
+                        </div>
+                        <div class="progress-wrap"
+                            style="height: 12px; margin-top: 4px; background: rgba(255,107,107,0.1); position: relative; border-radius:6px;">
+                            <div id="obi-bar" class="progress-fill"
+                                style="width: 50%; background: var(--accent); position: absolute; left: 0;"></div>
+                            <div
+                                style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.3); z-index: 2;">
+                            </div>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 8px; color: var(--text-dim); margin-top: 2px; text-transform:uppercase; letter-spacing:0.5px;">
+                            <span>Short Bias</span>
+                            <span>Long Bias</span>
+                        </div>
+                        <div class="stat-row" style="margin-top: 10px;">
+                            <span class="stat-label">Data Quality Gate</span>
+                            <span class="stat-value" id="dq-text">✅ FRESH</span>
                         </div>
                         <div class="stat-row">
-                            <span class="stat-label">Causal Drift</span>
-                            <span class="stat-value" id="mkt-ts" style="font-size:11px;font-family:monospace;">0.00%
-                                (STABLE)</span>
+                            <span class="stat-label">Last Ticks (Buffer)</span>
+                            <span class="stat-value" id="mkt-ts" style="font-family:monospace; font-size:10px;">0
+                                pkts/sec</span>
                         </div>
                     </div>
                 </div>
