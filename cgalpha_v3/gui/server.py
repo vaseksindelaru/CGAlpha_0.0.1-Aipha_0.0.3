@@ -907,6 +907,8 @@ def api_status() -> ResponseReturnValue:
         "regime_shift_active": _system_state.get("regime_shift_active", False),
         "primary_source_gap": _system_state["primary_source_gap"],
         "ws_active": _ws_manager.is_running,
+        "delta_causal": _shadow_trader.delta_causal,
+        "nexus_gate_open": _shadow_trader.nexus.is_safe(_shadow_trader.delta_causal),
         "market": {
             "symbol": _system_state["market_symbol"],
             "interval": _system_state["market_interval"],

@@ -407,9 +407,8 @@ function updateMarketLive(d) {
         }
     }
 
-    if (mkt.timestamp || mkt.ts) {
-        setText("mkt-ts", formatTsShort(mkt.timestamp || mkt.ts));
-    }
+    const dc = d.delta_causal ?? 0;
+    setText("mkt-ts", `${(dc * 100).toFixed(2)}% (${dc <= 0.25 ? "STABLE" : "SHIFTED"})`);
 
     const dq = d.data_quality || (mkt.status === "active" ? "valid" : "stale");
     const badge = document.getElementById("dq-badge");

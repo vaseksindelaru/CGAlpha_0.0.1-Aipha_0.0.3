@@ -7,12 +7,14 @@ Consolida ticks en velas (klines) y features de microestructura.
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.infrastructure.binance_websocket_manager import BinanceWebSocketManager
-from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import TripleCoincidenceDetector
+from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import TripleCoincidenceDetector, RetestEvent
+from cgalpha_v3.data_quality.nexus_gate import NexusGate
 
 logger = logging.getLogger("live_adapter")
 
@@ -34,6 +36,11 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.symbol = "BTCUSDT"
         self._last_kline_close = 0
         self.live_signals: List[Dict] = []
+        
+        # NexusGate & Causal Drift
+        self.nexus = NexusGate()
+        self.micro_buffer: List[Dict] = []
+        self.delta_causal = 0.0
         
         # Registrar callback en el WebSocket
         self.ws.add_callback(self.on_ws_message)
@@ -86,9 +93,21 @@ class LiveDataFeedAdapter(BaseComponentV3):
             "timestamp": kline["close_time"]
         }
         
-        logger.info(f"🕯️ Vela Live Cerrada: {self.symbol} Close={kline['close']} OBI={obi:.4f}")
+        # 1. Actualizar NexusGate y Delta Causal
+        self.micro_buffer.append(micro_data)
+        if len(self.micro_buffer) > 100:
+            self.micro_buffer.pop(0)
+            
+        self.delta_causal = self.nexus.calculate_delta_causal(self.micro_buffer)
+        is_causally_safe = self.nexus.is_safe(self.delta_causal)
         
-        # 1. Detectar Retests
+        logger.info(f"🕯️ Vela Live Cerrada: {self.symbol} Close={kline['close']} OBI={obi:.4f} ΔCausal={self.delta_causal:.2%}")
+        
+        if not is_causally_safe:
+            logger.warning(f"🚨 NEXUSGATE CLOSED: ΔCausal ({self.delta_causal:.4f}) > Threshold ({self.nexus.threshold}). Señales suspendidas.")
+            return
+
+        # 2. Detectar Retests
         retests = self.detector.process_live_tick(kline, micro_data)
         
         for rt in retests:
