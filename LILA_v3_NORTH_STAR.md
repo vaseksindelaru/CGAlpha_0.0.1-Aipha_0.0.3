@@ -95,19 +95,13 @@ La *Simple Foundation Strategy* es el objetivo de construcción de Lila en v3. N
 **Los 7 componentes que Lila debe ensamblar, en orden de dependencia:**
 
 ```
-[1] BinanceVisionFetcher          ← Ingestión robusta de datos OHLCV + Microestructura
-         ↓
-[2] TripleCoincidenceDetector     ← Triple Coincidencia: Vela Clave + Acumulación + Mini-Tendencia
-         ↓
-[3] ZonePhysicsMonitor            ← Re-test activo: ¿Absorción o Ruptura? Features en retest
-         ↓
-[4] ShadowTrader                  ← Posiciones ficticias → captura de trayectorias MFE/MAE
-         ↓
-[5] OracleTrainer (Meta-Labeling) ← Entrena Oracle v3 con [features_retest → outcome]
-         ↓
-[6] NexusGate (Simple Binary)    ← Evaluación final: ¿Promover al ADN Permanente?
-         ↓
-[7] AutoProposer                  ← Detecta drift → propone ajustes paramétricos
+[1] BinanceVisionFetcher          ← ✅ OPERATIVO (WS + Vision Live)
+[2] TripleCoincidenceDetector     ← ✅ OPERATIVO (Live Detection v3.1)
+[3] ZonePhysicsMonitor            ← ✅ OPERATIVO (Real-time micro-enrichment)
+[4] ShadowTrader / OrderManager   ← ✅ OPERATIVO (Dry Run + Multi-asset)
+[5] OracleTrainer (Meta-Labeling) ← ✅ OPERATIVO (Sharpe 1.13 / Causal Signature)
+[6] NexusGate (Dynamic Causal)    ← ✅ OPERATIVO (ΔCausal Real-time)
+[7] AutoProposer / Evolution      ← ✅ OPERATIVO (EvolutionOrchestrator Active)
 ```
 
 **Cada componente tiene su origen en la Bóveda. Ninguno se escribe desde cero.**
@@ -1394,3 +1388,25 @@ Cada componente que Lila construye o recicla debe terminar en la Capa 2 o elimin
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
+
+---
+
+## REGISTRO OPERATIVO: SESIÓN 2026-04-12 — OPERATIVIDAD TOTAL (v3.1)
+
+En esta sesión se ha alcanzado la **Operatividad Total del Pipeline Causal**. El sistema ha dejado de ser un conjunto de experimentos para convertirse en un organismo vivo de trading.
+
+### Hitos de Ingeniería Consolidados:
+1. **Firma Causal Inmutable**: Implementación de la persistencia de firma en el Oracle. El NexusGate ahora valida contra datos reales, no baselines.
+2. **Sistema Nervioso (EvolutionOrchestrator)**: Activación del bucle de auto-monitoreo. El sistema detecta su propia deriva y está listo para evolucionar.
+3. **Brazo Ejecutor (OrderManager v3.1)**:
+   - **Dry Run de Alta Fidelidad**: Simulación de latencia y slippage basada en OBI.
+   - **Gestión Multi-Activo**: Soporte concurrente para BTC y ETH con límites de exposición (%) por símbolo.
+   - **Blindaje Psicológico**: Alertas sonoras (Beeps sintéticos), Panic Button (Liquidación masiva) y Daily Profit Target (+2%).
+4. **Interfaz de Mando (Control Room)**: Dashboard actualizado con gráficos de PnL dinámicos y desglose de exposición sectorial.
+
+### ESTADO DEL SISTEMA:
+- **Pipeline Live**: 🟢 OPERACIONAL
+- **Auto-Gobernanza**: 🟢 ACTIVA
+- **Riesgo**: 🛡️ BLINDADO (MODO DRY RUN)
+
+**PRÓXIMO PASO CANÓNICO**: Fase 4.4 — Live Order Entry (Conexión Real Binance).

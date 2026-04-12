@@ -66,6 +66,7 @@ from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
 from cgalpha_v3.lila.evolution_orchestrator import EvolutionOrchestrator
 from cgalpha_v3.data_quality.nexus_gate import NexusGate
 from cgalpha_v3.risk.order_manager import DryRunOrderManager
+from cgalpha_v3.risk.execution_factory import create_order_manager
 
 _rollback_mgr = RollbackManager(MEMORY_DIR / "snapshots")
 _lila_mgr = LibraryManager()
@@ -79,20 +80,29 @@ _history_learner = ProjectHistoryLearner(_memory_engine, BASE_DIR.parent.parent)
 _assistant = LLMAssistant() # Migrado a v3
 _ws_manager = BinanceWebSocketManager.create_default()
 
-# Dry Run Portfolio (Fase 4.1)
-_order_mgr = DryRunOrderManager(initial_balance=10000.0)
-
-# ShadowTrader Live Pipeline
-_detector = TripleCoincidenceDetector()
-_shadow_trader = LiveDataFeedAdapter.create_default(_ws_manager, _detector, _order_mgr)
+# Multi-Asset Execution Layer (Fase 4.3)
+_order_mgr = create_order_manager()
 
 # Intentar cargar Oracle entrenado (de Phase 1)
 _oracle_v3 = OracleTrainer_v3.create_default()
-# En v3.1 inyectamos la firma dinámicamente
-_shadow_trader.inject_oracle(_oracle_v3)
 
-# Sincronizar NexusGate con la firma causal del Oracle
-_shadow_trader.nexus = NexusGate(_oracle_v3.get_causal_signature())
+# Multi-Asset Live Pipeline (Fase 4.2)
+SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+_detectors: Dict[str, TripleCoincidenceDetector] = {}
+_adapters: Dict[str, LiveDataFeedAdapter] = {}
+_ws_managers: Dict[str, BinanceWebSocketManager] = {}
+
+for symbol in SYMBOLS:
+    _ws_managers[symbol] = BinanceWebSocketManager.create_default(symbol=symbol)
+    _detectors[symbol] = TripleCoincidenceDetector()
+    _adapters[symbol] = LiveDataFeedAdapter.create_default(_ws_managers[symbol], _detectors[symbol], _order_mgr)
+    # Inyectar Oracle y Nexus en cada adaptador
+    _adapters[symbol].inject_oracle(_oracle_v3)
+    _adapters[symbol].nexus = NexusGate(_oracle_v3.get_causal_signature())
+
+# Por compatibilidad con endpoints existentes:
+_shadow_trader = _adapters["BTCUSDT"]
+_ws_manager = _ws_managers["BTCUSDT"]
 
 # Evolution Layer
 _evolution_orchestrator = EvolutionOrchestrator(_shadow_trader, _oracle_v3, _change_proposer)
@@ -887,11 +897,18 @@ def get_market_pulse() -> ResponseReturnValue:
 @app.route("/api/live/signals", methods=["GET"])
 @require_auth
 def get_live_signals() -> ResponseReturnValue:
-    """Retorna las señales detectadas en la sesión live actual."""
+    """Retorna señales consolidadas de todos los adaptadores activos (Fase 4.2)."""
+    all_signals = []
+    for adapter in _adapters.values():
+        all_signals.extend(adapter.live_signals)
+    
+    # Ordenar por tiempo descendente
+    all_signals.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
     return jsonify({
-        "signals": _shadow_trader.live_signals,
-        "count": len(_shadow_trader.live_signals),
-        "status": "active"
+        "count": len(all_signals),
+        "signals": all_signals[:50],
+        "status": "multi-asset"
     })
 
 
@@ -899,13 +916,26 @@ def get_live_signals() -> ResponseReturnValue:
 @require_auth
 def get_live_portfolio() -> ResponseReturnValue:
     """Retorna estado del balance y posiciones en Dry Run."""
+    history_serializable = [p.__dict__ for p in _order_mgr.history[-10:]] # Últimos 10
     return jsonify({
         "balance": round(_order_mgr.balance, 2),
         "initial_balance": 10000.00,
         "active_positions": [p.__dict__ for p in _order_mgr.active_positions.values()],
+        "exposure_breakdown": _order_mgr.get_exposure_breakdown(),
+        "history": history_serializable,
         "history_count": len(_order_mgr.history),
         "status": "dry_run"
     })
+
+
+@app.route("/api/live/panic", methods=["POST"])
+@require_auth
+def live_panic_close() -> ResponseReturnValue:
+    """Cierre de emergencia de todas las posiciones."""
+    count = len(_order_mgr.active_positions)
+    _order_mgr.close_all_positions("USER_PANIC")
+    _log_event(f"🛑 EMERGENCIA: El usuario ha cerrado {count} posiciones manualmente.", level="critical")
+    return jsonify({"status": "success", "closed_count": count})
 
 
 @app.route("/api/debug/force_signal", methods=["POST"])
@@ -2094,13 +2124,15 @@ if __name__ == "__main__":
     
     threading.Thread(target=_evolution_pulse, daemon=True).start()
 
-    # Arrancar WS Manager en segundo plano asíncrono si el servidor soporta context
-    # En Flask plano, arrancamos el manager antes de run()
+    # Arrancar WS Managers en segundo plano (Fase 4.2)
     import threading
-    def start_ws():
-        asyncio.run(_ws_manager.start())
+    def start_all_ws():
+        async def _run():
+            tasks = [ws.start() for ws in _ws_managers.values()]
+            await asyncio.gather(*tasks)
+        asyncio.run(_run())
     
-    ws_thread = threading.Thread(target=start_ws, daemon=True)
+    ws_thread = threading.Thread(target=start_all_ws, daemon=True)
     ws_thread.start()
     
     app.run(host=HOST, port=PORT, debug=False)

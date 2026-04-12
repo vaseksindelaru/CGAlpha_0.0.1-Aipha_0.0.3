@@ -14,8 +14,12 @@ const RISK_INPUT_IDS = [
 ];
 
 let authToken = "";
+let pnlChart = null;
+const MAX_CHART_POINTS = 50;
 let pollTimer = null;
 let libraryItems = [];
+let isMuted = false;
+let lastSignalId = null;
 let selectedLibrarySourceId = null;
 let theorySnapshot = null;
 const expandedProposals = new Set();
@@ -77,6 +81,7 @@ function startPolling() {
     fetchExperimentStatus();
     fetchLearningMemoryStatus();
     fetchLiveSignals();
+    fetchLivePortfolio();
     fetchMarketPulse(); // Nuevo poll de alta frecuencia
     pollTimer = setInterval(() => {
         fetchStatus();
@@ -90,6 +95,7 @@ function startPolling() {
         fetchExperimentStatus();
         fetchLearningMemoryStatus();
         fetchLiveSignals();
+        fetchLivePortfolio();
         renderFooterTs();
     }, POLL_MS);
 
@@ -103,7 +109,19 @@ async function fetchStatus() {
     updateMarketLive(d);
     updateRiskPanel(d);
     updateTopbar(d);
-    if (d.library) updateLibraryStatus(d.library);
+
+    // Actualizar estado de Daily Target (Fase 4.2+)
+    const targetEl = document.getElementById("mc-target-status");
+    if (targetEl && d.portfolio) {
+        if (d.portfolio.is_paused_by_target) {
+            targetEl.innerText = "PAUSED (LIMIT)";
+            targetEl.style.color = "var(--red)";
+        } else {
+            const pnl = (d.portfolio.session_pnl_pct || 0) * 100;
+            targetEl.innerText = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%`;
+            targetEl.style.color = pnl >= 0 ? "var(--accent)" : "var(--red)";
+        }
+    }
     if (d.theory_live) updateTheoryLive(d.theory_live);
     if (d.experiment_loop) updateExperimentLoop(d.experiment_loop);
     if (d.learning_memory) updateLearningMemoryStatus(d.learning_memory);
@@ -421,8 +439,38 @@ function updateMarketLive(d) {
 async function fetchLiveSignals() {
     try {
         const d = await apiFetch("/api/live/signals");
+        if (d.signals && d.signals.length > 0) {
+            const newest = d.signals[0];
+            if (newest.id !== lastSignalId) {
+                if (lastSignalId !== null) playSignalSound();
+                lastSignalId = newest.id;
+            }
+        }
         renderLiveSignals(d.signals);
     } catch (e) { console.warn("Live signals error:", e); }
+}
+
+function toggleMute() {
+    isMuted = !isMuted;
+    const btn = document.getElementById("mute-btn");
+    btn.innerText = isMuted ? "🔇" : "🔊";
+}
+
+function playSignalSound() {
+    if (isMuted) return;
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime); // La
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+    } catch (e) { console.warn("Audio error:", e); }
 }
 
 function renderLiveSignals(signals) {
@@ -462,6 +510,118 @@ function renderPortfolio(d) {
 
     const countEl = document.getElementById("active-positions-count");
     if (countEl) countEl.innerText = d.active_positions.length;
+
+    // Actualizar Desglose de Exposición (Fase 4.2)
+    renderExposure(d.exposure_breakdown);
+
+    // Actualizar Resumen de Sesión (Fase 4.2)
+    renderSessionSummary(d);
+
+    // Actualizar gráfico de PnL
+    updatePnLChart(d.balance);
+}
+
+function updatePnLChart(balance) {
+    const ctx = document.getElementById('pnl-chart');
+    if (!ctx) return;
+
+    if (!pnlChart) {
+        if (typeof Chart === 'undefined') {
+            console.warn("Chart.js no cargado aún.");
+            return;
+        }
+        pnlChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: new Array(MAX_CHART_POINTS).fill(''),
+                datasets: [{
+                    label: 'Balance (USDT)',
+                    data: new Array(MAX_CHART_POINTS).fill(balance),
+                    borderColor: '#00f2ff',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: true,
+                    backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#888', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+    } else {
+        const ds = pnlChart.data.datasets[0];
+        ds.data.push(balance);
+        if (ds.data.length > MAX_CHART_POINTS) ds.data.shift();
+        ds.borderColor = balance >= 10000 ? '#00f2ff' : '#ff4444';
+        ds.backgroundColor = balance >= 10000 ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255, 68, 68, 0.1)';
+        pnlChart.update('none');
+    }
+}
+
+function renderExposure(exposure) {
+    const el = document.getElementById("exposure-breakdown-list");
+    if (!el) return;
+
+    const entries = Object.entries(exposure);
+    if (!entries.length) {
+        el.innerHTML = '<div style="font-size:10px; color:var(--text-dim);">No hay exposición activa.</div>';
+        return;
+    }
+
+    el.innerHTML = entries.map(([symbol, pct]) => `
+        <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:2px;">
+                <span style="color:var(--accent); font-weight:bold;">${symbol}</span>
+                <span style="color:var(--text-dim);">${(pct * 100).toFixed(1)}%</span>
+            </div>
+            <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden;">
+                <div style="width:${Math.min(pct * 100 * 4, 100)}%; height:100%; background:var(--accent); transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+    `).join("");
+}
+
+async function confirmPanicClose() {
+    if (!confirm("⚠️ ¿ESTÁS SEGURO? Se cerrarán TODAS las posiciones de ETH y BTC inmediatamente.")) return;
+    try {
+        await apiFetch("/api/live/panic", { method: "POST" });
+        fetchLivePortfolio();
+    } catch (e) { alert("Error en Panic Close: " + e.message); }
+}
+
+function renderSessionSummary(d) {
+    const wrEl = document.getElementById("session-winrate");
+    const listEl = document.getElementById("trades-list-mini");
+    if (!wrEl || !listEl) return;
+
+    const history = d.history || [];
+    if (history.length === 0) {
+        wrEl.innerText = "0%";
+        listEl.innerHTML = '<div style="opacity:0.5;">No hay trades cerrados aún.</div>';
+        return;
+    }
+
+    const wins = history.filter(t => t.pnl_pct > 0).length;
+    const wr = (wins / history.length) * 100;
+    wrEl.innerText = `${wr.toFixed(0)}% (${wins}/${history.length})`;
+    wrEl.style.color = wr >= 50 ? "#4f4" : "#f44";
+
+    listEl.innerHTML = history.slice().reverse().map(t => `
+        <div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.02);">
+            <span style="color:${t.pnl_pct > 0 ? '#4f4' : '#f44'}">${t.direction === 'bullish' ? '▲' : '▼'} ${t.symbol}</span>
+            <span style="font-family:monospace;">${(t.pnl_pct * 100).toFixed(2)}%</span>
+        </div>
+    `).join("");
 }
 
 // ── RISK PANEL ─────────────────────────────────────────

@@ -26,21 +26,48 @@ class LivePosition:
 
 class DryRunOrderManager:
     """
-    Order Manager en modo Dry Run (Fase 4.1).
-    Simula ejecución con latencia y slippage sin riesgo real.
+    Order Manager en modo Dry Run (Fase 4.2).
+    Soporta múltiples activos con control de exposición y margen.
     """
     def __init__(self, initial_balance: float = 10000.0):
         self.balance = initial_balance
         self.active_positions: Dict[str, LivePosition] = {}
         self.history: List[LivePosition] = []
-        self.latency_ms = 150 # Latencia simulada institucional
-        self.comission_rate = 0.0004 # 0.04% (Binance Futures VIP 0)
+        self.latency_ms = 150 
+        self.comission_rate = 0.0004 
+        
+        # Parámetros de Riesgo Multi-Activo (Fase 4.2)
+        self.max_exposure_per_symbol = 0.25 
+        self.max_concurrent_positions = 5
+        self.min_margin_available = 0.10 
+        self.trade_log_path = "aipha_memory/operational/dry_run_history.jsonl"
+        
+        # Profit Target & Kill-Switch Psicológico (Fase 4.2+)
+        self.daily_profit_target_pct = 0.02 # +2% de beneficio diario
+        self.daily_stop_loss_pct = -0.015   # -1.5% de pérdida diaria
+        self.session_pnl_pct = 0.0
+        self.is_paused_by_target = False
 
     def execute_signal(self, signal: Dict) -> Optional[LivePosition]:
         """
-        Convierte una señal del ShadowTrader en una posición activa (simulada).
-        Aplica penalización por latencia y slippage.
+        Convierte una señal en posición activa con validación multi-activo.
         """
+        symbol = signal.get("symbol", "UNKNOWN")
+        
+        # 0. VALIDACIONES DE RIESGO MULTI-ACTIVO (Fase 4.2)
+        if self.is_paused_by_target:
+            logger.info(f"⏸️ [RISK] Trading paused: Daily Target Reached.")
+            return None
+
+        if len(self.active_positions) >= self.max_concurrent_positions:
+            logger.warning(f"🚫 [RISK] Max concurrent positions ({self.max_concurrent_positions}) reached.")
+            return None
+            
+        current_symbol_exposure = sum(p.size_usdt for p in self.active_positions.values() if p.symbol == symbol)
+        if current_symbol_exposure > (self.balance * self.max_exposure_per_symbol):
+            logger.warning(f"🚫 [RISK] Max exposure for {symbol} reached.")
+            return None
+
         # 1. Simular Latencia (Slippage sintético)
         # Si el OBI es negativo en un Long, el slippage es mayor
         obi = signal.get("obi", 0.0)
@@ -104,6 +131,17 @@ class DryRunOrderManager:
         for pid in to_close:
             del self.active_positions[pid]
 
+    def close_all_positions(self, reason: str = "PANIC_CLOSE"):
+        """Liquida todas las posiciones abiertas inmediatamente."""
+        pids = list(self.active_positions.keys())
+        for pid in pids:
+            pos = self.active_positions[pid]
+            # Usamos el precio de entrada como fallback si no tenemos uno real a mano, 
+            # pero en un sistema real usaríamos el último mark price.
+            self._close_position(pid, pos.entry_price, reason)
+            del self.active_positions[pid]
+        logger.warning(f"🛑 [DRY RUN] CIERRE DE EMERGENCIA: {len(pids)} posiciones liquidadas.")
+
     def _close_position(self, pid: str, exit_price: float, reason: str):
         pos = self.active_positions[pid]
         pos.status = "closed"
@@ -118,6 +156,45 @@ class DryRunOrderManager:
         
         pnl_cash = pos.size_usdt * pos.pnl_pct
         self.balance += pnl_cash
+        self.session_pnl_pct += (pnl_cash / self.balance) # Cálculo simplificado de equity
+        
+        # Verificar Profit Target
+        if self.session_pnl_pct >= self.daily_profit_target_pct:
+            self.is_paused_by_target = True
+            logger.warning(f"🎯 TARGET REACHED: {self.session_pnl_pct:.2%}. Pausing for the day.")
+        elif self.session_pnl_pct <= self.daily_stop_loss_pct:
+            self.is_paused_by_target = True
+            logger.warning(f"📉 STOP LOSS REACHED: {self.session_pnl_pct:.2%}. Pausing for safety.")
+        
+        # Persistencia Causal (Fase 4.2)
+        self._log_trade_execution(pos, reason)
         
         self.history.append(pos)
         logger.info(f"🏁 [DRY RUN] Posición CERRADA: {pid} Reason={reason} PnL={pos.pnl_pct:.2%} (${pnl_cash:.2f})")
+
+    def get_exposure_breakdown(self) -> Dict[str, float]:
+        """Retorna el % de capital usado por cada símbolo."""
+        breakdown = {}
+        for pos in self.active_positions.values():
+            breakdown[pos.symbol] = breakdown.get(pos.symbol, 0.0) + (pos.size_usdt / self.balance)
+        return breakdown
+
+    def _log_trade_execution(self, pos: LivePosition, reason: str):
+        """Guarda trade en JSONL para auditoría del Oracle v3."""
+        import json
+        from pathlib import Path
+        log_entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "pos_id": pos.pos_id,
+            "symbol": pos.symbol,
+            "direction": pos.direction,
+            "pnl_pct": round(pos.pnl_pct, 6),
+            "mfe": round(pos.mfe, 6),
+            "mae": round(pos.mae, 6),
+            "exit_reason": reason,
+            "entry_price": pos.entry_price,
+            "exit_price": pos.exit_price
+        }
+        Path("aipha_memory/operational").mkdir(parents=True, exist_ok=True)
+        with open(self.trade_log_path, "a") as f:
+            f.write(json.dumps(log_entry) + "\n")

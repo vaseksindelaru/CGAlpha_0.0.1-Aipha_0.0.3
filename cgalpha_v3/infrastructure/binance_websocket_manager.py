@@ -30,10 +30,10 @@ class BinanceWebSocketManager(BaseComponentV3):
     ╚═══════════════════════════════════════════════════════╝
     """
 
-    def __init__(self, manifest: ComponentManifest):
+    def __init__(self, manifest: ComponentManifest, symbols: List[str] = ["btcusdt"]):
         super().__init__(manifest)
         self.base_url = "wss://fstream.binance.com/ws"
-        self.symbols = ["btcusdt"]  # Minúsculas para Binance WS
+        self.symbols = [s.lower() for s in symbols]
         self.is_running = False
         self._loop_task: Optional[asyncio.Task] = None
         
@@ -131,7 +131,7 @@ class BinanceWebSocketManager(BaseComponentV3):
         return (state['bid_qty'] - state['ask_qty']) / total
 
     @classmethod
-    def create_default(cls):
+    def create_default(cls, symbol: str = "BTCUSDT"):
         manifest = ComponentManifest(
             name="BinanceWebSocketManager",
             category="infrastructure",
@@ -140,4 +140,4 @@ class BinanceWebSocketManager(BaseComponentV3):
             outputs=["LiveStreamEvents", "TickData"],
             causal_score=0.95 # Alta precisión de datos
         )
-        return cls(manifest)
+        return cls(manifest, symbols=[symbol])

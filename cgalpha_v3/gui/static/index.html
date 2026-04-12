@@ -1002,6 +1002,8 @@
                 <button class="nav-btn" onclick="showSection('help')">Help ?</button>
             </nav>
             <div class="topbar-right">
+                <button id="mute-btn" onclick="toggleMute()" class="btn btn-ghost"
+                    style="font-size:16px; margin-right:10px;">🔊</button>
                 <div class="status-indicator">
                     <span class="status-dot" id="status-dot"></span>
                     <span id="status-text">Conectando…</span>
@@ -1245,8 +1247,9 @@
                                 style="font-size:11px;max-width:160px;text-align:right; color:#4f4;">PROMOTED_TO_L2</span>
                         </div>
                         <div class="stat-row">
-                            <span class="stat-label">Servidor</span>
-                            <span class="stat-value" id="mc-ts" style="font-size:11px;font-family:monospace;">—</span>
+                            <span class="stat-label">Daily Target</span>
+                            <span class="stat-value" id="mc-target-status"
+                                style="font-weight:bold; color:var(--accent);">READY</span>
                         </div>
                         <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="resetKillSwitch()">Re-armar
                             sistema</button>
@@ -1327,12 +1330,20 @@
 
                 <!-- RISK DASHBOARD -->
                 <div class="panel">
-                    <div class="panel-header">
-                        <span class="panel-icon">🛡️</span>
-                        <h2>Risk Dashboard</h2>
-                        <span id="cb-pill" class="pill pill-idle">CB: —</span>
+                    <div class="panel-header" style="justify-content: space-between;">
+                        <div style="display:flex; align-items:center;">
+                            <span class="panel-icon">🛡️</span>
+                            <h2>Risk Dashboard</h2>
+                        </div>
+                        <button onclick="confirmPanicClose()" class="btn btn-sm btn-danger"
+                            style="background:#ff4444; border:none; padding:4px 10px; font-weight:bold; font-size:10px;">🛑
+                            PANIC CLOSE ALL</button>
                     </div>
                     <div class="panel-body">
+                        <!-- PnL Chart Container -->
+                        <div style="height: 100px; width: 100%; margin-bottom: 20px;">
+                            <canvas id="pnl-chart"></canvas>
+                        </div>
                         <div class="stat-row">
                             <span class="stat-label">DryRun Account Balance</span>
                             <span class="stat-value" id="portfolio-balance"
@@ -1342,9 +1353,22 @@
                             <span class="stat-label">Active Positions (DR)</span>
                             <span class="stat-value" id="active-positions-count">0</span>
                         </div>
-                        <div class="stat-row" style="margin-top:10px;">
-                            <span class="stat-label">Maturidad ADN (Capa 2)</span>
-                            <span class="stat-value" id="dd-value">100% (7/7)</span>
+
+                        <!-- Exposure Breakdown -->
+                        <div id="exposure-breakdown-list"
+                            style="margin: 15px 0; border-top: 1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                            <div style="font-size:10px; color:var(--text-dim);">Cargando exposición...</div>
+                        </div>
+
+                        <div class="stat-row"
+                            style="margin-top:10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                            <span class="stat-label">Session Win Rate</span>
+                            <span class="stat-value" id="session-winrate">0%</span>
+                        </div>
+
+                        <div id="session-trades-summary" style="margin-top:10px; font-size:10px;">
+                            <div style="color:var(--text-dim); margin-bottom:5px;">Recent Closed Trades:</div>
+                            <div id="trades-list-mini" style="max-height: 80px; overflow-y:auto;"></div>
                         </div>
                         <div class="progress-wrap">
                             <div class="progress-fill" id="dd-bar" style="width:100%"></div>
