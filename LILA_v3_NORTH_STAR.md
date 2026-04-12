@@ -316,6 +316,68 @@ cgalpha causal dashboard --cluster-breakdown
 cgalpha vault purge-candidates  # Lista componentes Capa 1 listos para eliminar
 ```
 
+### 2.7 CodeCraft Sage Operativo: De Propuesta Aprobada a Commit Trazable
+
+Para eliminar ambigüedad, en v3 `CodeCraft Sage` tiene un contrato operativo explícito: **si una propuesta está aprobada, debe producir código en rama feature y persistirlo en Git solo después de pasar la Triple Barrera de Tests**.
+
+**Precondiciones obligatorias:**
+- `proposal.causal_score >= 0.75`
+- `ghost_architect_approved == True`
+- `human_approved == True`
+- `TechnicalSpec` completo con archivos objetivo y pruebas mínimas
+
+**Sucesión de procesamiento de datos (orden canónico):**
+
+```
+FASE 2 (Retroanálisis)
+phase2_retroanalysis.json
+    └── improvement_proposal.technical_specs
+            ↓
+Observer + Operador
+ghost_audit + human approval
+            ↓
+CodeCraft Sage (Fases 1–6)
+  1) Parser      -> 01_change_plan.json
+  2) Modifier    -> 02_patch_manifest.json
+  3) TestBarrier -> 03_test_report.json
+  4) GitPersist  -> commit SHA (feature/*)
+  5) CLIExpose   -> estado operativo reproducible
+  6) AutoLoop    -> feedback al AutoProposer / Library
+            ↓
+NexusGate
+PROMOTE_TO_LAYER_2 | REJECT_TO_LEARNING_VAULT
+            ↓
+Memoria + Biblioteca
+bridge.jsonl / evolution_log / catalog.jsonl
+```
+
+**Reglas de ejecución no negociables:**
+- Nunca escribir en `main` desde CodeCraft.
+- Si falla cualquier test de la Triple Barrera: `abort_without_commit`.
+- Si tests pasan: commit obligatorio en rama `feature/codecraft_*` con metadata causal.
+- El `commit_sha` queda referenciado en el reporte de ejecución y en memoria evolutiva.
+
+**Pseudo-contrato mínimo:**
+
+```python
+def execute_approved_proposal(proposal: TechnicalSpec) -> ExecutionResult:
+    assert proposal.causal_score >= 0.75
+    assert proposal.ghost_approved and proposal.human_approved
+
+    plan = parse_proposal(proposal)
+    checkout_feature_branch(plan.branch_name)
+    apply_changes(plan)
+
+    test_report = run_triple_test_barrier(plan.required_tests)
+    if not test_report.all_passed:
+        rollback_working_tree()
+        return ExecutionResult(status="REJECTED_NO_COMMIT")
+
+    commit_sha = persist_git_commit(plan, test_report)
+    publish_execution_artifacts(plan, test_report, commit_sha)
+    return ExecutionResult(status="COMMITTED", commit_sha=commit_sha)
+```
+
 ---
 
 ## SECCIÓN 3: BÓVEDA DE DOS CAPAS — TAXONOMÍA DE PURIFICACIÓN EVOLUTIVA
@@ -715,7 +777,7 @@ Coordinador Supremo. Orquesta los 4 Labs y opera el Nexus Gate en la Simple Foun
 Supervisor de recursos determinista (`psutil`). Semáforo Verde/Amarillo/Rojo. La primera capa de auto-gobierno de la Constructora.
 
 **CodeCraft Sage**  
-El Builder del sistema. Las 6 fases constituyen el pipeline completo desde propuesta hasta código versionado. En v3, curador activo de la Biblioteca Vectorial.
+El Builder del sistema. Las 6 fases constituyen el pipeline completo desde propuesta hasta código versionado. En v3, crea código en rama `feature/*`, ejecuta Triple Barrera de Tests, y solo entonces persiste commit trazable en Git; además actúa como curador activo de la Biblioteca Vectorial.
 
 **Component Library (Biblioteca Vectorial)**  
 La Capa 2 de la Bóveda en su dimensión técnica. Almacén vectorial de componentes reutilizables. Organización por similitud semántica y correlación causal. Mantenida por CodeCraft Sage.

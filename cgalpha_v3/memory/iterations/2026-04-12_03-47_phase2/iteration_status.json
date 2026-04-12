@@ -1,0 +1,14 @@
+{
+  "phase": "2",
+  "task": "Retroanalysis + Emergent Improvement",
+  "status": "completed",
+  "timestamp": "2026-04-12T01:47:07.518794+00:00",
+  "sharpe_neto_avg": 1.1372,
+  "promote_to_level4": false,
+  "top_feature_by_mi": "cumulative_delta_at_retest",
+  "artifacts": {
+    "phase2_retroanalysis": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/data/phase2_results/phase2_retroanalysis.json",
+    "phase2_summary": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/data/phase2_results/phase2_summary.md",
+    "feature_discrimination_csv": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/data/phase2_results/feature_discrimination.csv"
+  }
+}
