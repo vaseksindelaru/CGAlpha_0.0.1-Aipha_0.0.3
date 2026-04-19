@@ -11,6 +11,7 @@ from .providers.base import LLMProvider
 from .providers.openai_provider import OpenAIProvider
 from .providers.zhipu_provider import ZhipuProvider
 from .providers.ollama_provider import OllamaProvider
+from .providers.gemini_provider import GeminiProvider
 from .providers.rate_limiter import RateLimiter, retry_with_rate_limit
 from .exceptions import LilaLLMError
 from .context import ContextBuilder
@@ -35,7 +36,8 @@ class LLMAssistant:
         self._available_providers = {
             "openai": OpenAIProvider,
             "zhipu": ZhipuProvider,
-            "ollama": OllamaProvider
+            "ollama": OllamaProvider,
+            "gemini": GeminiProvider
         }
         
         if provider:
@@ -67,6 +69,9 @@ class LLMAssistant:
             if ollama.validate_api_key():
                 return ollama
 
+        if (os.environ.get("GEMINI_API_KEY") and os.environ.get("GEMINI_API_KEY") != "demo_key_for_testing") or os.environ.get("GOOGLE_API_KEY"):
+            return GeminiProvider()
+
         if os.environ.get("OPENAI_API_KEY"):
             return OpenAIProvider()
         if os.environ.get("ZHIPU_API_KEY"):
@@ -74,11 +79,10 @@ class LLMAssistant:
         
         # Fallback a Ollama si el servicio está vivo
         ollama = OllamaProvider()
-        ollama = OllamaProvider()
         if ollama.validate_api_key():
             return ollama
             
-        # Fallback final (OpenAI mostrará error de API key)
+        # Fallback final (Gemini si hay key, sino OpenAI mostrará error de API key)
         return OpenAIProvider()
 
     def switch_provider(self, name: str) -> bool:
