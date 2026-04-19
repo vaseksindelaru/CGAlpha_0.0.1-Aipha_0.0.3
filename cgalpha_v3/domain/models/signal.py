@@ -167,6 +167,7 @@ class MemoryLevel(str, Enum):
     RELATIONS  = "2"    # Relaciones,  TTL 90d,  aprobador: Lila
     PLAYBOOKS  = "3"    # Playbooks,   TTL ver., aprobador: Humano
     STRATEGY   = "4"    # Estrategia,  TTL indef, aprobador: Humano
+    IDENTITY   = "5"    # ADN de Lila, TTL ∞,    aprobador: Humano + firma v4
 
 
 @dataclass
