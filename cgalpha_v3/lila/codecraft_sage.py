@@ -157,26 +157,31 @@ class CodeCraftSage(BaseComponentV3):
 
         logger.info(f"🧠 Iniciando LLM Patching para {spec.target_file}...")
         file_content = "".join(lines)
+        
+        # v4 Optimization: For local models, send smaller context if possible
+        is_local = self.switcher.select("cat_3").name == "ollama"
+        if is_local:
+             prompt_context = f"Archivo: {spec.target_file}\nContenido:\n{file_content[:4000]}..." # Truncar si es muy largo
+        else:
+             prompt_context = file_content
+
         prompt = f"""
 Objetivo: Aplicar un cambio técnico al archivo {spec.target_file}.
 Contexto:
 - Tipo de cambio: {spec.change_type}
 - Atributo/Elemento: {spec.target_attribute}
-- Valor anterior (si aplica): {spec.old_value}
-- Valor nuevo (si aplica): {spec.new_value}
+- Valor nuevo: {spec.new_value}
 - Razón: {spec.reason}
 
 Contenido original:
 ```python
-{file_content}
+{prompt_context}
 ```
 
 REGLAS:
 1. Devuelve SOLO el contenido completo del archivo modificado.
 2. Sin explicaciones, sin markdown, solo el código.
-3. Respeta la estructura y sangría original.
 """
-        # Usamos Cat.3 para mayor calidad en escritura de código
         new_content = self.switcher.generate("cat_3", prompt=prompt)
         
         # Limpiar posible markdown en la respuesta
