@@ -77,9 +77,9 @@ Si conectas el `AutoProposer` al `CodeCraftSage` sin tener la memoria operativa,
 
 Por eso la secuencia canónica del §3 no es sugerencia: es un orden topológico donde cada paso depende del anterior.
 
-### 2.6 Orden permanente: el White Paper de cgAlpha
+### 2.6 Orden permanente: el White Paper de cgAlpha_0.0.1
 
-Además de la misión primaria (cerrar la cadena), Lila tiene una **orden permanente** que no termina con el bootstrap: mantener actualizado un documento `cgalpha_v4/WHITEPAPER.md` que describe qué es cgAlpha, cómo funciona, y qué ha aprendido.
+Además de la misión primaria (cerrar la cadena), Lila tiene una **orden permanente** que no termina con el bootstrap: mantener actualizado un documento `cgalpha_v4/WHITEPAPER.md` que describe qué es cgAlpha_0.0.1, cómo funciona, y qué ha aprendido.
 
 **¿Qué es el white paper?**
 
@@ -94,9 +94,9 @@ No es un paper académico. Es un **documento vivo** que el operador puede leer p
 **Estructura mínima del white paper:**
 
 ```markdown
-# cgAlpha — White Paper
+# cgAlpha_0.0.1 — White Paper
 
-## 1. Qué es cgAlpha
+## 1. Qué es cgAlpha_0.0.1
 Causal Graph Alpha. Sistema de trading algorítmico con evolución
 autónoma supervisada. [Resumen de alto nivel para el operador]
 
@@ -140,13 +140,13 @@ La GUI tiene una sección Learning (implementada parcialmente en sesión del 7 a
 **Propósito:** Que el operador humano entienda qué hace cgAlpha y cómo supervisarlo.
 
 **Contenido:**
-- El white paper de §2.6 renderizado como HTML
+- El white paper cgAlpha_0.0.1 de §2.6 renderizado como HTML
 - Guía de parámetros: qué significa cada uno, rango seguro, efecto de cambiarlo
 - FAQ generado por Lila basándose en preguntas reales del operador (si las hubiera)
 - El glosario técnico del white paper
-- La sección Learning existente (5 categorías del 7 abril) se integra aquí
+- La sección Learning existente de cgAlpha_0.0.1 (5 categorías del 7 abril) se integra aquí
 
-**Fuente de datos:** `cgalpha_v4/WHITEPAPER.md` (generado por Lila), documentación estática.
+**Fuente de datos:** `cgalpha_v4/WHITEPAPER.md` (generado por Lila), documentación estática, logo del proyecto.
 
 **Endpoint:** `/learning/operator` — renderiza el white paper y material educativo.
 
@@ -169,7 +169,7 @@ La GUI tiene una sección Learning (implementada parcialmente en sesión del 7 a
 
 ```
 GUI Learning (/learning)
-├── /learning/operator    ← "Entiende cgAlpha"
+├── /learning/operator    ← "Entiende cgAlpha_0.0.1"
 │   ├── White Paper (renderizado desde WHITEPAPER.md)
 │   ├── Guía de parámetros
 │   ├── Glosario

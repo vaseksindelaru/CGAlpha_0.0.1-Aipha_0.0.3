@@ -59,21 +59,26 @@ A partir de este documento, los nombres canónicos del proyecto son:
 
 | Nombre canónico | Uso | Nota |
 |---|---|---|
-| **cgAlpha** | El proyecto completo (Causal Graph Alpha) | Minúscula `c` distingue de CGAlpha legacy (v1-v3) |
+| **cgAlpha_0.0.1** | El proyecto completo (Causal Graph Alpha, versión 0.0.1) | El sufijo de versión es **obligatorio** — sin él, el nombre colisiona con `CGAlpha` de v1 |
 | **Lila** | La IA constructora (sin sufijo de versión) | En código interno y docs. El versionado se infiere del contexto |
+
+> ⚠️ **Por qué la versión es obligatoria:** En `/home/vaclav/` existen `Aipha_0.0.1/`, `Aipha_0.0.2/`, `CGAlpha_0.0.1-Aipha_0.0.3/` y otros directorios legados. El nombre `CGAlpha` sin versión ya fue usado en v1. La minúscula `c` sola no es suficiente para distinguir en contextos verbales o en documentación. `cgAlpha_0.0.1` es inequívoco.
 
 **Mapeo de nombres históricos (solo para referencia):**
 
 | Nombre histórico | Período | Equivalente actual |
 |---|---|---|
-| Aipha | Pre-v1 | cgAlpha (mismo proyecto, nombre anterior) |
-| CGAlpha_v1, CGAlpha_v2 | Versiones tempranas | cgAlpha (versiones legacy) |
-| CGAlpha_v3, CGAlpha_0.0.1 | Versión actual estable | cgAlpha |
+| Aipha_0.0.1, Aipha_0.0.2 | Pre-v1 | Aipha (nombre original del proyecto) |
+| aipha_0.1 → aipha_0.3.1 | Transición v1 | Aipha (versiones intermedias) |
+| Aipha_1.1 | v2 | Aipha v2 |
+| CGAlpha_0.0.1-Aipha_0.0.3 | v3 (repo actual) | cgAlpha_0.0.1 (será fork a nuevo repo) |
 | Lila v3, Lila v4 | Agentes por versión | Lila |
 
 **En código:** Los directorios (`cgalpha_v3/`, `cgalpha_v4/`) y los imports (`from cgalpha_v3...`) **no se renombran**. Renombrar carpetas rompe imports en 144+ tests — eso sería un cambio Cat.3 masivo sin beneficio funcional. La nomenclatura nueva aplica a documentación, GUI, y comunicación.
 
-**En la GUI:** Donde antes decía "CGAlpha v3 Control Room", ahora dice "cgAlpha Control Room". Sin número de versión visible para el operador.
+**En la GUI:** El título del Control Room pasa a ser **"cgAlpha_0.0.1 Control Room"**.
+
+**Repositorio:** El proyecto migra a un nuevo repo GitHub `cgAlpha_0.0.1` (fork del actual `CGAlpha_0.0.1-Aipha_0.0.3`). CodeCraftSage comiteará en el nuevo repo.
 
 ---
 
