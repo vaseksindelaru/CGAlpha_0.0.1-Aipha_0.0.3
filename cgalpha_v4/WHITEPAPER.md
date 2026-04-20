@@ -4,7 +4,7 @@
 
 <h1 align="center">cgAlpha_0.0.1 — White Paper</h1>
 <p align="center"><em>Causal Graph Alpha · Documento vivo mantenido por Lila</em></p>
-<p align="center"><em>Última actualización: 19 de abril de 2026 · Versión: genesis</em></p>
+<p align="center"><em>Última actualización: 20 de abril de 2026 · Versión: v4-bootstrap-complete</em></p>
 
 ---
 
@@ -74,7 +74,7 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
               │  Cat.2: Semi-automática (aprobación)  │
               │  Cat.3: Supervisada (sesión humana)   │
               │                                      │
-              │  Estado: 🔨 En construcción           │
+              │  Estado: ✅ Operativo (fase canal)    │
               └──────────────────────────────────────┘
 ```
 
@@ -88,10 +88,10 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
 | Pipeline | `application/pipeline.py` | 291 | ✅ Operativo (sin retrain) |
 | AutoProposer | `lila/llm/proposer.py` | ~140 | ✅ Genera propuestas |
 | ChangeProposer | `application/change_proposer.py` | 93 | ⚠️ Desconectado |
-| CodeCraftSage | `lila/codecraft_sage.py` | 190 | ⚠️ Desconectado |
+| CodeCraftSage | `lila/codecraft_sage.py` | 247 | ✅ Conectado al Orchestrator |
 | ExperimentRunner | `application/experiment_runner.py` | 507 | ⚠️ Desconectado |
-| EvolutionOrchestrator v4 | `lila/evolution_orchestrator.py` | — | 🔨 Por construir |
-| MemoryPolicyEngine | `learning/memory_policy.py` | 311 | ⚠️ Sin persistencia |
+| EvolutionOrchestrator v4 | `lila/evolution_orchestrator.py` | 613 | ✅ Construido y activo |
+| MemoryPolicyEngine | `learning/memory_policy.py` | 515 | ✅ Persistencia + IDENTITY |
 
 ## 3. La Simple Foundation Strategy
 
@@ -117,9 +117,13 @@ cgAlpha_0.0.1 opera una única estrategia: la **Simple Foundation Strategy**.
 
 ## 4. El canal de evolución
 
-### Estado actual: Bootstrap en progreso
+### Estado actual: Bootstrap completado
 
-El canal de evolución es el sistema que permite a cgAlpha mejorarse a sí mismo. Está diseñado pero no implementado todavía. La especificación completa está en el [Prompt Fundacional](LILA_V4_PROMPT_FUNDACIONAL.md), secciones §3–§4.
+El canal de evolución está implementado y operativo:
+- `AutoProposer` genera `TechnicalSpec` durante `Pipeline.run_cycle()`
+- El pipeline enruta esas propuestas al `EvolutionOrchestratorV4`
+- El orchestrator clasifica Cat.1/2/3, persiste y expone endpoints de aprobación
+- `CodeCraftSage` está conectado como ejecutor de cambios
 
 ### Las 3 categorías
 
@@ -132,9 +136,15 @@ El canal de evolución es el sistema que permite a cgAlpha mejorarse a sí mismo
 ### Pasos del bootstrap
 
 1. ✅ Prompt Fundacional escrito (§0–§8)
-2. 🔨 ACCIÓN 1: IDENTITY memory + disk reload
-3. ⬜ ACCIÓN 2: LLM Switcher
-4. ⬜ ACCIÓN 3: Orchestrator v4
+2. ✅ ACCIÓN 1: IDENTITY memory + disk reload
+3. ✅ ACCIÓN 2: LLM Switcher
+4. ✅ ACCIÓN 3: Orchestrator v4
+
+### Próxima etapa (Fase canal)
+
+1. 🔨 PASO 4: Parameter Landscape Map
+2. 🔨 PASO 5: Mejora de CodeCraft Sage v4
+3. 🔨 PASO 6: Oracle fixes priorizados por categoría
 
 ## 5. Lecciones aprendidas
 
@@ -155,6 +165,8 @@ La lección principal: **construir componentes capaces no es suficiente. Conecta
 |---|---|---|---|
 | 2026-04-19 | — | Prompt Fundacional §0–§8 creado | 3113 líneas, 57 correcciones |
 | 2026-04-19 | — | White paper genesis | Primera versión |
+| 2026-04-20 | v4 | Pipeline enruta AutoProposer al Orchestrator | Canal runtime conectado |
+| 2026-04-20 | v4 | White paper sincronizado con estado real | Bootstrap marcado como completado |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 

@@ -41,30 +41,29 @@ class LLMSwitcher:
         """Routing por defecto basado en las reglas del Prompt Fundacional §4."""
         return {
             "cat_1": [
-                ProviderConfig(name="gemini", priority=1, temperature=0.3, max_tokens=400),
-                ProviderConfig(name="ollama", priority=2, temperature=0.3, max_tokens=400),
-                ProviderConfig(name="openai", priority=3, temperature=0.3, max_tokens=400),
+                ProviderConfig(name="ollama", priority=1, temperature=0.3, max_tokens=400),
+                ProviderConfig(name="openai", priority=2, temperature=0.3, max_tokens=400),
             ],
             "cat_2": [
-                ProviderConfig(name="gemini", priority=1, temperature=0.5, max_tokens=1000),
-                ProviderConfig(name="openai", priority=2, temperature=0.5, max_tokens=1000),
-                ProviderConfig(name="ollama", priority=3, temperature=0.5, max_tokens=1000),
+                ProviderConfig(name="openai", priority=1, temperature=0.5, max_tokens=1000),
+                ProviderConfig(name="ollama", priority=2, temperature=0.5, max_tokens=1000),
+                ProviderConfig(name="gemini", priority=3, temperature=0.5, max_tokens=1000),
                 ProviderConfig(name="zhipu", priority=4, temperature=0.5, max_tokens=1000),
             ],
             "cat_3": [
-                ProviderConfig(name="gemini", priority=1, temperature=0.7, max_tokens=4000),
-                ProviderConfig(name="openai", priority=2, temperature=0.7, max_tokens=4000),
-                ProviderConfig(name="ollama", priority=3, temperature=0.7, max_tokens=4000),
-                ProviderConfig(name="zhipu", priority=4, temperature=0.7, max_tokens=4000),
+                ProviderConfig(name="openai", priority=1, temperature=0.7, max_tokens=2000),
+                ProviderConfig(name="gemini", priority=2, temperature=0.7, max_tokens=2000),
+                ProviderConfig(name="ollama", priority=3, temperature=0.7, max_tokens=2000),
+                ProviderConfig(name="zhipu", priority=4, temperature=0.7, max_tokens=2000),
             ],
             "reflection": [
-                ProviderConfig(name="gemini", priority=1, temperature=0.4, max_tokens=1000),
-                ProviderConfig(name="openai", priority=2, temperature=0.4, max_tokens=1000),
-                ProviderConfig(name="ollama", priority=3, temperature=0.4, max_tokens=1000),
+                ProviderConfig(name="openai", priority=1, temperature=0.4, max_tokens=1000),
+                ProviderConfig(name="ollama", priority=2, temperature=0.4, max_tokens=1000),
+                ProviderConfig(name="gemini", priority=3, temperature=0.4, max_tokens=1000),
             ],
             "whitepaper": [
-                ProviderConfig(name="gemini", priority=1, temperature=0.6, max_tokens=4000),
-                ProviderConfig(name="openai", priority=2, temperature=0.6, max_tokens=4000),
+                ProviderConfig(name="openai", priority=1, temperature=0.6, max_tokens=4000),
+                ProviderConfig(name="gemini", priority=2, temperature=0.6, max_tokens=4000),
                 ProviderConfig(name="zhipu", priority=3, temperature=0.6, max_tokens=4000),
             ],
         }
@@ -82,8 +81,10 @@ class LLMSwitcher:
     def generate(self, task_type: str, prompt: str, **kwargs) -> str:
         if not self.assistant:
             raise RuntimeError("LLMSwitcher requiere un LLMAssistant configurado")
+        if task_type not in self._task_routing:
+            raise ValueError(f"Tipo de tarea '{task_type}' no registrado.")
 
-        candidates = sorted(self._task_routing.get(task_type, []), key=lambda c: c.priority)
+        candidates = sorted(self._task_routing[task_type], key=lambda c: c.priority)
         for cfg in candidates:
             if not cfg.available:
                 continue
@@ -105,11 +106,24 @@ class LLMSwitcher:
 
         raise RuntimeError(f"Todos los proveedores fallaron para '{task_type}'")
 
+    def mark_unavailable(self, provider_name: str) -> None:
+        for configs in self._task_routing.values():
+            for cfg in configs:
+                if cfg.name == provider_name:
+                    cfg.available = False
+
     def mark_available(self, provider_name: str) -> None:
         for configs in self._task_routing.values():
             for cfg in configs:
                 if cfg.name == provider_name:
                     cfg.available = True
+
+    def add_task_type(self, task_type: str, configs: list[ProviderConfig]) -> None:
+        if not task_type or not task_type.strip():
+            raise ValueError("task_type no puede estar vacio")
+        if not configs:
+            raise ValueError("configs no puede estar vacio")
+        self._task_routing[task_type] = list(configs)
 
     def get_routing_table(self) -> dict[str, list[dict]]:
         result = {}

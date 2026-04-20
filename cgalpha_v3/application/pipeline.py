@@ -47,7 +47,11 @@ class TripleCoincidencePipeline:
     6. Oracle filtra futuros retests con confidence > 0.70
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        evolution_orchestrator: Optional[Any] = None,
+    ):
         # Inicializar los 7 componentes
         self.fetcher = BinanceVisionFetcher_v3.create_default()
 
@@ -72,6 +76,9 @@ class TripleCoincidencePipeline:
         self.oracle = OracleTrainer_v3.create_default()
         self.gate = NexusGate.create_default()
         self.proposer = AutoProposer.create_default()
+        # v4 bridge: if present, AutoProposer specs are routed to Orchestrator.
+        self.evolution_orchestrator = evolution_orchestrator
+        self.last_routed_proposals: List[Dict[str, Any]] = []
 
     def run_cycle(self, symbol: str, start_time: datetime, end_time: datetime) -> str:
         """
@@ -224,10 +231,60 @@ class TripleCoincidencePipeline:
                     f"(causal_est={proposal.causal_score_est:.2f}, "
                     f"eval_score={eval_score:.4f})"
                 )
+            self.last_routed_proposals = self._route_auto_proposals(proposals)
+            if self.last_routed_proposals:
+                logger.info(
+                    "🧭 Orchestrator routing completado: "
+                    f"{len(self.last_routed_proposals)} propuesta(s) procesadas."
+                )
         else:
             logger.info("✅ AutoProposer: No se detectó drift significativo.")
+            self.last_routed_proposals = []
 
         return decision
+
+    def _route_auto_proposals(self, proposals: List[Any]) -> List[Dict[str, Any]]:
+        """
+        Enruta propuestas del AutoProposer al EvolutionOrchestrator v4.
+        Si no hay orquestador configurado, no hace nada (modo legacy).
+        """
+        if not proposals:
+            return []
+        if self.evolution_orchestrator is None:
+            logger.info("ℹ️ Pipeline sin Orchestrator configurado; propuestas quedan en modo log-only.")
+            return []
+        if not hasattr(self.evolution_orchestrator, "process_proposal"):
+            logger.warning("⚠️ Orchestrator configurado sin process_proposal(); routing omitido.")
+            return []
+
+        routed: List[Dict[str, Any]] = []
+        for proposal in proposals:
+            try:
+                result = self.evolution_orchestrator.process_proposal(proposal)
+                routed.append(
+                    {
+                        "target_attribute": getattr(proposal, "target_attribute", ""),
+                        "category": getattr(result, "category", 0),
+                        "status": getattr(result, "status", "UNKNOWN"),
+                        "proposal_id": getattr(result, "proposal_id", ""),
+                        "error": getattr(result, "error", ""),
+                    }
+                )
+            except Exception as exc:
+                logger.error(
+                    "❌ Error enrutando propuesta al Orchestrator: "
+                    f"{getattr(proposal, 'target_attribute', '<unknown>')} ({exc})"
+                )
+                routed.append(
+                    {
+                        "target_attribute": getattr(proposal, "target_attribute", ""),
+                        "category": 0,
+                        "status": "ROUTING_FAILED",
+                        "proposal_id": "",
+                        "error": str(exc),
+                    }
+                )
+        return routed
 
     def _build_cycle_metrics(self) -> Dict[str, Any]:
         """
@@ -284,6 +341,10 @@ class TripleCoincidencePipeline:
     def get_active_zones_count(self) -> int:
         """Retorna el número de zonas activas monitoreadas."""
         return len(self.detector.active_zones)
+
+    def get_last_routed_proposals(self) -> List[Dict[str, Any]]:
+        """Retorna el último lote de propuestas enrutadas al Orchestrator."""
+        return list(self.last_routed_proposals)
 
 
 # Alias para compatibilidad con código existente

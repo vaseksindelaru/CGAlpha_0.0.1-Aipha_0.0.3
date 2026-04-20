@@ -72,6 +72,7 @@ from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import TripleC
 from cgalpha_v3.application.live_adapter import LiveDataFeedAdapter
 from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
 from cgalpha_v3.lila.evolution_orchestrator import EvolutionOrchestratorV4
+from cgalpha_v3.lila.codecraft_sage import CodeCraftSage
 from cgalpha_v3.lila.llm.llm_switcher import LLMSwitcher
 from cgalpha_v3.data_quality.nexus_gate import NexusGate
 from cgalpha_v3.risk.order_manager import DryRunOrderManager
@@ -90,6 +91,8 @@ _production_gate = ProductionGate(_promotion_validator)
 _history_learner = ProjectHistoryLearner(_memory_engine, BASE_DIR.parent.parent) 
 _assistant = LLMAssistant() # Migrado a v3
 _llm_switcher = LLMSwitcher(assistant=_assistant)
+_codecraft_sage = CodeCraftSage.create_default()
+_codecraft_sage.switcher = _llm_switcher
 _ws_manager = BinanceWebSocketManager.create_default()
 
 # Multi-Asset Execution Layer (Fase 4.3)
@@ -120,6 +123,7 @@ _ws_manager = _ws_managers["BTCUSDT"]
 _evolution_orchestrator = EvolutionOrchestratorV4(
     memory=_memory_engine,
     switcher=_llm_switcher,
+    sage=_codecraft_sage,
     assistant=_assistant,
 )
 
@@ -2014,7 +2018,7 @@ def assistant_chat() -> ResponseReturnValue:
 # ---------------------------------------------------------------------------
 
 from cgalpha_v3.application.pipeline import TripleCoincidencePipeline, SimpleFoundationPipeline
-pipeline_v3 = TripleCoincidencePipeline()
+pipeline_v3 = TripleCoincidencePipeline(evolution_orchestrator=_evolution_orchestrator)
 
 @app.route("/api/vault/status", methods=["GET"])
 @require_auth
@@ -2060,7 +2064,15 @@ def execute_pipeline_cycle():
     symbol = data.get("symbol", "BTCUSDT")
     logger.info(f"🚀 GUI REQUEST: Pipeline Cycle para {symbol}")
     decision = pipeline_v3.run_cycle(symbol, datetime.now(), datetime.now())
-    return jsonify({"status": "completed", "nexus_decision": decision})
+    routed = pipeline_v3.get_last_routed_proposals()
+    return jsonify(
+        {
+            "status": "completed",
+            "nexus_decision": decision,
+            "routed_proposals": routed,
+            "routed_count": len(routed),
+        }
+    )
 
 @app.route('/api/lila/command', methods=['POST'])
 @require_auth
