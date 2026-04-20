@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
 
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.records import MicrostructureRecord
@@ -109,6 +110,15 @@ class OracleTrainer_v3(BaseComponentV3):
         if X.empty:
             raise ValueError("No valid rows with outcome BOUNCE/BREAKOUT were found.")
 
+        # BUG-1 fix: separar train/test para métricas OOS reales
+        if len(X) >= 10:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
+        else:
+            # Dataset muy pequeño: sin split para no perder datos
+            X_train, X_test, y_train, y_test = X, X, y, y
+
         self.model = RandomForestClassifier(
             n_estimators=100,
             max_depth=5,
@@ -116,9 +126,10 @@ class OracleTrainer_v3(BaseComponentV3):
             random_state=42,
             class_weight="balanced",
         )
-        self.model.fit(X, y)
+        self.model.fit(X_train, y_train)
 
-        train_accuracy = float(self.model.score(X, y))
+        train_accuracy = float(self.model.score(X_train, y_train))
+        test_accuracy = float(self.model.score(X_test, y_test))
         class_distribution = (
             y.map({1: "BOUNCE", 0: "BREAKOUT"})
             .value_counts()
@@ -132,7 +143,10 @@ class OracleTrainer_v3(BaseComponentV3):
         )
         self._training_metrics = {
             "n_samples": int(len(X)),
+            "n_train": int(len(X_train)),
+            "n_test": int(len(X_test)),
             "train_accuracy": round(train_accuracy, 4),
+            "test_accuracy": round(test_accuracy, 4),
             "n_features": len(self._feature_cols),
             "class_distribution": class_distribution,
             "feature_importances": importances,
