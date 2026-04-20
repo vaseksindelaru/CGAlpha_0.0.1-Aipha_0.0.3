@@ -35,7 +35,7 @@ class OracleTrainer_v3(BaseComponentV3):
 
     def __init__(self, manifest: ComponentManifest):
         super().__init__(manifest)
-        self.min_confidence = 0.68# Umbral canónico
+        self.min_confidence = 0.65# Umbral canónico
         self.model: RandomForestClassifier | str | None = None
         self.training_data: List[Dict[str, Any]] = []
         self._encoders: Dict[str, LabelEncoder] = {}
