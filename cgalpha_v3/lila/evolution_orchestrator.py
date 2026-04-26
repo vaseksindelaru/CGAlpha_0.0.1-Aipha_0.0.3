@@ -184,6 +184,55 @@ class EvolutionOrchestratorV4:
         logger.warning(f"Classify: unknown change_type='{change_type}' → Cat.2 (default)")
         return 2
 
+    def __post_init__(self):
+        self._constraints = self._load_constraints()
+
+    def _load_constraints(self) -> dict:
+        """Load parameter_constraints.json (Safety Envelope)."""
+        constraints_path = Path("cgalpha_v3/config/parameter_constraints.json")
+        if constraints_path.exists():
+            try:
+                data = json.loads(constraints_path.read_text(encoding="utf-8"))
+                flat = {}
+                for component, params in data.get("constraints", {}).items():
+                    for param_name, bounds in params.items():
+                        flat[param_name] = {**bounds, "component": component}
+                logger.info(f"🛡️ Safety Envelope loaded: {len(flat)} constraints")
+                return flat
+            except Exception as e:
+                logger.warning(f"Failed to load constraints: {e}")
+        return {}
+
+    def _validate_constraints(self, spec: Any) -> tuple[bool, str]:
+        """Validate a TechnicalSpec's new_value against the Safety Envelope.
+        
+        Returns (is_valid, error_message).
+        """
+        if not self._constraints:
+            return True, ""
+
+        attr = getattr(spec, "target_attribute", "")
+        new_value = getattr(spec, "new_value", None)
+
+        if attr not in self._constraints or new_value is None:
+            return True, ""
+
+        bounds = self._constraints[attr]
+        min_val = bounds.get("min")
+        max_val = bounds.get("max")
+
+        if min_val is not None and new_value < min_val:
+            return False, (
+                f"SAFETY ENVELOPE VIOLATION: {attr}={new_value} < min={min_val}. "
+                f"Reason: {bounds.get('reason', '')}"
+            )
+        if max_val is not None and new_value > max_val:
+            return False, (
+                f"SAFETY ENVELOPE VIOLATION: {attr}={new_value} > max={max_val}. "
+                f"Reason: {bounds.get('reason', '')}"
+            )
+        return True, ""
+
     # ───────────────────────────────────────────────────────
     # CORE: PROCESS PROPOSAL
     # ───────────────────────────────────────────────────────
@@ -196,6 +245,20 @@ class EvolutionOrchestratorV4:
         """
         self._stats["total_proposals"] += 1
         spec_key = f"{getattr(spec, 'target_file', '')}:{getattr(spec, 'target_attribute', '')}"
+
+        # ── Safety Envelope gate ──
+        is_valid, violation_msg = self._validate_constraints(spec)
+        if not is_valid:
+            self._stats["failures"] += 1
+            logger.warning(f"🛡️ REJECTED by Safety Envelope: {violation_msg}")
+            result = EvolutionResult(
+                category=0,
+                status="REJECTED_SAFETY",
+                spec_summary=spec_key,
+                error=violation_msg,
+            )
+            self._append_evolution_log(spec, result)
+            return result
 
         # Cooldown check
         last_time = self._last_proposals.get(spec_key, 0)
