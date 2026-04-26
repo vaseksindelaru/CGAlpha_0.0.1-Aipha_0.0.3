@@ -77,6 +77,7 @@ from cgalpha_v3.lila.llm.llm_switcher import LLMSwitcher
 from cgalpha_v3.data_quality.nexus_gate import NexusGate
 from cgalpha_v3.risk.order_manager import DryRunOrderManager
 from cgalpha_v3.risk.execution_factory import create_order_manager
+from cgalpha_v3.trading.shadow_trader import BRIDGE_JSONL_PATH
 
 _rollback_mgr = RollbackManager(MEMORY_DIR / "snapshots")
 _lila_mgr = LibraryManager()
@@ -545,6 +546,163 @@ def _incident_priority(level: str, trigger: str) -> str:
     return "P3"
 
 
+def _is_simulated_incident(event: str, context: dict[str, Any] | None) -> bool:
+    if "simulated" in event.lower():
+        return True
+    if not context:
+        return False
+    for key in ("error", "message", "reason"):
+        value = context.get(key)
+        if isinstance(value, str) and "simulated" in value.lower():
+            return True
+    return False
+
+
+def _is_operational_open_incident(incident: dict[str, Any]) -> bool:
+    if incident.get("status") != "open":
+        return False
+    return incident.get("incident_type", "operational") == "operational"
+
+
+def _operational_open_incident_count() -> int:
+    return len([inc for inc in _incident_registry if _is_operational_open_incident(inc)])
+
+
+def _parse_iso_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    raw = value.strip()
+    if not raw:
+        return None
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _read_last_non_empty_line(path: Path) -> str | None:
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            cursor = handle.tell()
+            if cursor <= 0:
+                return None
+
+            buffer = bytearray()
+            while cursor > 0:
+                cursor -= 1
+                handle.seek(cursor)
+                char = handle.read(1)
+                if char == b"\n":
+                    if buffer:
+                        break
+                    continue
+                buffer.extend(char)
+
+            if not buffer:
+                return None
+            return bytes(reversed(buffer)).decode("utf-8", errors="replace").strip()
+    except OSError:
+        return None
+
+
+def _read_last_bridge_entry(bridge_path: Path) -> dict[str, Any] | None:
+    line = _read_last_non_empty_line(bridge_path)
+    if not line:
+        return None
+    try:
+        payload = json.loads(line)
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _as_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _production_readiness_snapshot(
+    *,
+    memory_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    memory = memory_snapshot or _learning_memory_snapshot_json()
+
+    oracle_cfg = _system_state.get("oracle", {})
+    oracle_model_type = str(oracle_cfg.get("model_type", "placeholder")).strip().lower()
+    oracle_runtime_model = getattr(_oracle_v3, "model", None)
+    oracle_model_is_real = oracle_model_type != "placeholder" or (
+        oracle_runtime_model is not None and oracle_runtime_model != "placeholder_model_trained"
+    )
+
+    bridge_path = project_root / BRIDGE_JSONL_PATH
+    last_bridge_entry = _read_last_bridge_entry(bridge_path)
+    bridge_entry_price = None
+    if isinstance(last_bridge_entry, dict):
+        try:
+            bridge_entry_price = float(last_bridge_entry.get("entry_price", 0.0))
+        except (TypeError, ValueError):
+            bridge_entry_price = None
+    bridge_jsonl_has_real_data = bool(
+        last_bridge_entry is not None
+        and bridge_entry_price is not None
+        and bridge_entry_price > 10_000.0
+    )
+
+    last_cycle_ts = _parse_iso_timestamp(_system_state.get("last_event_ts"))
+    minutes_since_last_cycle = None
+    if last_cycle_ts is not None:
+        minutes_since_last_cycle = max(
+            (datetime.now(timezone.utc) - last_cycle_ts).total_seconds() / 60.0,
+            0.0,
+        )
+    evolution_loop_active = (
+        minutes_since_last_cycle is not None and minutes_since_last_cycle <= 30.0
+    )
+
+    levels = memory.get("levels", {})
+    level_5_entries = _as_int(levels.get("5", 0)) if isinstance(levels, dict) else 0
+    identity_entries = _as_int(memory.get("identity_entries", 0))
+    memory_identity_loaded = identity_entries > 0 and level_5_entries > 0
+
+    checks = {
+        "oracle_model_is_real": oracle_model_is_real,
+        "bridge_jsonl_has_real_data": bridge_jsonl_has_real_data,
+        "evolution_loop_active": evolution_loop_active,
+        "memory_identity_loaded": memory_identity_loaded,
+    }
+    pending_checks = [name for name, ok in checks.items() if not ok]
+    production_ready = not pending_checks
+    gate_reason = (
+        "Runtime checks OK (oracle real + bridge real + loop activo + identidad cargada)"
+        if production_ready
+        else f"Checks pendientes: {', '.join(pending_checks)}"
+    )
+
+    return {
+        "production_ready": production_ready,
+        "production_gate_reason": gate_reason,
+        "checks": checks,
+        "diagnostics": {
+            "oracle_model_type": oracle_model_type,
+            "bridge_path": str(bridge_path),
+            "bridge_entry_price": bridge_entry_price,
+            "minutes_since_last_cycle": round(minutes_since_last_cycle, 2)
+            if minutes_since_last_cycle is not None
+            else None,
+            "identity_entries": identity_entries,
+            "level_5_entries": level_5_entries,
+        },
+    }
+
+
 def _register_incident(
     *,
     event: str,
@@ -559,6 +717,7 @@ def _register_incident(
     _ensure_dirs()
     created_at = datetime.now(timezone.utc)
     priority = _incident_priority(level, trigger)
+    simulated = _is_simulated_incident(event=event, context=context)
     incident_id = f"inc-{uuid.uuid4().hex[:8]}"
     filename = f"{created_at.strftime('%Y-%m-%d')}_{priority}_{_slugify(event, 36)}_{incident_id}.md"
     post_mortem_path = _post_mortems_dir() / filename
@@ -589,16 +748,17 @@ def _register_incident(
     incident = {
         "incident_id": incident_id,
         "priority": priority,
+        "incident_type": "simulated" if simulated else "operational",
         "trigger": trigger,
         "level": level,
         "event": event,
         "iteration_id": iteration_id,
         "created_at": created_at.isoformat(),
-        "status": "open",
+        "status": "resolved" if simulated else "open",
         "context": context or {},
         "post_mortem_path": str(post_mortem_path),
-        "resolved_at": None,
-        "resolution_note": "",
+        "resolved_at": created_at.isoformat() if simulated else None,
+        "resolution_note": "Auto-resuelto: incidente de simulación." if simulated else "",
     }
     _incident_registry.append(incident)
     if len(_incident_registry) > 200:
@@ -741,6 +901,8 @@ def _build_iteration_status(
     snapshots_dir = MEMORY_DIR / "snapshots"
     rollback_available = snapshots_dir.exists() and any(d.is_dir() for d in snapshots_dir.iterdir())
     recent_events = _events_log[-20:]
+    learning_memory = _learning_memory_snapshot_json()
+    production_readiness = _production_readiness_snapshot(memory_snapshot=learning_memory)
 
     status: dict[str, Any] = {
         "iteration": iteration_id,
@@ -764,12 +926,14 @@ def _build_iteration_status(
         "primary_source_gap": _system_state["primary_source_gap"],
         "risk_parameters": _risk_params_snapshot(),
         "experiment_loop": _experiment_loop_snapshot_json(),
-        "learning_memory": _learning_memory_snapshot_json(),
-        "incident_open_count": len([i for i in _incident_registry if i["status"] == "open"]),
+        "learning_memory": learning_memory,
+        "incident_open_count": _operational_open_incident_count(),
         "adr_count": len(_adr_registry),
         "namespace": "v3",
-        "production_ready": False,
-        "production_gate_reason": "P0/P1/P2 pendientes según checklist de implementación",
+        "production_ready": production_readiness["production_ready"],
+        "production_gate_reason": production_readiness["production_gate_reason"],
+        "production_readiness_checks": production_readiness["checks"],
+        "production_readiness_diagnostics": production_readiness["diagnostics"],
         "rollback_available": rollback_available,
         "rollback_note": "Snapshot disponible para rollback" if rollback_available else "Sin snapshots disponibles",
     }
@@ -806,7 +970,9 @@ def _build_iteration_summary(status: dict[str, Any]) -> str:
         f"- Último evento: {status['gui_events_published'][-1] if status['gui_events_published'] else 'N/A'}\n"
         f"- Kill-switch: {status['kill_switch_status']}\n"
         f"- Circuit breaker: {status['circuit_breaker']}\n"
-        f"- Data quality: {status['data_quality']}\n\n"
+        f"- Data quality: {status['data_quality']}\n"
+        f"- Production ready: {status.get('production_ready', False)}\n"
+        f"- Production gate: {status.get('production_gate_reason', 'N/A')}\n\n"
         f"- Incidentes abiertos: {status.get('incident_open_count', 0)}\n"
         f"- ADR acumulados: {status.get('adr_count', 0)}\n\n"
         "## Parámetros de riesgo vigentes\n\n"
@@ -992,6 +1158,10 @@ def api_status() -> ResponseReturnValue:
     """
     Devuelve gui_status_snapshot compatible con Sección J del Prompt Maestro.
     """
+    health = _health_monitor.status_snapshot()
+    learning_memory = _learning_memory_snapshot_json()
+    production_readiness = _production_readiness_snapshot(memory_snapshot=learning_memory)
+
     return jsonify({
         "panels_active": _system_state["panels_active"],
         "auth_enabled": True,
@@ -1006,7 +1176,7 @@ def api_status() -> ResponseReturnValue:
         "max_position_size_pct": _system_state["max_position_size_pct"],
         "max_signals_per_hour": _system_state["max_signals_per_hour"],
         "min_signal_quality_score": _system_state["min_signal_quality_score"],
-        "health": _health_monitor.status_snapshot(),
+        "health": health,
         "regime_shift_active": _system_state.get("regime_shift_active", False),
         "primary_source_gap": _system_state["primary_source_gap"],
         "ws_active": _ws_manager.is_running,
@@ -1022,8 +1192,12 @@ def api_status() -> ResponseReturnValue:
         "library": _library_snapshot_json(),
         "theory_live": _theory_live_snapshot_json(),
         "experiment_loop": _experiment_loop_snapshot_json(),
-        "learning_memory": _learning_memory_snapshot_json(),
-        "incident_open_count": len([i for i in _incident_registry if i["status"] == "open"]),
+        "learning_memory": learning_memory,
+        "production_ready": production_readiness["production_ready"],
+        "production_gate_reason": production_readiness["production_gate_reason"],
+        "production_readiness_checks": production_readiness["checks"],
+        "production_readiness_diagnostics": production_readiness["diagnostics"],
+        "incident_open_count": _operational_open_incident_count(),
         "adr_count": len(_adr_registry),
         "server_ts": datetime.now(timezone.utc).isoformat(),
     })
@@ -1510,6 +1684,7 @@ def learning_memory_promote() -> ResponseReturnValue:
     target_level_raw = str(data.get("target_level") or "").strip()
     approved_by = str(data.get("approved_by") or "Lila")
     experiment_id = data.get("experiment_id")
+    identity_confirmation = str(data.get("identity_confirmation") or "").strip()
     
     if not entry_id:
         return jsonify({"error": "entry_id_required"}), 400
@@ -1517,6 +1692,17 @@ def learning_memory_promote() -> ResponseReturnValue:
         return jsonify({"error": "target_level_required"}), 400
     try:
         target_level = MemoryPolicyEngine.parse_level(target_level_raw)
+
+        if target_level == MemoryLevel.IDENTITY:
+            expected_confirmation = f"PROMOTE_IDENTITY:{entry_id}"
+            if identity_confirmation != expected_confirmation:
+                return jsonify({
+                    "error": "identity_confirmation_required",
+                    "message": (
+                        "Promoción a IDENTITY requiere confirmación explícita. "
+                        f"Envía identity_confirmation='{expected_confirmation}'."
+                    ),
+                }), 403
         
         # --- Production Gate P3.6 Enforcement ---
         if target_level == MemoryLevel.STRATEGY:
