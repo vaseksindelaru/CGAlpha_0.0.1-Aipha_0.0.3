@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.utils import resample
 
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.records import MicrostructureRecord
@@ -120,6 +121,32 @@ class OracleTrainer_v3(BaseComponentV3):
             # Dataset muy pequeño: sin split para no perder datos
             X_train, X_test, y_train, y_test = X, X, y, y
 
+        # BUG-3 fix: oversampling de clase minoritaria SOLO en training set
+        minority_count = int(y_train.value_counts().min())
+        majority_count = int(y_train.value_counts().max())
+        rebalance_applied = False
+        if minority_count > 0 and majority_count / max(minority_count, 1) > 3:
+            minority_label = int(y_train.value_counts().idxmin())
+            minority_mask = y_train == minority_label
+            X_minority = X_train[minority_mask]
+            y_minority = y_train[minority_mask]
+            X_majority = X_train[~minority_mask]
+            y_majority = y_train[~minority_mask]
+            X_min_resampled, y_min_resampled = resample(
+                X_minority, y_minority,
+                replace=True,
+                n_samples=len(X_majority),
+                random_state=42,
+            )
+            X_train = pd.concat([X_majority, X_min_resampled])
+            y_train = pd.concat([y_majority, y_min_resampled])
+            rebalance_applied = True
+            import logging
+            logging.getLogger(__name__).info(
+                f"🔄 BUG-3 rebalance: {minority_count} minority → {len(X_majority)} "
+                f"(oversampled to match majority)"
+            )
+
         self.model = RandomForestClassifier(
             n_estimators=100,
             max_depth=5,
@@ -150,6 +177,7 @@ class OracleTrainer_v3(BaseComponentV3):
             "test_accuracy": round(test_accuracy, 4),
             "n_features": len(self._feature_cols),
             "class_distribution": class_distribution,
+            "rebalance_applied": rebalance_applied,
             "feature_importances": importances,
         }
         # Inyectar firma causal basada en este dataset
