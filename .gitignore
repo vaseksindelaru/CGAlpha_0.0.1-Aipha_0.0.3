@@ -58,4 +58,5 @@ cgalpha_v3/data/vision_cache/
 aipha_memory/evolutionary/
 *.bak
 execution_server.log
+execution_24h_heartbeat.json
 .codex
