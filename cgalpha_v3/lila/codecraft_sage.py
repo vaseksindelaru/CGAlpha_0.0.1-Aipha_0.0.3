@@ -8,6 +8,7 @@ commits trazables tras pasar la Triple Barrera de Tests.
 import os
 import subprocess
 import json
+import ast
 from typing import List, Optional, Dict
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
@@ -122,17 +123,26 @@ class CodeCraftSage(BaseComponentV3):
     def _apply_patch(self, spec: TechnicalSpec):
         """
         Aplica el cambio al archivo. 
-        Intenta Regex primero (rápido, determinista), LLM después (lento, inteligente).
+        Jerarquía v4:
+        1. AST Patching (S quirúrgico, determinista, preferido para parámetros)
+        2. Regex Patching (S rápido, determinista, fallback para parámetros)
+        3. LLM Patching (S inteligente, lento, para cambios estructurales/lógica)
         """
+        # 1. Intento AST (Novedad v4)
+        if spec.change_type == "parameter":
+            if self._apply_ast_patch(spec):
+                logger.info(f"🎯 AST Patch aplicado exitosamente a {spec.target_attribute}")
+                return
+
         import re
         try:
-            with open(spec.target_file, 'r') as f:
+            with open(spec.target_file, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
         except FileNotFoundError:
             logger.error(f"❌ Archivo no encontrado: {spec.target_file}")
             raise
 
-        # 1. Intento Regex (para parámetros)
+        # 2. Intento Regex (fallback para parámetros)
         if spec.change_type == "parameter":
             pattern = rf"(\b{spec.target_attribute}\b\s*=\s*)([^#\n]+)"
             new_lines = []
@@ -146,12 +156,12 @@ class CodeCraftSage(BaseComponentV3):
                     new_lines.append(line)
             
             if found:
-                with open(spec.target_file, 'w') as f:
+                with open(spec.target_file, 'w', encoding='utf-8') as f:
                     f.writelines(new_lines)
-                logger.info(f"✅ Regex Patch aplicado a {spec.target_attribute}")
+                logger.info(f"✅ Regex Patch aplicado a {spec.target_attribute} (Fallback)")
                 return
 
-        # 2. LLM Patching (para features, bugfixes o si falló regex)
+        # 3. LLM Patching (para features, bugfixes o si fallaron los deterministas)
         if not self.switcher:
             raise RuntimeError("Se requiere LLMSwitcher para patching de tipo structural/bugfix")
 
@@ -159,7 +169,7 @@ class CodeCraftSage(BaseComponentV3):
         file_content = "".join(lines)
         
         # v4 Optimization: For local models, send smaller context if possible
-        is_local = self.switcher.select("cat_3").name == "ollama"
+        is_local = self.switcher.select("cat_2").name == "ollama" # Use cat_2 for patching
         if is_local:
              prompt_context = f"Archivo: {spec.target_file}\nContenido:\n{file_content[:4000]}..." # Truncar si es muy largo
         else:
@@ -191,9 +201,100 @@ REGLAS:
             else:
                 new_content = new_content.split("```")[-1].split("```")[0].strip()
 
-        with open(spec.target_file, 'w') as f:
+        with open(spec.target_file, 'w', encoding='utf-8') as f:
             f.write(new_content)
         logger.info(f"✅ LLM Patch aplicado a {spec.target_file}")
+
+    def _apply_ast_patch(self, spec: TechnicalSpec) -> bool:
+        """
+        Localiza el nodo exacto en el AST y modifica la línea del source.
+        Preserva comentarios y formato del resto del archivo.
+        """
+        try:
+            with open(spec.target_file, 'r', encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source)
+            lines = source.splitlines()
+        except Exception as e:
+            logger.warning(f"AST Parsing fallido en {spec.target_file}: {e}")
+            return False
+
+        found_node = None
+        for node in ast.walk(tree):
+            # Caso 1: Asignación simple x = 1.0 (o x: float = 1.0)
+            if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                target = node.targets[0] if isinstance(node, ast.Assign) else node.target
+                name = None
+                if isinstance(target, ast.Name):
+                    name = target.id
+                elif isinstance(target, ast.Attribute):
+                    name = target.attr
+                
+                if name == spec.target_attribute:
+                    found_node = node
+                    break
+            
+            # Caso 2: Clave en un diccionario (common in config dicts)
+            elif isinstance(node, ast.Dict):
+                for i, key in enumerate(node.keys):
+                    if isinstance(key, ast.Constant) and key.value == spec.target_attribute:
+                        found_node = node.values[i]
+                        break
+                if found_node: break
+
+        if not found_node:
+            return False
+
+        # Si encontramos el nodo, intentamos reemplazar solo esa línea/rango
+        # Nota: lineno en ast es 1-indexed
+        sl = found_node.lineno - 1
+        el = found_node.end_lineno - 1 if hasattr(found_node, 'end_lineno') else sl
+        
+        if sl >= len(lines):
+            return False
+
+        new_val_str = repr(spec.new_value)
+        
+        # Parche quirúrgico en la línea encontrada
+        line = lines[sl]
+        
+        # Si es una asignación Name = Value
+        if isinstance(found_node, (ast.Assign, ast.AnnAssign)):
+            if '=' in line:
+                before, after = line.split('=', 1)
+                # Conservar comentario si existe
+                comment = ""
+                if '#' in after:
+                    after, comment = after.split('#', 1)
+                    comment = " #" + comment
+                
+                lines[sl] = f"{before}= {new_val_str}{comment}"
+                with open(spec.target_file, 'w', encoding='utf-8') as f:
+                    f.write("\n".join(lines) + "\n")
+                return True
+        
+        # Si es un valor de dict {'key': value}
+        elif found_node: # found_node es el value_node del dict
+            # Buscar el separador ':'
+            if ':' in line:
+                before, after = line.split(':', 1)
+                # Conservar comentario y posible coma
+                comment = ""
+                suffix = ""
+                if '#' in after:
+                    after, comment = after.split('#', 1)
+                    comment = " #" + comment
+                
+                after = after.strip()
+                if after.endswith(','):
+                    suffix = ","
+                
+                lines[sl] = f"{before}: {new_val_str}{suffix}{comment}"
+                with open(spec.target_file, 'w', encoding='utf-8') as f:
+                    f.write("\n".join(lines) + "\n")
+                return True
+
+        return False
 
     def _run_test_barrier(self, target_file: str) -> Dict:
         """Triple Barrera: Tests de unidad + Integración + No-Leakage."""
