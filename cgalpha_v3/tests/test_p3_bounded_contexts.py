@@ -97,9 +97,26 @@ def test_api_status_includes_health(client):
     assert res.status_code == 200
     data = res.get_json()
     assert "health" in data
+    assert "production_ready" in data
+    assert "production_gate_reason" in data
+    checks = data["production_readiness_checks"]
+    assert checks["oracle_model_is_real"] in (True, False)
+    assert checks["bridge_jsonl_has_real_data"] in (True, False)
+    assert checks["evolution_loop_active"] in (True, False)
+    assert checks["memory_identity_loaded"] in (True, False)
 
 
 def test_api_experiment_run_leakage_recording(client):
+    before_all = client.get(
+        "/api/incidents?limit=200",
+        headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+    ).get_json()["incidents"]
+    before_ids = {inc["incident_id"] for inc in before_all}
+    before_open_count = client.get(
+        "/api/incidents?status=open&limit=200",
+        headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+    ).get_json()["count"]
+
     # Mock behavior to trigger leakage
     with patch("cgalpha_v3.application.experiment_runner.ExperimentRunner.run_experiment") as mock_run:
         from cgalpha_v3.data_quality.gates import TemporalLeakageError
@@ -121,6 +138,24 @@ def test_api_experiment_run_leakage_recording(client):
         status_res = client.get("/api/status", headers={"Authorization": f"Bearer {AUTH_TOKEN}"})
         health = status_res.get_json()["health"]
         assert health["slos"]["leakage_rate"]["current"] == 1.0
+
+    after_open_count = client.get(
+        "/api/incidents?status=open&limit=200",
+        headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+    ).get_json()["count"]
+    assert after_open_count == before_open_count
+
+    after_all = client.get(
+        "/api/incidents?limit=200",
+        headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+    ).get_json()["incidents"]
+    new_simulated = [
+        inc for inc in after_all
+        if inc["incident_id"] not in before_ids and "simulated leakage" in inc["event"].lower()
+    ]
+    assert new_simulated
+    assert new_simulated[0]["incident_type"] == "simulated"
+    assert new_simulated[0]["status"] == "resolved"
 
 
 def test_api_library_error_paths(client):

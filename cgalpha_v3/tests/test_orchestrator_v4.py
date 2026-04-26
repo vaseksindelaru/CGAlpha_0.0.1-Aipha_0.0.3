@@ -110,6 +110,12 @@ def test_classify_memory_policy_is_cat_3():
     assert orch.classify(spec) == 3
 
 
+def test_classify_north_star_doc_is_cat_3():
+    orch = EvolutionOrchestratorV4()
+    spec = MockSpec(target_file="LILA_v3_NORTH_STAR.md")
+    assert orch.classify(spec) == 3
+
+
 def test_classify_unknown_type_defaults_cat_2():
     orch = EvolutionOrchestratorV4()
     spec = MockSpec(change_type="xyzzy_unknown")

@@ -72,6 +72,7 @@ CAT_3_PROTECTED_FILES = {
     "memory_policy.py",
     "llm_switcher.py",
     "server.py",
+    "LILA_v3_NORTH_STAR.md",
 }
 
 # Maximum escalation attempts before Cat.2 → Cat.3
