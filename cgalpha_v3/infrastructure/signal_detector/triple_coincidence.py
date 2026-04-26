@@ -76,11 +76,12 @@ class KeyCandleDetector:
     """
 
     def __init__(self, config: Dict = None):
-        self.config = config or {
+        defaults = {
             'volume_percentile_threshold': 70,
             'body_percentage_threshold': 40,
             'lookback_candles': 30
         }
+        self.config = {**defaults, **(config or {})}
         self.data = None
 
     def load_data(self, data: pd.DataFrame):
@@ -153,13 +154,14 @@ class AccumulationZoneDetector:
     """
 
     def __init__(self, config: Dict = None):
-        self.config = config or {
+        defaults = {
             'atr_period': 14,
             'atr_multiplier': 1.5,
             'volume_threshold': 1.2,
             'min_zone_bars': 5,
             'quality_threshold': 0.7
         }
+        self.config = {**defaults, **(config or {})}
         self.data = None
 
     def load_data(self, data: pd.DataFrame):
@@ -326,20 +328,25 @@ class MiniTrendDetector:
     """
 
     def __init__(self, config: Dict = None):
-        self.config = config or {
+        defaults = {
             'r2_min': 0.45,
-            'min_trend_length': 5
+            'min_trend_length': 5,
+            'zigzag_threshold': 0.001
         }
+        self.config = {**defaults, **(config or {})}
         self.data = None
 
     def load_data(self, data: pd.DataFrame):
         """Carga datos OHLCV."""
         self.data = data.copy()
 
-    def _zigzag_segment(self, threshold_pct: float = 0.02) -> List[Dict]:
+    def _zigzag_segment(self, threshold_pct: Optional[float] = None) -> List[Dict]:
         """
-        Segmentación ZigZag simplificada.
+        Segmentación ZigZag.
         """
+        if threshold_pct is None:
+            threshold_pct = self.config.get('zigzag_threshold', 0.0002)
+
         if self.data is None or len(self.data) < 10:
             return []
 
@@ -523,7 +530,7 @@ class TripleCoincidenceDetector:
     """
 
     def __init__(self, config: Dict = None):
-        self.config = config or {
+        defaults = {
             'volume_percentile_threshold': 70,
             'body_percentage_threshold': 40,
             'lookback_candles': 30,
@@ -534,10 +541,12 @@ class TripleCoincidenceDetector:
             'quality_threshold': 0.45,
             'r2_min': 0.45,
             'min_trend_length': 5,
+            'zigzag_threshold': 0.001,
             'proximity_tolerance': 8,
-            'retest_timeout_bars': 50,  # Máximo velas para esperar retest
-            'outcome_lookahead_bars': 10,  # Velas para determinar outcome
+            'retest_timeout_bars': 50,
+            'outcome_lookahead_bars': 10,
         }
+        self.config = {**defaults, **(config or {})}
         self.key_candle_detector = KeyCandleDetector(self.config)
         self.zone_detector = AccumulationZoneDetector(self.config)
         self.trend_detector = MiniTrendDetector(self.config)

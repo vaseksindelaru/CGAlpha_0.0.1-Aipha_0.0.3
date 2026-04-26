@@ -2918,7 +2918,6 @@ function renderTrainingRetestTable() {
     let html = '';
     filtered.forEach((rt, idx) => {
         const outcomeColor = rt.outcome === 'BOUNCE' ? 'var(--accent)' : 'var(--red)';
-        const outcomeColor = rt.outcome === 'BOUNCE' ? 'var(--accent)' : 'var(--red)';
         const dir = (rt.direction || "").toLowerCase();
         const isBullish = dir === 'bullish' || dir === 'long';
         const dirArrow = isBullish ? '▲' : '▼';
