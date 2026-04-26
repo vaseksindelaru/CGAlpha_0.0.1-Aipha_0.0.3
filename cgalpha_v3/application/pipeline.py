@@ -199,6 +199,7 @@ class TripleCoincidencePipeline:
             ]
             if dataset_dicts:
                 self.oracle.load_training_dataset(dataset_dicts)
+                self.oracle.train_model()
 
         # 6. EVALUACIÓN Y EVOLUCIÓN (NexusGate & AutoProposer)
         report = GateReport(
