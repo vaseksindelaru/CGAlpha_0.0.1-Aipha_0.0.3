@@ -1447,8 +1447,8 @@ def experiment_status() -> ResponseReturnValue:
 @app.route("/api/experiment/proposals", methods=["GET"])
 @require_auth
 def get_auto_proposals() -> ResponseReturnValue:
-    """Obtener recomendaciones automáticas del AutoProposer."""
-    return jsonify(_auto_proposals)
+    """Obtener recomendaciones automáticas del EvolutionOrchestrator (v4 real)."""
+    return jsonify(_evolution_orchestrator.get_pending_summary())
 
 
 @app.route("/api/experiment/propose", methods=["POST"])

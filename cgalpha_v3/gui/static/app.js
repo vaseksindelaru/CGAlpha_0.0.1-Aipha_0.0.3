@@ -2918,8 +2918,11 @@ function renderTrainingRetestTable() {
     let html = '';
     filtered.forEach((rt, idx) => {
         const outcomeColor = rt.outcome === 'BOUNCE' ? 'var(--accent)' : 'var(--red)';
-        const dirArrow = rt.direction === 'bullish' ? '▲' : '▼';
-        const dirColor = rt.direction === 'bullish' ? 'var(--accent)' : 'var(--red)';
+        const outcomeColor = rt.outcome === 'BOUNCE' ? 'var(--accent)' : 'var(--red)';
+        const dir = (rt.direction || "").toLowerCase();
+        const isBullish = dir === 'bullish' || dir === 'long';
+        const dirArrow = isBullish ? '▲' : '▼';
+        const dirColor = isBullish ? 'var(--accent)' : 'var(--red)';
         const regimePill = rt.regime === 'LATERAL' ? 'var(--yellow)' : rt.regime === 'TREND' ? 'var(--accent2)' : 'var(--red)';
 
         html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03); cursor:pointer;"
@@ -2938,14 +2941,7 @@ function renderTrainingRetestTable() {
     tbody.innerHTML = html;
 }
 
-function focusTrainingZone(zoneId, retestIndex) {
-    trainingSelectedZone = zoneId;
-    renderTrainingChart();
 
-    // Scroll to chart
-    const chartEl = document.getElementById('training-candlestick-chart');
-    if (chartEl) chartEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
 
 function renderTrainingChart() {
     const chartDiv = document.getElementById('training-candlestick-chart');
@@ -3165,8 +3161,10 @@ function renderTrainingChart() {
             svg += `<text x="${x}" y="${y + 4}" text-anchor="middle" fill="#fff" font-size="7" font-weight="bold">${outcomeSymbol}</text>`;
 
             // Direction arrow
-            const dirArrow = rt.direction === 'bullish' ? '▲' : '▼';
-            const dirColor = rt.direction === 'bullish' ? '#00d4aa' : '#ff6b6b';
+            const dir = (rt.direction || "").toLowerCase();
+            const isBullish = dir === 'bullish' || dir === 'long';
+            const dirArrow = isBullish ? '▲' : '▼';
+            const dirColor = isBullish ? '#00d4aa' : '#ff6b6b';
             svg += `<text x="${x}" y="${y - 12}" text-anchor="middle" fill="${dirColor}" font-size="10" font-weight="bold">${dirArrow}</text>`;
 
             // Regime indicator
@@ -3186,7 +3184,8 @@ function renderTrainingChart() {
                 const x2 = marginLeft + (localEnd + 1) * gap;
                 const yTop = priceToY(zone.zone_top);
                 const yBottom = priceToY(zone.zone_bottom);
-                const borderColor = zone.direction === 'bullish' ? '#00d4aa' : '#ff6b6b';
+                const zDir = (zone.direction || "").toLowerCase();
+                const borderColor = (zDir === 'bullish' || zDir === 'long') ? '#00d4aa' : '#ff6b6b';
                 svg += `<rect x="${x1}" y="${yTop}" width="${x2 - x1}" height="${yBottom - yTop}" fill="none" stroke="${borderColor}" stroke-width="2" rx="4" opacity="0.6" />`;
             }
         }

@@ -644,7 +644,7 @@ class EvolutionOrchestratorV4:
         return dict(self._stats)
 
     def get_pending_summary(self) -> list[dict]:
-        """Return pending proposals for GUI display."""
+        """Return pending proposals for GUI display (compat v4)."""
         if not self.memory:
             return []
 
@@ -653,14 +653,21 @@ class EvolutionOrchestratorV4:
         for entry in pending:
             try:
                 data = json.loads(entry.content)
+                spec = data.get("spec", {})
+                
+                # Mapeo a formato GUI v3/v4
                 result.append({
-                    "proposal_id": data.get("proposal_id", ""),
-                    "category": data.get("category", 0),
-                    "spec_key": data.get("spec_key", ""),
-                    "status": data.get("status", ""),
+                    "id": data.get("proposal_id", ""),
                     "timestamp": data.get("timestamp", ""),
+                    "component": spec.get("target_file", "").split("/")[-1],
+                    "change": f"{spec.get('target_attribute', '')}: {spec.get('old_value')} -> {spec.get('new_value')}",
+                    "reason": spec.get("reason", ""),
+                    "detailed_description": f"File: {spec.get('target_file')}\nType: {spec.get('change_type')}",
+                    "estimated_delta": spec.get("causal_score_est", 0.0),
+                    "confidence": spec.get("confidence", 0.0),
+                    "status": data.get("status", "pending"),
                 })
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, AttributeError):
                 continue
         return result
 
