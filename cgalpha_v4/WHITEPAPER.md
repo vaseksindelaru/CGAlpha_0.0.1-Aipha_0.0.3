@@ -4,7 +4,7 @@
 
 <h1 align="center">cgAlpha_0.0.1 — White Paper</h1>
 <p align="center"><em>Causal Graph Alpha · Documento vivo mantenido por Lila</em></p>
-<p align="center"><em>Última actualización: 20 de abril de 2026 · Versión: v4-bootstrap-complete</em></p>
+<p align="center"><em>Última actualización: 26 de abril de 2026 · Versión: v4-oracle-hardened</em></p>
 
 ---
 
@@ -48,8 +48,8 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
                     │  RandomForest            │
                     │  Meta-Labeling           │
                     │                         │
-                    │  Estado: ⚠️ Funcional    │
-                    │  con defectos (BUG 1-6) │
+                    │  Estado: ✅ Operativo    │
+                    │  8/8 bugs resueltos     │
                     └────────────┬────────────┘
                                  │
                                  ▼
@@ -66,15 +66,16 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
               ┌──────────────────────────────────────┐
               │        CANAL DE EVOLUCIÓN            │
               │                                      │
-              │  AutoProposer → Orchestrator v4 →    │
-              │  CodeCraftSage                       │
+              │  ChangeProposer ──┐                  │
+              │  ExperimentRunner ┼→ Orchestrator v4 │
+              │  AutoProposer ────┘  → CodeCraftSage │
               │                                      │
               │  3 categorías de propuestas:          │
               │  Cat.1: Automática (parámetros)      │
               │  Cat.2: Semi-automática (aprobación)  │
               │  Cat.3: Supervisada (sesión humana)   │
               │                                      │
-              │  Estado: ✅ Operativo (fase canal)    │
+              │  Estado: ✅ 4 islas conectadas        │
               └──────────────────────────────────────┘
 ```
 
@@ -83,15 +84,15 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
 | Componente | Fichero principal | Líneas | Estado |
 |---|---|---|---|
 | TripleCoincidenceDetector | `infrastructure/signal_detector/triple_coincidence.py` | 979 | ✅ Operativo |
-| OracleTrainer_v3 | `lila/llm/oracle.py` | 314 | ⚠️ 6 bugs documentados |
+| OracleTrainer_v3 | `lila/llm/oracle.py` | 357 | ✅ Operativo — 8/8 bugs resueltos |
 | ShadowTrader | `trading/shadow_trader.py` | ~200 | ✅ Operativo |
-| Pipeline | `application/pipeline.py` | 291 | ✅ Operativo (sin retrain) |
-| AutoProposer | `lila/llm/proposer.py` | ~140 | ✅ Genera propuestas |
-| ChangeProposer | `application/change_proposer.py` | 93 | ⚠️ Desconectado |
+| Pipeline | `application/pipeline.py` | 353 | ✅ Operativo — reentrena en ciclo vivo |
+| AutoProposer | `lila/llm/proposer.py` | ~140 | ✅ Conectado al Orchestrator |
+| ChangeProposer | `application/change_proposer.py` | 93 | ✅ Conectado al Orchestrator |
 | CodeCraftSage | `lila/codecraft_sage.py` | 247 | ✅ Conectado al Orchestrator |
-| ExperimentRunner | `application/experiment_runner.py` | 507 | ⚠️ Desconectado |
-| EvolutionOrchestrator v4 | `lila/evolution_orchestrator.py` | 613 | ✅ Construido y activo |
-| MemoryPolicyEngine | `learning/memory_policy.py` | 515 | ✅ Persistencia + IDENTITY |
+| ExperimentRunner | `application/experiment_runner.py` | 507 | ✅ Conectado al Orchestrator |
+| EvolutionOrchestrator v4 | `lila/evolution_orchestrator.py` | 724 | ✅ Hub central activo |
+| MemoryPolicyEngine | `learning/memory_policy.py` | 515 | ✅ Persistencia + IDENTITY + guards |
 
 ## 3. La Simple Foundation Strategy
 
@@ -113,17 +114,18 @@ cgAlpha_0.0.1 opera una única estrategia: la **Simple Foundation Strategy**.
 | `min_oracle_confidence` | 0.70 | 0.60 – 0.90 | Confianza mínima para ejecutar |
 | `zone_distance_candles` | 10 | 5 – 30 | Distancia entre zonas en velas |
 
-> ⚠️ **Nota honesta:** El Sharpe de 1.13 reportado en documentación anterior (NORTH_STAR) no es verificable con datos OOS reales. No se ha completado un ciclo de validación walk-forward con el Oracle entrenado.
+> ⚠️ **Nota honesta:** El Sharpe de 1.13 reportado en documentación anterior (NORTH_STAR) no es verificable con datos OOS reales. No se ha completado un ciclo de validación walk-forward con el Oracle entrenado. Sin embargo, los 8 bugs del Oracle están resueltos, incluyendo train/test split (BUG-1), oversampling de clase minoritaria (BUG-3), outcome labeling con zona real (BUG-5) y reentrenamiento en ciclo vivo (BUG-6).
 
 ## 4. El canal de evolución
 
-### Estado actual: Bootstrap completado
+### Estado actual: 4 islas conectadas
 
-El canal de evolución está implementado y operativo:
-- `AutoProposer` genera `TechnicalSpec` durante `Pipeline.run_cycle()`
-- El pipeline enruta esas propuestas al `EvolutionOrchestratorV4`
-- El orchestrator clasifica Cat.1/2/3, persiste y expone endpoints de aprobación
-- `CodeCraftSage` está conectado como ejecutor de cambios
+El canal de evolución está completamente conectado:
+- `AutoProposer` genera `TechnicalSpec` durante `Pipeline.run_cycle()` → Orchestrator
+- `ChangeProposer` genera propuestas via GUI → Orchestrator (Island Bridge)
+- `ExperimentRunner` envía resultados post-experimento → Orchestrator (Island Bridge)
+- El Orchestrator clasifica Cat.1/2/3, persiste y expone endpoints de aprobación
+- `CodeCraftSage` ejecuta cambios aprobados con pipeline: patch → test → git commit
 
 ### Las 3 categorías
 
@@ -133,22 +135,44 @@ El canal de evolución está implementado y operativo:
 | **Cat.2 — Semi-automática** | Aprobación vía GUI | Añadir feature al Oracle | Minutos |
 | **Cat.3 — Supervisada** | Sesión humana completa | Crear nueva herramienta | Horas |
 
-### Pasos del bootstrap
+### Archivos protegidos (Cat.3 obligatorio)
+
+- `evolution_orchestrator.py`, `memory_policy.py`, `llm_switcher.py`
+- `server.py`, `LILA_v3_NORTH_STAR.md`
+
+### Pasos completados
 
 1. ✅ Prompt Fundacional escrito (§0–§8)
 2. ✅ ACCIÓN 1: IDENTITY memory + disk reload
 3. ✅ ACCIÓN 2: LLM Switcher
 4. ✅ ACCIÓN 3: Orchestrator v4
+5. ✅ Oracle fixes BUG-1 a BUG-8 (todos resueltos)
+6. ✅ Island Bridge: 4 islas conectadas al Orchestrator
+7. ✅ production_ready dinámico con 4 checks runtime
+8. ✅ Incidentes simulados separados del estado operativo
 
-### Próxima etapa (Fase canal)
+### Próxima etapa
 
 1. 🔨 PASO 4: Parameter Landscape Map
-2. 🔨 PASO 5: Mejora de CodeCraft Sage v4
-3. 🔨 PASO 6: Oracle fixes priorizados por categoría
+2. 🔨 PASO 5: Mejora de CodeCraft Sage v4 (AST-based patching)
+3. 🔨 Observar canal en operación real (24-48h de datos de mercado)
 
-## 5. Lecciones aprendidas
+## 5. Bugs del Oracle — Registro completo
 
-*Esta sección se actualiza automáticamente después de cada reflexión crítica validada (§6).*
+| Bug | Problema | Fix | Commit | Fecha |
+|---|---|---|---|---|
+| BUG-1 | Train/test sin split → accuracy inflada | `train_test_split` holdout 20% | `d0992d2` | 2026-04-20 |
+| BUG-2 | Oracle sin persistencia en producción | `save_to_disk`/`load_from_disk` invocados | sesión anterior | 2026-04-20 |
+| BUG-3 | Class imbalance 94/6 BOUNCE/BREAKOUT | Random oversampling solo en train set | `dd85d21` | 2026-04-26 |
+| BUG-4 | Placeholder indistinguible de modelo real | `is_placeholder: bool` en OraclePrediction | `6d5c651` | 2026-04-26 |
+| BUG-5 | Outcome labeling no usa zona real | `_determine_outcome()` usa zone_top/bottom | script determinista | 2026-04-20 |
+| BUG-6 | Pipeline carga datos pero no reentrena | `train_model()` tras `load_training_dataset()` | `509c7b3` | 2026-04-26 |
+| BUG-7 | Memoria no recarga al inicio | `load_from_disk()` al iniciar servidor | sesión anterior | 2026-04-20 |
+| BUG-8 | Training Review approve/reject stubs | Persistencia en `training_approvals.jsonl` | `f3834ad` | 2026-04-20 |
+
+## 6. Lecciones aprendidas
+
+*Esta sección se actualiza después de cada reflexión crítica validada (§6).*
 
 ### Genesis — 19 abril 2026
 
@@ -159,18 +183,38 @@ Al construir el Prompt Fundacional, se identificaron y documentaron:
 
 La lección principal: **construir componentes capaces no es suficiente. Conectarlos es lo que crea un sistema.**
 
-## 6. Changelog
+### Hardening — 26 abril 2026
+
+Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
+- **Determinismo sobre LLM:** todos los fixes se aplicaron con scripts deterministas o edición directa verificada, nunca con generación LLM ciega.
+- **Docs antes de código:** cada fix se documentó primero en NORTH_STAR (commit documental), luego se implementó (commit de código). Trazabilidad perfecta en git.
+- **Guards preventivos:** `identity_confirmation` para nivel 5, `CAT_3_PROTECTED_FILES` para documentos fundacionales, `is_placeholder` para observabilidad.
+- **production_ready dinámico:** 4 checks runtime reales en lugar de hardcode.
+
+## 7. Changelog
 
 | Fecha | Cat. | Cambio | Resultado |
 |---|---|---|---|
 | 2026-04-19 | — | Prompt Fundacional §0–§8 creado | 3113 líneas, 57 correcciones |
 | 2026-04-19 | — | White paper genesis | Primera versión |
 | 2026-04-20 | v4 | Pipeline enruta AutoProposer al Orchestrator | Canal runtime conectado |
-| 2026-04-20 | v4 | White paper sincronizado con estado real | Bootstrap marcado como completado |
+| 2026-04-20 | v4 | White paper sincronizado con estado real | Bootstrap completado |
+| 2026-04-20 | fix | BUG-1: train_test_split en Oracle | Métricas OOS reales |
+| 2026-04-20 | fix | BUG-2: Oracle persistencia en disco | Modelo sobrevive reinicios |
+| 2026-04-20 | fix | BUG-5: outcome labeling con zona real | Labels reflejan dinámica de zonas |
+| 2026-04-20 | fix | BUG-7: memoria recarga desde disco | Conocimiento persistente entre sesiones |
+| 2026-04-20 | fix | BUG-8: Training Review approve/reject | Curación de datos funcional |
+| 2026-04-26 | fix | BUG-6: train_model() en pipeline cycle | Oracle reentrena en ciclo vivo |
+| 2026-04-26 | fix | BUG-4: is_placeholder flag | Observabilidad placeholder vs modelo |
+| 2026-04-26 | fix | BUG-3: oversampling clase minoritaria | Modelo aprende patrón BREAKOUT |
+| 2026-04-26 | feat | Island Bridge: 4 islas conectadas | ChangeProposer + ExperimentRunner → Orchestrator |
+| 2026-04-26 | chore | production_ready dinámico | 4 checks runtime reales |
+| 2026-04-26 | chore | Incidentes simulados separados | Estado operativo limpio |
+| 2026-04-26 | docs | WHITEPAPER actualizado (§2.6) | Estado real del proyecto |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 
-## 7. Glosario
+## 8. Glosario
 
 | Término | Definición |
 |---|---|
