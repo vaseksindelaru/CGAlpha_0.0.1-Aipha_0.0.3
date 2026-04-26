@@ -200,7 +200,7 @@ La *Simple Foundation Strategy* es el objetivo de construcción de Lila en v3. N
 [2] TripleCoincidenceDetector     ← ✅ OPERATIVO (Live Detection v3.1)
 [3] ZonePhysicsMonitor            ← ✅ OPERATIVO (Real-time micro-enrichment)
 [4] ShadowTrader / OrderManager   ← ✅ OPERATIVO (Dry Run + Multi-asset)
-[5] OracleTrainer (Meta-Labeling) ← ⚠️ FUNCIONAL CON DEFECTOS (4 bugs propios + 2 upstream. Sharpe 1.13 no verificable OOS — ver NOTA CRÍTICA Sección 5)
+[5] OracleTrainer (Meta-Labeling) ← ✅ OPERATIVO (8/8 bugs resueltos — train/test split, oversampling, is_placeholder, retrain en ciclo vivo)
 [6] NexusGate (Dynamic Causal)    ← ✅ OPERATIVO (ΔCausal Real-time)
 [7] AutoProposer / Evolution      ← ✅ OPERATIVO (EvolutionOrchestrator Active)
 ```
