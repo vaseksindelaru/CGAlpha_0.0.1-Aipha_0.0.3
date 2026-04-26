@@ -119,3 +119,42 @@ def test_p2_4_regime_shift_runtime_api(client):
     assert check.status_code == 200
     out = check.get_json()
     assert out["result"]["regime_shift"] is True
+
+
+def test_identity_promotion_requires_explicit_confirmation(client):
+    ingest = client.post(
+        "/api/learning/memory/ingest",
+        json={"content": "mantra", "field": "architect", "auto_normalize": True},
+        headers=_auth_headers(),
+    )
+    assert ingest.status_code == 200
+    entry_id = ingest.get_json()["entry"]["entry_id"]
+
+    for target in ("1", "2", "3"):
+        res = client.post(
+            "/api/learning/memory/promote",
+            json={"entry_id": entry_id, "target_level": target, "approved_by": "human"},
+            headers=_auth_headers(),
+        )
+        assert res.status_code == 200
+
+    denied = client.post(
+        "/api/learning/memory/promote",
+        json={"entry_id": entry_id, "target_level": "5", "approved_by": "human"},
+        headers=_auth_headers(),
+    )
+    assert denied.status_code == 403
+    assert denied.get_json()["error"] == "identity_confirmation_required"
+
+    allowed = client.post(
+        "/api/learning/memory/promote",
+        json={
+            "entry_id": entry_id,
+            "target_level": "5",
+            "approved_by": "human",
+            "identity_confirmation": f"PROMOTE_IDENTITY:{entry_id}",
+        },
+        headers=_auth_headers(),
+    )
+    assert allowed.status_code == 200
+    assert allowed.get_json()["entry"]["level"] == "5"

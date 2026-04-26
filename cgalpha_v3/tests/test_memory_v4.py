@@ -69,6 +69,27 @@ def test_identity_promotion_succeeds_with_human():
     assert result.expires_at is None
 
 
+def test_identity_rejects_duplicate_content():
+    engine = MemoryPolicyEngine()
+
+    first = engine.ingest_raw(content="mantra", field="architect")
+    engine.promote(entry_id=first.entry_id, target_level=MemoryLevel.NORMALIZED, approved_by="auto")
+    engine.promote(entry_id=first.entry_id, target_level=MemoryLevel.FACTS, approved_by="Lila")
+    engine.promote(entry_id=first.entry_id, target_level=MemoryLevel.RELATIONS, approved_by="Lila")
+    engine.promote(entry_id=first.entry_id, target_level=MemoryLevel.PLAYBOOKS, approved_by="human")
+    engine.promote(entry_id=first.entry_id, target_level=MemoryLevel.STRATEGY, approved_by="human")
+    engine.promote(entry_id=first.entry_id, target_level=MemoryLevel.IDENTITY, approved_by="human")
+
+    second = engine.ingest_raw(content="mantra", field="architect")
+    engine.promote(entry_id=second.entry_id, target_level=MemoryLevel.NORMALIZED, approved_by="auto")
+    engine.promote(entry_id=second.entry_id, target_level=MemoryLevel.FACTS, approved_by="Lila")
+    engine.promote(entry_id=second.entry_id, target_level=MemoryLevel.RELATIONS, approved_by="Lila")
+    engine.promote(entry_id=second.entry_id, target_level=MemoryLevel.PLAYBOOKS, approved_by="human")
+    engine.promote(entry_id=second.entry_id, target_level=MemoryLevel.STRATEGY, approved_by="human")
+    with pytest.raises(ValueError, match="contenido duplicado"):
+        engine.promote(entry_id=second.entry_id, target_level=MemoryLevel.IDENTITY, approved_by="human")
+
+
 def test_identity_not_degraded_by_regime_shift():
     engine = MemoryPolicyEngine()
     entry = engine.ingest_raw(content="mantra", field="architect")

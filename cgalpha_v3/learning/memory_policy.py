@@ -137,6 +137,7 @@ class MemoryPolicyEngine:
                     "Promoción a IDENTITY requiere approved_by='human'. "
                     "Lila puede proponer pero no ejecutar esta promoción."
                 )
+            self._reject_duplicate_identity_content(entry)
 
         entry.level = target_level
         entry.approved_by = approved_by
@@ -153,6 +154,21 @@ class MemoryPolicyEngine:
             self._persist_memory_entry(entry)
 
         return entry
+
+    def _reject_duplicate_identity_content(self, entry: MemoryEntry) -> None:
+        candidate = entry.content.strip()
+        if not candidate:
+            raise ValueError("Promoción a IDENTITY rechazada: content vacío.")
+
+        for existing in self.entries.values():
+            if existing.entry_id == entry.entry_id:
+                continue
+            if existing.level != MemoryLevel.IDENTITY:
+                continue
+            if existing.content.strip() == candidate:
+                raise ValueError(
+                    "Promoción a IDENTITY rechazada: contenido duplicado ya existe."
+                )
 
     def degrade(
         self,
@@ -512,4 +528,3 @@ class MemoryPolicyEngine:
         if ttl_h is None:
             return None
         return now_dt + timedelta(hours=ttl_h)
-
