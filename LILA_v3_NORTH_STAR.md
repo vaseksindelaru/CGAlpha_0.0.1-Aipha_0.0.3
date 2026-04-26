@@ -50,7 +50,7 @@
 | **bridge.jsonl** | Referenciado en 15+ docs, nunca persistido | ✅ Implementado | Cada trade registrado con config_snapshot, signal_data, causal_tags |
 | **AutoProposer.evaluate_proposal()** | Retornaba siempre 0.78 (stub) | ✅ Lógica heurística real | Score basado en tipo cambio, magnitud delta, importancia feature |
 | **AutoProposer.analyze_drift()** | Llamado manualmente desde scripts | ✅ Integrado en pipeline cycle | Se ejecuta automáticamente al final de cada run_cycle() |
-| **Pipeline training loop** | No reentrenaba al cargar nuevos samples | ❌ **NO IMPLEMENTADO** — `pipeline.py` líneas 188-194 llama `load_training_dataset()` pero **nunca** `train_model()`. El Oracle acumula samples sin aprender de ellos. Ver BUG-6 en LILA_V4 §1.2. | oracle.train_model() **no** se llama tras load_training_dataset() |
+| **Pipeline training loop** | No reentrenaba al cargar nuevos samples | BUG-6: ❌ pendiente — pipeline.py líneas 191-201 llama `load_training_dataset()` pero no `train_model()` | oracle.train_model() **no** se llama tras load_training_dataset() |
 
 ### GUI Training Review — Nuevo Módulo
 
