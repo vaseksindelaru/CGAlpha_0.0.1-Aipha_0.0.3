@@ -226,8 +226,19 @@ def main():
         logger.info(f"🔄 Cycle {cycle} starting at {datetime.now(timezone.utc).isoformat()}")
 
         try:
-            # 1. Fetch recent klines from Binance REST API
-            df = fetch_recent_klines(
+            # 1. Fetch recent klines from Binance REST API with Retry/Backoff
+            def fetch_with_retry(symbol, limit, max_retries=3, backoff=5):
+                for attempt in range(max_retries):
+                    try:
+                        return fetch_recent_klines(symbol, limit=limit)
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            raise
+                        logger.warning(f"⚠️ Fetch failed ({e}), retry {attempt+1}/{max_retries} in {backoff}s...")
+                        time.sleep(backoff * (attempt + 1))
+                return pd.DataFrame()
+
+            df = fetch_with_retry(
                 symbol=args.symbol,
                 limit=args.klines,
             )
@@ -310,7 +321,10 @@ def main():
                 if dataset_dicts:
                     pipeline.oracle.load_training_dataset(dataset_dicts)
                     pipeline.oracle.train_model()
-                    logger.info(f"🎓 Oracle retrained with {len(dataset_dicts)} samples")
+                    model_path = PROJECT_ROOT / "aipha_memory" / "models" / "oracle_v3.joblib"
+                    model_path.parent.mkdir(parents=True, exist_ok=True)
+                    pipeline.oracle.save_to_disk(str(model_path))
+                    logger.info(f"🎓 Oracle retrained and persisted with {len(dataset_dicts)} samples")
 
             # 4. AutoProposer drift detection + evolution routing
             try:

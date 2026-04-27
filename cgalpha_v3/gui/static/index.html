@@ -1293,7 +1293,8 @@
                             <span class="stat-label">Oracle Status</span>
                             <span class="stat-value" id="evo-hb-oracle">⏳ Placeholder</span>
                         </div>
-                        <div class="stat-row" style="margin-top:8px; border-top:1px solid var(--border); padding-top:8px;">
+                        <div class="stat-row"
+                            style="margin-top:8px; border-top:1px solid var(--border); padding-top:8px;">
                             <span class="stat-label">Resultados Ciclo</span>
                             <span class="stat-value" id="evo-hb-result" style="font-size:10px;">—</span>
                         </div>
@@ -1857,13 +1858,16 @@
                     <span class="pill pill-idle" id="chart-status-pill">Cargando...</span>
                 </div>
                 <!-- Zone Navigation -->
-                <div id="zone-nav-bar" style="display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:12px;">
+                <div id="zone-nav-bar"
+                    style="display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:12px;">
                     <button class="btn btn-sm btn-ghost" onclick="navigateZone(-1)" id="zone-prev-btn">←</button>
-                    <span id="zone-nav-label" style="color:var(--text); min-width:220px; text-align:center;">Zona 0 de 0</span>
+                    <span id="zone-nav-label" style="color:var(--text); min-width:220px; text-align:center;">Zona 0 de
+                        0</span>
                     <button class="btn btn-sm btn-ghost" onclick="navigateZone(1)" id="zone-next-btn">→</button>
                     <span style="flex:1;"></span>
                     <button class="btn btn-sm" onclick="showAllZones()" id="show-all-btn">Mostrar todas</button>
-                    <button class="btn btn-sm btn-ghost" onclick="showZoneContext()" id="context-btn">Contexto ±20</button>
+                    <button class="btn btn-sm btn-ghost" onclick="showZoneContext()" id="context-btn">Contexto
+                        ±20</button>
                 </div>
                 <div class="panel-body" style="padding:0;">
                     <div id="training-candlestick-chart" style="height: 520px; width: 100%; background: var(--bg3);">
@@ -2320,8 +2324,81 @@
                 <div class="history-header">Vault Evolution Dashboard (Purification)</div>
                 <div id="lila-vault-content"
                     style="padding:15px; font-size:12px; height: calc(100% - 40px); overflow-y: auto;">
-                    <div id="vault-layers-view" style="display: flex; flex-direction: column; gap: 10px;">
-                        <p style="opacity: 0.6;">Cargando Capa 1 y Capa 2...</p>
+                    <div id="vault-dashboard-v4" style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- ZONE 1: Oracle Health -->
+                        <div class="panel"
+                            style="background: rgba(0,255,200,0.03); border: 1px solid rgba(0,255,200,0.1);">
+                            <div class="panel-header">
+                                <span class="panel-icon">🧠</span>
+                                <h2>Zona 1: Oracle Health & Fidelity</h2>
+                            </div>
+                            <div class="panel-body">
+                                <div class="stat-row">
+                                    <span class="stat-label">Status</span>
+                                    <span class="stat-value" id="vault-oracle-status">--</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Samples Acumulados</span>
+                                    <span class="stat-value" id="vault-oracle-samples">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Test Accuracy (OOS)</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span class="stat-value accent" id="vault-oracle-acc">0.00</span>
+                                        <span id="vault-sig-warning" class="pill pill-warning"
+                                            style="display:none; font-size:9px;">⚠️ Muestra Insuficiente</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZONE 2: Market Activity -->
+                        <div class="panel"
+                            style="background: rgba(0,180,255,0.03); border: 1px solid rgba(0,180,255,0.1);">
+                            <div class="panel-header">
+                                <span class="panel-icon">📈</span>
+                                <h2>Zona 2: Market Activity (Shadow)</h2>
+                            </div>
+                            <div class="panel-body">
+                                <div class="stat-row">
+                                    <span class="stat-label">Retests Detectados</span>
+                                    <span class="stat-value" id="vault-mkt-retests">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Total Shadow Trades</span>
+                                    <span class="stat-value" id="vault-mkt-trades">0</span>
+                                </div>
+                                <div class="stat-row" style="font-size: 10px; opacity:0.8;">
+                                    <span>Real: <b id="vault-mkt-real-trades" class="accent">0</b></span>
+                                    <span>Placeholder: <b id="vault-mkt-placeholder-trades">0</b></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZONE 3: Evolution Governance -->
+                        <div class="panel"
+                            style="background: rgba(255,180,0,0.03); border: 1px solid rgba(255,180,0,0.1);">
+                            <div class="panel-header">
+                                <span class="panel-icon">⚖️</span>
+                                <h2>Zona 3: Evolution Governance</h2>
+                            </div>
+                            <div class="panel-body">
+                                <div class="stat-row">
+                                    <span class="stat-label">Propuestas en Cola</span>
+                                    <span class="stat-value" id="vault-evo-pending">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Rechazos Safety Envelope</span>
+                                    <span class="stat-value danger" id="vault-evo-rejected"
+                                        style="color:#ff4444;">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Parches Aplicados (Auto)</span>
+                                    <span class="stat-value success" id="vault-evo-applied"
+                                        style="color:#00ff88;">0</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

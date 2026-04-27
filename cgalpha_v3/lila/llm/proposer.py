@@ -12,6 +12,8 @@ class TechnicalSpec:
     reason: str             # Explicación lingüística para el operador
     causal_score_est: float # Promedio estimado ΔCausal
     confidence: float       # Confianza de la propuesta
+    new_code: Optional[str] = None  # v4: Código Python como string para cambios estructurales
+    old_code: Optional[str] = None  # v4: Fragmento original para verificación
 
 class AutoProposer(BaseComponentV3):
     """
@@ -64,6 +66,7 @@ class AutoProposer(BaseComponentV3):
             )
         )
         importances = performance_metrics.get("feature_importances", {}) or {}
+        errors = int(performance_metrics.get("errors", 0))
 
         if accuracy < 0.60:
             proposals.append(TechnicalSpec(
@@ -144,6 +147,32 @@ class AutoProposer(BaseComponentV3):
                     causal_score_est=0.30,
                     confidence=0.50,
                 ))
+
+        if errors > 3:
+            # Propuesta estructural de prueba: Optimizar el latch de reconexión del WS
+            proposals.append(TechnicalSpec(
+                change_type="structural",
+                target_file="cgalpha_v3/infrastructure/binance_websocket_manager.py",
+                target_attribute="start",
+                old_value=0.0,
+                new_value=0.0,
+                new_code='''async def start(self):
+    """v4 AST-optimized connection latch."""
+    self._active = True
+    while self._active:
+        try:
+            await self._run_socket()
+        except Exception as e:
+            logger.warning(f"WS Exception in Sage-optimized loop: {e}")
+            await asyncio.sleep(5) # backoff
+''',
+                reason=(
+                    f"Se detectaron {errors} errores en el ciclo. "
+                    "Optimizar el latch de reconexión del WS mediante AST patching para mejorar resiliencia."
+                ),
+                causal_score_est=0.65,
+                confidence=0.85,
+            ))
 
         return [proposal for proposal in proposals if proposal.causal_score_est >= 0.30]
 

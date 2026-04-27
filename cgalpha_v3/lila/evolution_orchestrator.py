@@ -700,6 +700,8 @@ class EvolutionOrchestratorV4:
             "reason": getattr(spec, "reason", ""),
             "causal_score_est": getattr(spec, "causal_score_est", 0.0),
             "confidence": getattr(spec, "confidence", 0.0),
+            "new_code": getattr(spec, "new_code", None),
+            "old_code": getattr(spec, "old_code", None),
         }
 
     def get_stats(self) -> dict:
@@ -718,9 +720,10 @@ class EvolutionOrchestratorV4:
                 data = json.loads(entry.content)
                 spec = data.get("spec", {})
                 
-                # Mapeo a formato GUI v3/v4
+                # Mapeo a formato GUI v3/v4 + Compatibilidad Tests
                 result.append({
                     "id": data.get("proposal_id", ""),
+                    "proposal_id": data.get("proposal_id", ""), # Requerido por tests
                     "timestamp": data.get("timestamp", ""),
                     "component": spec.get("target_file", "").split("/")[-1],
                     "change": f"{spec.get('target_attribute', '')}: {spec.get('old_value')} -> {spec.get('new_value')}",

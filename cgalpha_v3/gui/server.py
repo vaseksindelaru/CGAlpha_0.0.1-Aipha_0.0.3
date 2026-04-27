@@ -99,8 +99,15 @@ _ws_manager = BinanceWebSocketManager.create_default()
 # Multi-Asset Execution Layer (Fase 4.3)
 _order_mgr = create_order_manager()
 
-# Intentar cargar Oracle entrenado (de Phase 1)
+# Intentar cargar Oracle entrenado (de Phase 1/v4)
 _oracle_v3 = OracleTrainer_v3.create_default()
+try:
+    _oracle_path = project_root / "aipha_memory" / "models" / "oracle_v3.joblib"
+    if _oracle_path.exists():
+        _oracle_v3.load_from_disk(str(_oracle_path))
+        logger.info(f"✅ Oracle v4 cargado satisfactoriamente desde {_oracle_path}")
+except Exception as e:
+    logger.error(f"⚠️ No se pudo cargar el Oracle: {e}")
 
 # Multi-Asset Live Pipeline (Fase 4.2)
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
@@ -1449,6 +1456,67 @@ def experiment_status() -> ResponseReturnValue:
 def get_auto_proposals() -> ResponseReturnValue:
     """Obtener recomendaciones automáticas del EvolutionOrchestrator (v4 real)."""
     return jsonify(_evolution_orchestrator.get_pending_summary())
+
+
+@app.route("/api/vault/status")
+@require_auth
+def vault_status() -> ResponseReturnValue:
+    """Retorna el estado de las 3 zonas del Vault (v4 honestidad estadística)."""
+    try:
+        # Zona 1: Oracle Health (Recargar para métricas frescas)
+        _oracle_path = project_root / "aipha_memory" / "models" / "oracle_v3.joblib"
+        if _oracle_path.exists():
+            _oracle_v3.load_from_disk(str(_oracle_path))
+            
+        metrics = _oracle_v3._training_metrics or {}
+        n_samples = metrics.get("n_samples", 0)
+        
+        # Zona 2: Market Activity (Bridge)
+        real_trades = 0
+        placeholder_trades = 0
+        total_trades = 0
+        try:
+            if Path(BRIDGE_JSONL_PATH).exists():
+                with open(BRIDGE_JSONL_PATH, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            t = json.loads(line)
+                            total_trades += 1
+                            # El detector v4 marca is_placeholder en signal_data
+                            sd = t.get("signal_data", {})
+                            if sd.get("is_placeholder", True):
+                                placeholder_trades += 1
+                            else:
+                                real_trades += 1
+                        except: continue
+        except Exception as e:
+            logger.error(f"Error parsing bridge.jsonl: {e}")
+
+        # Zona 3: Evolution Governance
+        orch_stats = _evolution_orchestrator.get_stats()
+        
+        return jsonify({
+            "oracle": {
+                "status": "TRAINED" if _oracle_v3.model and _oracle_v3.model != "placeholder_model_trained" else "PLACEHOLDER",
+                "samples": n_samples,
+                "test_accuracy": metrics.get("test_accuracy", 0.0),
+                "is_significant": n_samples >= 150
+            },
+            "market": {
+                "total_trades": total_trades,
+                "real_trades": real_trades,
+                "placeholder_trades": placeholder_trades,
+                "retests_detected": orch_stats.get("total_proposals", 0)
+            },
+            "evolution": {
+                "pending": orch_stats.get("cat_2_pending", 0) + orch_stats.get("cat_3_pending", 0),
+                "rejected_safety": orch_stats.get("cat_1_rejected", 0) + orch_stats.get("cat_2_rejected", 0),
+                "applied": orch_stats.get("cat_1_applied", 0) + orch_stats.get("cat_2_approved", 0)
+            }
+        })
+    except Exception as e:
+        logger.error(f"Vault Status Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/experiment/propose", methods=["POST"])

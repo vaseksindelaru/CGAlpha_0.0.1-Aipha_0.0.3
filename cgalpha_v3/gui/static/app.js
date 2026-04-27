@@ -354,23 +354,29 @@ async function toggleLilaVault() {
 }
 
 async function fetchVaultStatus() {
-    const listEl = document.getElementById("vault-layers-view");
-    if (!listEl) return;
     try {
         const data = await apiFetch("/api/vault/status");
-        listEl.innerHTML = `
-            <h4 style="color:var(--accent); font-size:12px;">Layer 2: Permanent DNA</h4>
-            <div style="background:rgba(0,212,170,0.1); padding:10px; border-radius:10px; border:1px solid var(--accent); margin-bottom:15px;">
-                <span style="font-weight:bold;">Verified Components: ${data.layers.layer_2_permanent_dna.total} ACTIVE</span>
-            </div>
-            <h4 style="font-size:11px; opacity:0.7;">Layer 1: Provisional Vault</h4>
-            ${Object.entries(data.layers.layer_1_provisional).map(([k, v]) => `
-                <div style="background:#0f1b2d; padding:6px; margin-bottom:4px; font-size:10px; display:flex; justify-content:space-between;">
-                    <span>${k}</span><strong>${v}</strong>
-                </div>
-            `).join("")}
-        `;
-    } catch { listEl.innerHTML = "<p>Error syncing vault.</p>"; }
+
+        // Zona 1: Oracle
+        document.getElementById("vault-oracle-status").innerText = data.oracle.status;
+        document.getElementById("vault-oracle-samples").innerText = data.oracle.samples;
+        document.getElementById("vault-oracle-acc").innerText = data.oracle.test_accuracy.toFixed(4);
+        document.getElementById("vault-sig-warning").style.display = data.oracle.is_significant ? "none" : "inline-block";
+
+        // Zona 2: Market
+        document.getElementById("vault-mkt-retests").innerText = data.market.retests_detected;
+        document.getElementById("vault-mkt-trades").innerText = data.market.total_trades;
+        document.getElementById("vault-mkt-real-trades").innerText = data.market.real_trades;
+        document.getElementById("vault-mkt-placeholder-trades").innerText = data.market.placeholder_trades;
+
+        // Zona 3: Evolution
+        document.getElementById("vault-evo-pending").innerText = data.evolution.pending;
+        document.getElementById("vault-evo-rejected").innerText = data.evolution.rejected_safety;
+        document.getElementById("vault-evo-applied").innerText = data.evolution.applied;
+
+    } catch (err) {
+        console.error("Vault Status Error:", err);
+    }
 }
 
 // ── MISSION CONTROL ────────────────────────────────────
