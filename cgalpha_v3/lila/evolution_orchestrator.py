@@ -165,6 +165,17 @@ class EvolutionOrchestratorV4:
             logger.info(f"Classify: change_type='{change_type}' → Cat.3")
             return 3
 
+        # Rule 2.5 (§4.3): Progressive cooldown — 3+ proposals on same attribute in 7 days → Cat.2
+        target_attribute = getattr(spec, "target_attribute", "")
+        if change_type in CAT_1_CHANGE_TYPES and target_attribute:
+            recent_count = self._count_recent_modifications(target_attribute, days=7)
+            if recent_count >= 3:
+                logger.info(
+                    f"§4.3 escalada: '{target_attribute}' propuesto {recent_count} "
+                    f"veces en 7 días → Cat.2 (requiere aprobación humana)"
+                )
+                return 2
+
         # Rule 3: Parameter change with high confidence → Cat.1
         if change_type in CAT_1_CHANGE_TYPES and confidence >= 0.7:
             logger.info(f"Classify: change_type='{change_type}', conf={confidence:.2f} → Cat.1")
@@ -661,6 +672,41 @@ class EvolutionOrchestratorV4:
     # ───────────────────────────────────────────────────────
     # LOGGING AND HELPERS
     # ───────────────────────────────────────────────────────
+
+    def _count_recent_modifications(self, target_attribute: str, days: int = 7) -> int:
+        """
+        §4.3: Count how many times a target_attribute was proposed in the last N days.
+        Reads evolution_log.jsonl to determine this.
+        """
+        if not self.evolution_log_path.exists():
+            return 0
+
+        cutoff = datetime.now(timezone.utc).timestamp() - (days * 86400)
+        count = 0
+
+        try:
+            with open(self.evolution_log_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        spec = entry.get("spec", {})
+                        if spec.get("target_attribute") == target_attribute:
+                            ts = entry.get("timestamp", "")
+                            if ts:
+                                try:
+                                    entry_time = datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+                                    if entry_time >= cutoff:
+                                        count += 1
+                                except (ValueError, TypeError):
+                                    pass
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            logger.error(f"Failed to read evolution log for cooldown check: {e}")
+
+        return count
 
     def _append_evolution_log(self, spec: Any, result: EvolutionResult,
                               approved_by: str = "auto") -> None:
