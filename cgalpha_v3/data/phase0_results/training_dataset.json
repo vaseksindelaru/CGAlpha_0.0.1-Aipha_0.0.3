@@ -1,296 +1,1575 @@
 [
   {
     "features": {
-      "vwap_at_retest": 64689.64,
-      "obi_10_at_retest": 0.1881,
-      "cumulative_delta_at_retest": 1.94,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 7067.269999999997,
-      "regime": "LATERAL",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "56_bullish",
-    "retest_timestamp": 1704265200000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 65314.43,
-      "obi_10_at_retest": -0.0601,
-      "cumulative_delta_at_retest": 82.54,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 8389.909999999996,
-      "regime": "TREND",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "64_bullish",
-    "retest_timestamp": 1704294000000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 65482.61,
-      "obi_10_at_retest": 0.1473,
-      "cumulative_delta_at_retest": 108.8,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 8213.669999999998,
-      "regime": "TREND",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "67_bullish",
-    "retest_timestamp": 1704304800000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 65598.99,
-      "obi_10_at_retest": 0.0989,
-      "cumulative_delta_at_retest": 112.34,
+      "vwap_at_retest": 66684.42,
+      "obi_10_at_retest": -0.0225,
+      "cumulative_delta_at_retest": 5.59,
       "delta_divergence": "BEARISH_EXHAUSTION",
-      "atr_14": 5823.830000000002,
+      "atr_14": 362.8999999999942,
       "regime": "LATERAL",
       "direction": "bearish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "70_bearish",
-    "retest_timestamp": 1704315600000
+    "zone_id": "40_bearish"
   },
   {
     "features": {
-      "vwap_at_retest": 65654.37,
-      "obi_10_at_retest": -0.0655,
-      "cumulative_delta_at_retest": 10.94,
+      "vwap_at_retest": 66688.43,
+      "obi_10_at_retest": -0.0391,
+      "cumulative_delta_at_retest": 5.46,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 6215.07,
-      "regime": "LATERAL",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "58_bullish",
-    "retest_timestamp": 1704326400000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 66426.65,
-      "obi_10_at_retest": -0.2129,
-      "cumulative_delta_at_retest": -550.22,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 12429.460000000006,
-      "regime": "LATERAL",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "102_bullish",
-    "retest_timestamp": 1704430800000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 66453.17,
-      "obi_10_at_retest": -0.1669,
-      "cumulative_delta_at_retest": -543.13,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 6084.510000000002,
-      "regime": "LATERAL",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "105_bullish",
-    "retest_timestamp": 1704459600000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 66327.91,
-      "obi_10_at_retest": -0.0863,
-      "cumulative_delta_at_retest": -546.96,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 5359.990000000005,
-      "regime": "LATERAL",
-      "direction": "bullish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "120_bullish",
-    "retest_timestamp": 1704495600000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 66135.28,
-      "obi_10_at_retest": 0.0699,
-      "cumulative_delta_at_retest": -527.73,
-      "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 5807.969999999994,
+      "atr_14": 287.6000000000058,
       "regime": "TREND",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "128_bullish",
-    "retest_timestamp": 1704531600000
+    "zone_id": "35_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 64335.04,
-      "obi_10_at_retest": -0.1653,
-      "cumulative_delta_at_retest": -676.72,
+      "vwap_at_retest": 66688.43,
+      "obi_10_at_retest": -0.0391,
+      "cumulative_delta_at_retest": 5.46,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 8018.619999999995,
+      "atr_14": 287.6000000000058,
       "regime": "TREND",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "216_bullish",
-    "retest_timestamp": 1704841200000
+    "zone_id": "36_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 63499.71,
-      "obi_10_at_retest": 0.0978,
-      "cumulative_delta_at_retest": -704.38,
+      "vwap_at_retest": 66688.43,
+      "obi_10_at_retest": -0.0391,
+      "cumulative_delta_at_retest": 5.46,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 8491.230000000003,
+      "atr_14": 287.6000000000058,
       "regime": "TREND",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "226_bullish",
-    "retest_timestamp": 1704877200000
+    "zone_id": "37_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 61375.07,
-      "obi_10_at_retest": -0.1373,
-      "cumulative_delta_at_retest": -255.68,
+      "vwap_at_retest": 66664.55,
+      "obi_10_at_retest": 0.184,
+      "cumulative_delta_at_retest": 3.24,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 429.0,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "169_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66627.22,
+      "obi_10_at_retest": -0.1675,
+      "cumulative_delta_at_retest": -11.79,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 665.0,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "391_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66779.95,
+      "obi_10_at_retest": -0.0398,
+      "cumulative_delta_at_retest": -9.46,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 5875.490000000005,
+      "atr_14": 488.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "433_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66779.95,
+      "obi_10_at_retest": -0.0398,
+      "cumulative_delta_at_retest": -9.46,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 488.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "436_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66825.34,
+      "obi_10_at_retest": 0.3439,
+      "cumulative_delta_at_retest": -14.05,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 786.0,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "463_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66849.2,
+      "obi_10_at_retest": 0.0203,
+      "cumulative_delta_at_retest": -11.32,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 820.0,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "468_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66874.3,
+      "obi_10_at_retest": -0.1276,
+      "cumulative_delta_at_retest": -18.65,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 577.0,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "508_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66874.3,
+      "obi_10_at_retest": -0.1276,
+      "cumulative_delta_at_retest": -18.65,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 577.0,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "509_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66874.3,
+      "obi_10_at_retest": -0.1276,
+      "cumulative_delta_at_retest": -18.65,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 577.0,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "510_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66872.26,
+      "obi_10_at_retest": -0.0645,
+      "cumulative_delta_at_retest": -19.31,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 519.5,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "514_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66855.21,
+      "obi_10_at_retest": -0.2269,
+      "cumulative_delta_at_retest": -20.09,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 462.5,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "518_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66849.15,
+      "obi_10_at_retest": 0.0125,
+      "cumulative_delta_at_retest": -24.52,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 594.0999999999913,
       "regime": "LATERAL",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "275_bullish",
-    "retest_timestamp": 1705053600000
+    "zone_id": "527_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 61244.57,
-      "obi_10_at_retest": 0.1109,
-      "cumulative_delta_at_retest": -227.78,
+      "vwap_at_retest": 66971.51,
+      "obi_10_at_retest": 0.0547,
+      "cumulative_delta_at_retest": 6.83,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 926.8999999999942,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "686_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 66929.51,
+      "obi_10_at_retest": 0.0242,
+      "cumulative_delta_at_retest": 11.95,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 661.3000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "688_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67107.22,
+      "obi_10_at_retest": -0.0918,
+      "cumulative_delta_at_retest": 69.19,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 659.5,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "883_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67114.89,
+      "obi_10_at_retest": 0.2386,
+      "cumulative_delta_at_retest": 68.65,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 4965.230000000003,
+      "atr_14": 361.5,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "916_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67192.38,
+      "obi_10_at_retest": 0.1302,
+      "cumulative_delta_at_retest": 78.27,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 869.8000000000029,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "950_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67362.58,
+      "obi_10_at_retest": -0.04,
+      "cumulative_delta_at_retest": 59.46,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 549.6000000000058,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "1088_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67364.79,
+      "obi_10_at_retest": -0.216,
+      "cumulative_delta_at_retest": 59.9,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 354.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "1081_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67364.79,
+      "obi_10_at_retest": -0.216,
+      "cumulative_delta_at_retest": 59.9,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 354.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "1082_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67240.77,
+      "obi_10_at_retest": 0.1882,
+      "cumulative_delta_at_retest": 34.35,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 205.89999999999418,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "1479_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67233.44,
+      "obi_10_at_retest": -0.004,
+      "cumulative_delta_at_retest": 36.43,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 408.0,
       "regime": "LATERAL",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "280_bullish",
-    "retest_timestamp": 1705071600000
+    "zone_id": "1531_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 60971.04,
-      "obi_10_at_retest": 0.3332,
-      "cumulative_delta_at_retest": -261.51,
+      "vwap_at_retest": 67233.44,
+      "obi_10_at_retest": -0.004,
+      "cumulative_delta_at_retest": 36.43,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 4747.0,
+      "atr_14": 408.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "1532_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67213.8,
+      "obi_10_at_retest": 0.0037,
+      "cumulative_delta_at_retest": 29.08,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 133.3000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "1792_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67213.73,
+      "obi_10_at_retest": -0.189,
+      "cumulative_delta_at_retest": 29.08,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 133.3000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "1793_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67213.16,
+      "obi_10_at_retest": -0.0155,
+      "cumulative_delta_at_retest": 32.1,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 182.60000000000582,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2034_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67212.61,
+      "obi_10_at_retest": 0.1461,
+      "cumulative_delta_at_retest": 31.66,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 258.1000000000058,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2036_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67204.53,
+      "obi_10_at_retest": 0.2149,
+      "cumulative_delta_at_retest": 39.25,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 248.8000000000029,
       "regime": "TREND",
       "direction": "bullish"
     },
     "outcome": "BREAKOUT",
-    "zone_id": "287_bullish",
-    "retest_timestamp": 1705100400000
+    "zone_id": "2218_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 60971.04,
-      "obi_10_at_retest": 0.3332,
-      "cumulative_delta_at_retest": -261.51,
+      "vwap_at_retest": 67323.6,
+      "obi_10_at_retest": -0.1723,
+      "cumulative_delta_at_retest": 82.21,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 4747.0,
+      "atr_14": 405.8000000000029,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2407_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67427.1,
+      "obi_10_at_retest": 0.2679,
+      "cumulative_delta_at_retest": 86.64,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 527.1999999999971,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2490_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67525.34,
+      "obi_10_at_retest": -0.0078,
+      "cumulative_delta_at_retest": 74.18,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 595.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "2588_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67557.84,
+      "obi_10_at_retest": -0.0823,
+      "cumulative_delta_at_retest": 76.88,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 401.3999999999942,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2708_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67559.84,
+      "obi_10_at_retest": 0.0087,
+      "cumulative_delta_at_retest": 75.33,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 442.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "2703_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67559.84,
+      "obi_10_at_retest": 0.0087,
+      "cumulative_delta_at_retest": 75.33,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 442.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2705_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67562.8,
+      "obi_10_at_retest": 0.1349,
+      "cumulative_delta_at_retest": 71.19,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 592.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "2696_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67562.8,
+      "obi_10_at_retest": 0.1349,
+      "cumulative_delta_at_retest": 71.19,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 592.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "2697_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67581.31,
+      "obi_10_at_retest": -0.1588,
+      "cumulative_delta_at_retest": 62.74,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 445.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2754_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67581.31,
+      "obi_10_at_retest": -0.1588,
+      "cumulative_delta_at_retest": 62.74,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 445.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2757_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67585.86,
+      "obi_10_at_retest": -0.2112,
+      "cumulative_delta_at_retest": 56.65,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 697.6999999999971,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2772_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67586.1,
+      "obi_10_at_retest": 0.1139,
+      "cumulative_delta_at_retest": 56.63,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 727.6999999999971,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "2773_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 67972.97,
+      "obi_10_at_retest": -0.0044,
+      "cumulative_delta_at_retest": 194.44,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 457.6000000000058,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "3028_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 68065.47,
+      "obi_10_at_retest": 0.0172,
+      "cumulative_delta_at_retest": 201.36,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 1208.5,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "3033_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 68141.74,
+      "obi_10_at_retest": -0.0041,
+      "cumulative_delta_at_retest": 190.22,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 655.5999999999913,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "3059_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 68249.92,
+      "obi_10_at_retest": -0.048,
+      "cumulative_delta_at_retest": 181.53,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 564.1000000000058,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "3192_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 68605.42,
+      "obi_10_at_retest": 0.1396,
+      "cumulative_delta_at_retest": 227.41,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 316.1999999999971,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "3546_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 68617.9,
+      "obi_10_at_retest": -0.0537,
+      "cumulative_delta_at_retest": 225.59,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 381.6999999999971,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "3552_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 68631.29,
+      "obi_10_at_retest": 0.0394,
+      "cumulative_delta_at_retest": 226.01,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 251.1999999999971,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "3540_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69164.35,
+      "obi_10_at_retest": 0.0654,
+      "cumulative_delta_at_retest": 164.06,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 304.0,
       "regime": "TREND",
       "direction": "bullish"
     },
     "outcome": "BREAKOUT",
-    "zone_id": "288_bullish",
-    "retest_timestamp": 1705100400000
+    "zone_id": "4419_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 59782.91,
-      "obi_10_at_retest": 0.0533,
-      "cumulative_delta_at_retest": -250.9,
+      "vwap_at_retest": 69177.84,
+      "obi_10_at_retest": 0.0931,
+      "cumulative_delta_at_retest": 169.58,
       "delta_divergence": "BEARISH_EXHAUSTION",
-      "atr_14": 2229.0699999999997,
+      "atr_14": 489.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "4480_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69178.4,
+      "obi_10_at_retest": -0.3586,
+      "cumulative_delta_at_retest": 169.46,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 512.1999999999971,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "4481_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69179.91,
+      "obi_10_at_retest": 0.16,
+      "cumulative_delta_at_retest": 167.57,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 512.1999999999971,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "4479_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69417.55,
+      "obi_10_at_retest": -0.2511,
+      "cumulative_delta_at_retest": 258.93,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 860.0,
       "regime": "TREND",
       "direction": "bearish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "417_bearish",
-    "retest_timestamp": 1705564800000
+    "zone_id": "4602_bearish"
   },
   {
     "features": {
-      "vwap_at_retest": 59770.24,
-      "obi_10_at_retest": -0.0667,
-      "cumulative_delta_at_retest": -258.73,
-      "delta_divergence": "BEARISH_EXHAUSTION",
-      "atr_14": 2229.0699999999997,
-      "regime": "LATERAL",
-      "direction": "bearish"
-    },
-    "outcome": "BOUNCE",
-    "zone_id": "408_bearish",
-    "retest_timestamp": 1705575600000
-  },
-  {
-    "features": {
-      "vwap_at_retest": 59601.49,
-      "obi_10_at_retest": 0.1715,
-      "cumulative_delta_at_retest": -310.29,
+      "vwap_at_retest": 69607.77,
+      "obi_10_at_retest": 0.03,
+      "cumulative_delta_at_retest": 282.15,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 4332.669999999998,
+      "atr_14": 1177.199999999997,
       "regime": "TREND",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "434_bullish",
-    "retest_timestamp": 1705626000000
+    "zone_id": "4779_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 59273.3,
-      "obi_10_at_retest": 0.1495,
-      "cumulative_delta_at_retest": -299.34,
+      "vwap_at_retest": 69612.23,
+      "obi_10_at_retest": 0.24,
+      "cumulative_delta_at_retest": 282.71,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 2033.5800000000017,
+      "atr_14": 1251.300000000003,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "4780_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69847.75,
+      "obi_10_at_retest": 0.1358,
+      "cumulative_delta_at_retest": 250.25,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 538.0,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "4989_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69875.12,
+      "obi_10_at_retest": -0.0638,
+      "cumulative_delta_at_retest": 252.84,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 472.6999999999971,
       "regime": "LATERAL",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "458_bullish",
-    "retest_timestamp": 1705712400000
+    "zone_id": "5037_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 59256.73,
-      "obi_10_at_retest": 0.0169,
-      "cumulative_delta_at_retest": -304.4,
+      "vwap_at_retest": 69899.0,
+      "obi_10_at_retest": 0.0731,
+      "cumulative_delta_at_retest": 252.58,
       "delta_divergence": "BULLISH_ABSORPTION",
-      "atr_14": 2033.5800000000017,
+      "atr_14": 627.5,
       "regime": "LATERAL",
       "direction": "bullish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "459_bullish",
-    "retest_timestamp": 1705716000000
+    "zone_id": "5065_bullish"
   },
   {
     "features": {
-      "vwap_at_retest": 59232.18,
-      "obi_10_at_retest": 0.0771,
-      "cumulative_delta_at_retest": -282.04,
+      "vwap_at_retest": 69906.64,
+      "obi_10_at_retest": -0.0281,
+      "cumulative_delta_at_retest": 254.6,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 696.5,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5059_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69908.32,
+      "obi_10_at_retest": 0.2327,
+      "cumulative_delta_at_retest": 252.76,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 696.5,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5067_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69908.32,
+      "obi_10_at_retest": 0.2327,
+      "cumulative_delta_at_retest": 252.76,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 696.5,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5069_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69977.48,
+      "obi_10_at_retest": 0.0991,
+      "cumulative_delta_at_retest": 256.56,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 633.5,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5137_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 69977.48,
+      "obi_10_at_retest": 0.0991,
+      "cumulative_delta_at_retest": 256.56,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 633.5,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5139_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70049.21,
+      "obi_10_at_retest": -0.0108,
+      "cumulative_delta_at_retest": 260.05,
       "delta_divergence": "BEARISH_EXHAUSTION",
-      "atr_14": 2638.529999999999,
+      "atr_14": 325.0,
       "regime": "LATERAL",
       "direction": "bearish"
     },
     "outcome": "BOUNCE",
-    "zone_id": "421_bearish",
-    "retest_timestamp": 1705730400000
+    "zone_id": "5256_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70050.58,
+      "obi_10_at_retest": -0.0051,
+      "cumulative_delta_at_retest": 260.05,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 177.6999999999971,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5249_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70096.95,
+      "obi_10_at_retest": 0.1249,
+      "cumulative_delta_at_retest": 259.59,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 601.7000000000116,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5305_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70147.17,
+      "obi_10_at_retest": 0.0896,
+      "cumulative_delta_at_retest": 205.75,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 1721.0999999999913,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5360_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70151.06,
+      "obi_10_at_retest": 0.3982,
+      "cumulative_delta_at_retest": 205.73,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 1313.0999999999913,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5362_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70153.94,
+      "obi_10_at_retest": -0.2401,
+      "cumulative_delta_at_retest": 209.15,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 1031.199999999997,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5322_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70153.94,
+      "obi_10_at_retest": -0.2401,
+      "cumulative_delta_at_retest": 209.15,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 1031.199999999997,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5323_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70158.88,
+      "obi_10_at_retest": -0.0236,
+      "cumulative_delta_at_retest": 208.73,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 1036.6000000000058,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5366_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70380.47,
+      "obi_10_at_retest": 0.0036,
+      "cumulative_delta_at_retest": 221.14,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 455.20000000001164,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5598_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70722.68,
+      "obi_10_at_retest": 0.0092,
+      "cumulative_delta_at_retest": 265.32,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 412.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5762_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70752.51,
+      "obi_10_at_retest": -0.1897,
+      "cumulative_delta_at_retest": 265.56,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 230.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5832_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70758.93,
+      "obi_10_at_retest": 0.3077,
+      "cumulative_delta_at_retest": 265.39,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 193.1999999999971,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5852_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70790.1,
+      "obi_10_at_retest": 0.1381,
+      "cumulative_delta_at_retest": 259.37,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 462.8999999999942,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "5871_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70825.25,
+      "obi_10_at_retest": 0.0498,
+      "cumulative_delta_at_retest": 250.03,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 562.5999999999913,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5900_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70825.25,
+      "obi_10_at_retest": 0.0498,
+      "cumulative_delta_at_retest": 250.03,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 562.5999999999913,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5901_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70826.74,
+      "obi_10_at_retest": 0.1727,
+      "cumulative_delta_at_retest": 250.36,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 547.3999999999942,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "5903_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 70961.84,
+      "obi_10_at_retest": 0.2545,
+      "cumulative_delta_at_retest": 240.47,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 395.09999999999127,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6193_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71109.45,
+      "obi_10_at_retest": -0.1546,
+      "cumulative_delta_at_retest": 230.99,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 758.0,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "6438_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71223.34,
+      "obi_10_at_retest": 0.0611,
+      "cumulative_delta_at_retest": 245.68,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 507.40000000000873,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "6572_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71224.8,
+      "obi_10_at_retest": 0.0713,
+      "cumulative_delta_at_retest": 245.68,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 507.40000000000873,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6573_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71226.55,
+      "obi_10_at_retest": -0.2107,
+      "cumulative_delta_at_retest": 245.68,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 431.40000000000873,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6574_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71266.71,
+      "obi_10_at_retest": -0.0691,
+      "cumulative_delta_at_retest": 242.75,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 555.3999999999942,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6653_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71272.18,
+      "obi_10_at_retest": -0.1185,
+      "cumulative_delta_at_retest": 242.8,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 241.79999999998836,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6657_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71272.18,
+      "obi_10_at_retest": -0.1185,
+      "cumulative_delta_at_retest": 242.8,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 241.79999999998836,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6660_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71287.69,
+      "obi_10_at_retest": 0.1043,
+      "cumulative_delta_at_retest": 243.94,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 618.0999999999913,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "6713_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71309.59,
+      "obi_10_at_retest": -0.1553,
+      "cumulative_delta_at_retest": 249.85,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 925.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6725_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71309.59,
+      "obi_10_at_retest": -0.1553,
+      "cumulative_delta_at_retest": 249.85,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 925.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6729_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71392.42,
+      "obi_10_at_retest": 0.035,
+      "cumulative_delta_at_retest": 232.55,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 891.6000000000058,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "6816_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71616.39,
+      "obi_10_at_retest": -0.1714,
+      "cumulative_delta_at_retest": 277.42,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 436.3000000000029,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7059_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71619.56,
+      "obi_10_at_retest": 0.0349,
+      "cumulative_delta_at_retest": 277.26,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 430.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7061_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71619.56,
+      "obi_10_at_retest": 0.0349,
+      "cumulative_delta_at_retest": 277.26,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 430.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7062_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71624.24,
+      "obi_10_at_retest": 0.1381,
+      "cumulative_delta_at_retest": 277.37,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 430.8000000000029,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7069_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71698.6,
+      "obi_10_at_retest": 0.2002,
+      "cumulative_delta_at_retest": 284.53,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 760.5999999999913,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7098_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71825.75,
+      "obi_10_at_retest": 0.1393,
+      "cumulative_delta_at_retest": 292.96,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 604.0,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7243_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71827.29,
+      "obi_10_at_retest": -0.0773,
+      "cumulative_delta_at_retest": 292.95,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 668.4000000000087,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7244_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71828.36,
+      "obi_10_at_retest": -0.1229,
+      "cumulative_delta_at_retest": 292.81,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 668.4000000000087,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7245_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71830.61,
+      "obi_10_at_retest": 0.2933,
+      "cumulative_delta_at_retest": 293.35,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 581.0,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7240_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71902.7,
+      "obi_10_at_retest": -0.1001,
+      "cumulative_delta_at_retest": 276.3,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 293.6000000000058,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7321_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71919.05,
+      "obi_10_at_retest": -0.1637,
+      "cumulative_delta_at_retest": 276.17,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 415.3000000000029,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7356_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71927.77,
+      "obi_10_at_retest": 0.2318,
+      "cumulative_delta_at_retest": 275.02,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 552.8999999999942,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7369_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71976.1,
+      "obi_10_at_retest": 0.1998,
+      "cumulative_delta_at_retest": 275.7,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 973.9000000000087,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7373_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 71976.1,
+      "obi_10_at_retest": 0.1998,
+      "cumulative_delta_at_retest": 275.7,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 973.9000000000087,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "7375_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72147.96,
+      "obi_10_at_retest": -0.0673,
+      "cumulative_delta_at_retest": 279.89,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 562.8999999999942,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7655_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72172.26,
+      "obi_10_at_retest": 0.1197,
+      "cumulative_delta_at_retest": 277.32,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 678.0,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7657_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72172.26,
+      "obi_10_at_retest": 0.1197,
+      "cumulative_delta_at_retest": 277.32,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 678.0,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7658_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72233.05,
+      "obi_10_at_retest": -0.1981,
+      "cumulative_delta_at_retest": 271.72,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 309.0,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "7901_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72313.3,
+      "obi_10_at_retest": -0.1725,
+      "cumulative_delta_at_retest": 275.18,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 366.8000000000029,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8211_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72313.3,
+      "obi_10_at_retest": -0.1725,
+      "cumulative_delta_at_retest": 275.18,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 366.8000000000029,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8212_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72321.41,
+      "obi_10_at_retest": 0.1654,
+      "cumulative_delta_at_retest": 274.93,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 165.6999999999971,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8236_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72321.41,
+      "obi_10_at_retest": 0.1654,
+      "cumulative_delta_at_retest": 274.93,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 165.6999999999971,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8237_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72321.41,
+      "obi_10_at_retest": 0.1654,
+      "cumulative_delta_at_retest": 274.93,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 165.6999999999971,
+      "regime": "LATERAL",
+      "direction": "bearish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "8238_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72331.36,
+      "obi_10_at_retest": 0.0629,
+      "cumulative_delta_at_retest": 277.32,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 380.5,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8291_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72336.13,
+      "obi_10_at_retest": 0.1338,
+      "cumulative_delta_at_retest": 277.69,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 499.29999999998836,
+      "regime": "TREND",
+      "direction": "bullish"
+    },
+    "outcome": "BREAKOUT",
+    "zone_id": "8295_bullish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72544.36,
+      "obi_10_at_retest": 0.1765,
+      "cumulative_delta_at_retest": 227.6,
+      "delta_divergence": "BEARISH_EXHAUSTION",
+      "atr_14": 1655.8999999999942,
+      "regime": "TREND",
+      "direction": "bearish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8544_bearish"
+  },
+  {
+    "features": {
+      "vwap_at_retest": 72568.95,
+      "obi_10_at_retest": -0.0522,
+      "cumulative_delta_at_retest": 228.42,
+      "delta_divergence": "BULLISH_ABSORPTION",
+      "atr_14": 335.09999999999127,
+      "regime": "LATERAL",
+      "direction": "bullish"
+    },
+    "outcome": "BOUNCE",
+    "zone_id": "8628_bullish"
   }
 ]

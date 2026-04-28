@@ -52,8 +52,9 @@ def download_historical():
 
     combined = pd.concat(frames, ignore_index=True)
     combined = combined.sort_values('open_time').reset_index(drop=True)
-    combined[['open','high','low','close','volume']] = \
-        combined[['open','high','low','close','volume']].astype(float)
+    for col in ['open','high','low','close','volume']:
+        combined[col] = pd.to_numeric(combined[col], errors='coerce')
+    combined = combined.dropna(subset=['open','high','low','close','volume'])
 
     print(f'\nTotal velas descargadas: {len(combined)}')
     print(f'Rango: {combined["open_time"].iloc[0]} → {combined["open_time"].iloc[-1]}')
