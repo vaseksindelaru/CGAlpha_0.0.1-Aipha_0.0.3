@@ -1,0 +1,30 @@
+{
+  "validation_name": "pre_cat1_autonomy_check",
+  "duration_hours": 48,
+  "start_date": "2026-05-01",
+  "success_criteria": {
+    "min_retests_detected": 15,
+    "min_real_oracle_trades": 5,
+    "max_placeholder_ratio": 0.20,
+    "oracle_oos_stability": {
+      "description": "Re-entrenar con samples acumulados al final",
+      "min_accuracy": 0.68,
+      "note": "Si baja de 0.68 con datos live, el modelo no generaliza"
+    },
+    "safety_envelope": {
+      "max_rejected_safety_violations": 10,
+      "note": "Más de 10 sugiere que el AutoProposer tiene un problema estructural"
+    },
+    "canal_health": {
+      "max_pending_proposals": 20,
+      "note": "Con cooldown implementado no debería acumularse"
+    }
+  },
+  "failure_criteria": {
+    "immediate_stop": [
+      "oracle_oos_drops_below_0.60",
+      "pending_proposals_exceeds_50",
+      "safety_violations_exceed_20"
+    ]
+  }
+}

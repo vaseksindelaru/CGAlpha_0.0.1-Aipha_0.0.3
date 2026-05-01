@@ -331,7 +331,7 @@ class MiniTrendDetector:
         defaults = {
             'r2_min': 0.45,
             'min_trend_length': 5,
-            'zigzag_threshold': 0.0018  # 0.18% — P75-P90 rango vela 5m BTCUSDT
+            'zigzag_threshold': 0.0025  # 0.25% — P75-P80 rango vela 5m BTCUSDT
         }
         self.config = {**defaults, **(config or {})}
         self.data = None
@@ -541,7 +541,7 @@ class TripleCoincidenceDetector:
             'quality_threshold': 0.45,
             'r2_min': 0.45,
             'min_trend_length': 5,
-            'zigzag_threshold': 0.0018,  # 0.18% — P75-P90 rango vela 5m BTCUSDT
+            'zigzag_threshold': 0.0025,  # 0.25% — P75-P80 rango vela 5m BTCUSDT
             'proximity_tolerance': 8,
             'retest_timeout_bars': 50,
             'outcome_lookahead_bars': 10,

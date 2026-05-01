@@ -15,7 +15,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger("fix6")
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import (
@@ -23,7 +23,7 @@ from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import (
 )
 from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
 
-DATA_DIR = Path('cgalpha_v3/data/historical_30d')
+DATA_DIR = Path('cgalpha_v3/data/historical_60d')
 BASE_URL = 'https://data.binance.vision/data/futures/um/daily/klines/BTCUSDT/5m'
 
 
@@ -36,7 +36,7 @@ def download_historical() -> pd.DataFrame:
     today = datetime.utcnow()
     frames = []
 
-    for i in range(1, 31):
+    for i in range(1, 61):
         date = today - timedelta(days=i)
         filename = f'BTCUSDT-5m-{date.strftime("%Y-%m-%d")}.zip'
         url = f'{BASE_URL}/{filename}'
@@ -158,16 +158,16 @@ def compute_micro_features(df: pd.DataFrame) -> pd.DataFrame:
 def main():
     print("=" * 70)
     print("  FIX 6: Re-entrenamiento Oracle con datos históricos reales")
-    print("  ZigZag threshold: 0.18% (post-fix)")
+    print("  ZigZag threshold: 0.25% (post-fix)")
     print("=" * 70)
     print()
 
     # Verificar threshold
     tc_file = Path('cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py')
-    if '0.0018' not in tc_file.read_text():
-        print('❌ STOP: threshold 0.18% no encontrado en triple_coincidence.py')
+    if '0.0025' not in tc_file.read_text():
+        print('❌ STOP: threshold 0.25% no encontrado en triple_coincidence.py')
         sys.exit(1)
-    print('✓ Threshold 0.18% verificado\n')
+    print('✓ Threshold 0.25% verificado\n')
 
     # Paso 1: Cargar datos
     logger.info("PASO 1: Cargando datos históricos...")

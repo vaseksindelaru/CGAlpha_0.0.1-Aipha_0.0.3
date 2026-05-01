@@ -176,9 +176,27 @@ class EvolutionOrchestratorV4:
                 )
                 return 2
 
-        # Rule 3: Parameter change with high confidence → Cat.1
+        # Rule 3: Parameter change with high confidence → Cat.1 (RESTRICTED FOR VALIDATION)
         if change_type in CAT_1_CHANGE_TYPES and confidence >= 0.7:
-            logger.info(f"Classify: change_type='{change_type}', conf={confidence:.2f} → Cat.1")
+            # Check if parameter is safe for Cat.1 (low impact)
+            target_attribute = getattr(spec, "target_attribute", "")
+            landscape = self.get_parameter_landscape()
+            if landscape:
+                params = landscape.get("parameters", [])
+                matching = [p for p in params if p.get("name") == target_attribute]
+                if matching:
+                    p_info = matching[0]
+                    impact = p_info.get("causal_impact_est", 1.0)
+                    sensitivity = p_info.get("sensitivity", "high")
+                    
+                    if impact < 0.4 and sensitivity == "low" and target_attribute not in ["zigzag_threshold", "n_estimators"]:
+                        logger.info(f"Classify: {target_attribute} is safe (impact={impact}) → Cat.1")
+                        return 1
+                    else:
+                        logger.info(f"Classify: {target_attribute} is high impact ({impact}) → Escalating to Cat.2")
+                        return 2
+            
+            logger.info(f"Classify: change_type='{change_type}', conf={confidence:.2f} → Cat.1 (default)")
             return 1
 
         # Rule 4: Known semi-auto types → Cat.2
@@ -271,7 +289,19 @@ class EvolutionOrchestratorV4:
             self._append_evolution_log(spec, result)
             return result
 
-        # Cooldown check
+        # ── Already Pending check ──
+        pending = self.get_pending_summary()
+        for p in pending:
+            if p.get("component") == spec_key.split(":")[0].split("/")[-1] and \
+               spec.target_attribute in p.get("change", ""):
+                return EvolutionResult(
+                    category=0,
+                    status="REJECTED_ALREADY_PENDING",
+                    spec_summary=spec_key,
+                    error=f"A proposal for {spec.target_attribute} is already pending approval (ID: {p.get('id')})"
+                )
+
+        # ── Time-based Cooldown check ──
         last_time = self._last_proposals.get(spec_key, 0)
         if time.time() - last_time < self._cooldown_seconds:
             return EvolutionResult(
