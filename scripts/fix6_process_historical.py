@@ -19,11 +19,14 @@ logger = logging.getLogger("fix6_process")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Configuración (Alineada con historical_training.py)
-SYMBOL = os.environ.get('SYMBOL', 'BTCUSDT')
-INTERVAL = os.environ.get('INTERVAL', '5m')
-DAYS = int(os.environ.get('DAYS', '60'))
-MIN_SUCCESS_DAYS = int(os.environ.get('MIN_SUCCESS_DAYS', '30'))
+# Configuración (Alineada con historical_training.py - FIX6_*)
+SYMBOL = os.environ.get('FIX6_SYMBOL', 'BTCUSDT')
+INTERVAL = os.environ.get('FIX6_INTERVAL', '5m')
+DAYS = int(os.environ.get('FIX6_DAYS', '60'))
+MIN_SUCCESS_DAYS = int(os.environ.get('FIX6_MIN_SUCCESS_DAYS', '30'))
+
+EXPECTED_THRESHOLD = os.environ.get('FIX6_EXPECTED_THRESHOLD', '0.0025')
+EXPECTED_THRESHOLD_LABEL = os.environ.get('FIX6_EXPECTED_THRESHOLD_LABEL', '0.25%')
 
 DATA_DIR = Path('cgalpha_v3/data/historical_60d')
 
@@ -117,10 +120,10 @@ def main():
     print("=" * 70)
 
     tc_file = Path('cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py')
-    if '0.0025' not in tc_file.read_text():
-        print('❌ STOP: threshold 0.25% no encontrado en triple_coincidence.py')
+    if EXPECTED_THRESHOLD not in tc_file.read_text():
+        print(f'❌ STOP: threshold {EXPECTED_THRESHOLD_LABEL} ({EXPECTED_THRESHOLD}) no encontrado en triple_coincidence.py')
         sys.exit(1)
-    print('✓ Threshold 0.25% verificado\n')
+    print(f'✓ Threshold {EXPECTED_THRESHOLD_LABEL} verificado en código\n')
 
     logger.info("PASO 1: Cargando datos históricos...")
     df = load_historical_data()

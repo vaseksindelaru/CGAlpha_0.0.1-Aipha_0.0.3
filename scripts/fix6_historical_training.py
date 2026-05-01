@@ -16,13 +16,16 @@ from collections import Counter
 
 sys.path.insert(0, '.')
 
-# Configuración (Calibración vía Entorno)
-SYMBOL = os.environ.get('SYMBOL', 'BTCUSDT')
-INTERVAL = os.environ.get('INTERVAL', '5m')
-DAYS = int(os.environ.get('DAYS', '60'))
-MIN_SUCCESS_DAYS = int(os.environ.get('MIN_SUCCESS_DAYS', '30'))
-MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
-RETRY_DELAY = int(os.environ.get('RETRY_DELAY', '5')) # Base delay para backoff
+# Configuración (Calibración vía Entorno FIX6_*)
+SYMBOL = os.environ.get('FIX6_SYMBOL', 'BTCUSDT')
+INTERVAL = os.environ.get('FIX6_INTERVAL', '5m')
+DAYS = int(os.environ.get('FIX6_DAYS', '60'))
+MIN_SUCCESS_DAYS = int(os.environ.get('FIX6_MIN_SUCCESS_DAYS', '30'))
+MAX_RETRIES = int(os.environ.get('FIX6_MAX_RETRIES', '3'))
+RETRY_DELAY = int(os.environ.get('FIX6_RETRY_DELAY', '5')) # Base delay para backoff
+
+EXPECTED_THRESHOLD = os.environ.get('FIX6_EXPECTED_THRESHOLD', '0.0025')
+EXPECTED_THRESHOLD_LABEL = os.environ.get('FIX6_EXPECTED_THRESHOLD_LABEL', '0.25%')
 
 OUTPUT_DIR = Path('cgalpha_v3/data/historical_60d')
 BASE_URL = f'https://data.binance.vision/data/futures/um/daily/klines/{SYMBOL}/{INTERVAL}'
@@ -106,12 +109,12 @@ def verify_distribution(training_file: Path):
 if __name__ == '__main__':
     print('=== FIX 6 HARDENED: ENTRENAMIENTO HISTÓRICO ===\n')
 
-    # Paso 1: Verificar threshold en código (0.25% oficial)
+    # Paso 1: Verificar threshold en código
     tc_file = Path('cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py')
-    if '0.0025' not in tc_file.read_text():
-        print('❌ STOP: threshold 0.25% no encontrado en triple_coincidence.py')
+    if EXPECTED_THRESHOLD not in tc_file.read_text():
+        print(f'❌ STOP: threshold {EXPECTED_THRESHOLD_LABEL} ({EXPECTED_THRESHOLD}) no encontrado en triple_coincidence.py')
         sys.exit(1)
-    print('✓ Threshold 0.25% verificado en código\n')
+    print(f'✓ Threshold {EXPECTED_THRESHOLD_LABEL} verificado en código\n')
 
     # Paso 2: Descargar datos
     df = download_historical()
