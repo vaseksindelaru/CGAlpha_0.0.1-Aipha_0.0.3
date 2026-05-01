@@ -1,6 +1,6 @@
 """
 Fix 6: Re-entrenamiento Oracle con 60 días históricos Binance Vision
-Versión Hardened: Reintentos, Backoff y Modo Degradado.
+Versión Hardened & Standardized (Env-Driven).
 """
 import requests
 import zipfile
@@ -16,15 +16,20 @@ from collections import Counter
 
 sys.path.insert(0, '.')
 
-# Configuración (Calibración vía Entorno FIX6_*)
+# Configuración FIX6_ (Standardized Knobs)
 SYMBOL = os.environ.get('FIX6_SYMBOL', 'BTCUSDT')
 INTERVAL = os.environ.get('FIX6_INTERVAL', '5m')
 DAYS = int(os.environ.get('FIX6_DAYS', '60'))
+TIMEOUT = int(os.environ.get('FIX6_REQUEST_TIMEOUT', '30'))
 MIN_SUCCESS_DAYS = int(os.environ.get('FIX6_MIN_SUCCESS_DAYS', '30'))
 MAX_RETRIES = int(os.environ.get('FIX6_MAX_RETRIES', '3'))
-RETRY_DELAY = int(os.environ.get('FIX6_RETRY_DELAY', '5')) # Base delay para backoff
+# Compatibilidad: FALLBACK a BASE_SECONDS si no existe RETRY_DELAY
+RETRY_DELAY = int(os.environ.get('FIX6_RETRY_DELAY', 
+                   os.environ.get('FIX6_BACKOFF_BASE_SECONDS', '5')))
 
-EXPECTED_THRESHOLD = os.environ.get('FIX6_EXPECTED_THRESHOLD', '0.0025')
+# Guardia de Seguridad: FALLBACK a ZIGZAG_THRESHOLD si no existe el nuevo
+EXPECTED_THRESHOLD = os.environ.get('FIX6_EXPECTED_THRESHOLD', 
+                       os.environ.get('FIX6_EXPECTED_ZIGZAG_THRESHOLD', '0.0025'))
 EXPECTED_THRESHOLD_LABEL = os.environ.get('FIX6_EXPECTED_THRESHOLD_LABEL', '0.25%')
 
 OUTPUT_DIR = Path('cgalpha_v3/data/historical_60d')
@@ -36,23 +41,20 @@ def download_historical():
     frames = []
     success_count = 0
 
-    print(f"Iniciando descarga resiliente: {DAYS} días (Mínimo requerido: {MIN_SUCCESS_DAYS})")
+    print(f"Iniciando descarga resiliente: {DAYS} días (Mínimo: {MIN_SUCCESS_DAYS})")
 
     for i in range(1, DAYS + 1):
         date = today - timedelta(days=i)
         filename = f'{SYMBOL}-{INTERVAL}-{date.strftime("%Y-%m-%d")}.zip'
         url = f'{BASE_URL}/{filename}'
         
-        attempt_success = False
         for attempt in range(MAX_RETRIES):
             try:
-                # Backoff exponencial simple
                 if attempt > 0:
                     sleep_time = RETRY_DELAY * (2 ** (attempt - 1))
-                    print(f"   REINTENTO {attempt}/{MAX_RETRIES} en {sleep_time}s para {date.strftime('%Y-%m-%d')}...")
                     time.sleep(sleep_time)
 
-                r = requests.get(url, timeout=30)
+                r = requests.get(url, timeout=TIMEOUT)
                 if r.status_code == 200:
                     with zipfile.ZipFile(io.BytesIO(r.content)) as z:
                         csv_name = z.namelist()[0]
@@ -64,65 +66,31 @@ def download_historical():
                             frames.append(df)
                     print(f'✓ {date.strftime("%Y-%m-%d")} ({len(df)} velas)')
                     success_count += 1
-                    attempt_success = True
                     break
                 elif r.status_code == 403:
-                    print(f'✗ {date.strftime("%Y-%m-%d")} (HTTP 403 Forbidden - Proxy/IP Block)')
-                    # No reintentamos 403 ya que suele ser bloqueo persistente
+                    print(f'✗ {date.strftime("%Y-%m-%d")} (HTTP 403)')
                     break
-                else:
-                    print(f'✗ {date.strftime("%Y-%m-%d")} (HTTP {r.status_code})')
             except Exception as e:
-                print(f'✗ {date.strftime("%Y-%m-%d")} (Error: {e})')
+                if attempt == MAX_RETRIES - 1:
+                    print(f'✗ {date.strftime("%Y-%m-%d")} (Error: {e})')
         
-    print(f"\nFinalización de descarga: {success_count}/{DAYS} días exitosos.")
-    
     if success_count < MIN_SUCCESS_DAYS:
-        print(f"❌ ERROR: Solo se obtuvieron {success_count} días (mínimo requerido: {MIN_SUCCESS_DAYS})")
-        raise RuntimeError(f'Fracaso crítico de red: No se alcanzó el umbral mínimo de {MIN_SUCCESS_DAYS} días')
+        raise RuntimeError(f'Fracaso crítico: {success_count} días (Mínimo {MIN_SUCCESS_DAYS})')
     
-    if success_count < DAYS:
-        print(f"⚠️  MODO DEGRADADO: Continuando con {success_count} días de datos parciales.")
-
     combined = pd.concat(frames, ignore_index=True)
     combined = combined.sort_values('open_time').reset_index(drop=True)
     for col in ['open','high','low','close','volume']:
         combined[col] = pd.to_numeric(combined[col], errors='coerce')
-    combined = combined.dropna(subset=['open','high','low','close','volume'])
-
-    print(f'Total velas procesadas: {len(combined)}')
-    return combined
-
-def verify_distribution(training_file: Path):
-    if not training_file.exists():
-        return 0, {}
-    samples = json.loads(training_file.read_text())
-    outcomes = Counter(s.get('outcome') for s in samples)
-    total = sum(outcomes.values())
-    print(f'\nDistribución del dataset:')
-    for outcome, count in outcomes.items():
-        pct = 100 * count / total
-        flag = '⚠️ SOSPECHOSO' if abs(pct - 50) < 5 and total > 50 else ''
-        print(f'  {outcome}: {count} ({pct:.1f}%) {flag}')
-    return total, outcomes
+    return combined.dropna(subset=['open','high','low','close','volume'])
 
 if __name__ == '__main__':
-    print('=== FIX 6 HARDENED: ENTRENAMIENTO HISTÓRICO ===\n')
+    print('=== FIX 6 STANDARDIZED: HISTORICAL TRAINING ===\n')
 
-    # Paso 1: Verificar threshold en código
     tc_file = Path('cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py')
     if EXPECTED_THRESHOLD not in tc_file.read_text():
-        print(f'❌ STOP: threshold {EXPECTED_THRESHOLD_LABEL} ({EXPECTED_THRESHOLD}) no encontrado en triple_coincidence.py')
+        print(f'❌ STOP: threshold {EXPECTED_THRESHOLD_LABEL} no encontrado')
         sys.exit(1)
-    print(f'✓ Threshold {EXPECTED_THRESHOLD_LABEL} verificado en código\n')
+    print(f'✓ Threshold {EXPECTED_THRESHOLD_LABEL} verificado\n')
 
-    # Paso 2: Descargar datos
     df = download_historical()
-
-    # Paso 3: Guardar para procesamiento
-    OUTPUT_PATH = OUTPUT_DIR / f"combined_{SYMBOL}_{INTERVAL}_{DAYS}d.csv"
-    df.to_csv(OUTPUT_PATH, index=False)
-    print(f"\n✅ Datos guardados en {OUTPUT_PATH}")
-
-    print('\n=== LISTO PARA PROCESAMIENTO ===')
-    print('Siguiente paso: python3 scripts/fix6_process_historical.py')
+    df.to_csv(OUTPUT_DIR / f"combined_{SYMBOL}_{INTERVAL}_{DAYS}d.csv", index=False)
