@@ -1,0 +1,10 @@
+{
+  "point_zero_timestamp": "2026-05-01 13:00:00 UTC",
+  "git_hash": "5ddadc7df5f6658ab94e45065528d9ee2c0a1770",
+  "validation_pid": 48738,
+  "baseline_oos": 0.7193,
+  "config": {
+    "zigzag_threshold": 0.0025,
+    "cat1_mode": "restricted_low_impact"
+  }
+}
