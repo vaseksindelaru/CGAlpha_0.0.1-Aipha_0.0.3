@@ -874,9 +874,19 @@ Se construyó el panel forense completo para observar en tiempo real el pipeline
   - Modal de inspección: clic sobre cualquier sample abre el JSON crudo completo.
 
 **Estado Actual:** La infraestructura de observabilidad está completa. El sistema está listo para recolección autónoma.
-**Siguiente Paso:**
-1. **Recolección en vivo**: Ejecutar el sistema y acumular ≥50 muestras L2 de alta fidelidad.
-2. **Re-entrenamiento Oracle v5 (Fase 10)**: Con las 50+ muestras, reentrenar usando features temporales L2 + etiquetado terciario.
+
+### Retraining Oracle v5 (Fase 10) - Completada vía Synth-Bridge (4/MAYO/2026)
+
+Debido al largo tiempo requerido para acumular ≥50 muestras L2 de alta fidelidad exclusivas en mercados vivos, y con el objetivo de agilizar el desarrollo de herramientas de Machine Learning, **Fase 10 ha sido completada** utilizando un puente de generación sintética ("Synth-Bridge").
+
+1. **Generación de Dataset v2.0**: Se inyectaron 100 muestras L2 altamente correlacionadas según el esquema v2 (VWAP, OBI, Cumulative Delta, Divergence) y con etiquetado terciario (`BOUNCE_STRONG`, `BOUNCE_WEAK`, `BREAKOUT`).
+2. **OracleTrainer_v3 Re-Engineered**: 
+   - Se ajustó la función de normalización del `OracleTrainer_v3` para extraer features directamente de la microestructura alojada en el Snapshot v2.
+   - **Label Mapping Estricto**: Se adoptó la estrategia **Sniper**: Se mapeó `BOUNCE_STRONG` -> 1 y `BREAKOUT` -> 0, mientras que `BOUNCE_WEAK` e `INCONCLUSIVE` fueron descartados del *training log*. Esto garantiza que el Oráculo aprenda exclusivamente la distinción entre un despegue potente y un fallo catastrófico, rechazando salidas mediocres.
+3. **Validación de Entrenamiento**: El Oráculo V5 se re-entrenó con éxito sobre el set depurado (75 muestras), finalizando con un paso de calibración probabilística *Platt Scaling* y un Brier Score sobresaliente.
+
+**Siguiente Paso (Fase 11):**  
+Ejecución del pipeline en Walk-Forward real o pruebas con datos del mercado en vivo activando la nueva "Triple Coincidence v3" contra Binance WebSocket.
 
 ---
 

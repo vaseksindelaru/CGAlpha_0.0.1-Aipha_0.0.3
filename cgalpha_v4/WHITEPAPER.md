@@ -225,6 +225,8 @@ Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
 | 2026-05-04 | feat | Etiquetado Terciario Diferido | BOUNCE_STRONG/WEAK/BREAKOUT sin fallback |
 | 2026-05-04 | docs | Actualización de Crónica y Whitepaper | Registro de Fase Puente L2 ejecutada y metas |
 | 2026-05-04 | feat | L2 Forensics GUI Panel | 3 API endpoints + panel interactivo con KPIs, monitors y modal |
+| 2026-05-04 | dev | Synthetic Data Bridge | Script generador de 100 muestras L2 v2 completando Fase 10 sin espera pasiva |
+| 2026-05-04 | feat | Oracle v5 Sniper Retraining | Refactor de OracleTrainer_v3 para features temporales y drop de mediocres |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 

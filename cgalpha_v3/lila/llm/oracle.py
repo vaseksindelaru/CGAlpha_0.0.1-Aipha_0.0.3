@@ -121,14 +121,14 @@ class OracleTrainer_v3(BaseComponentV3):
             df["outcome"]
             .astype(str)
             .str.upper()
-            .map({"BOUNCE": 1, "BREAKOUT": 0})
+            .map({"BOUNCE_STRONG": 1, "BREAKOUT": 0})
         )
 
         valid_mask = y.notna()
         X = X.loc[valid_mask]
         y = y.loc[valid_mask].astype(int)
         if X.empty:
-            raise ValueError("No valid rows with outcome BOUNCE/BREAKOUT were found.")
+            raise ValueError("No valid rows with outcome BOUNCE_STRONG/BREAKOUT were found.")
 
         # BUG-1 fix: separar train/test para métricas OOS reales
         if len(X) >= 10:
@@ -186,12 +186,11 @@ class OracleTrainer_v3(BaseComponentV3):
         test_accuracy = float(self.model.score(X_test, y_test))
         brier_score = float(brier_score_loss(y_test, y_test_probs))
         
-        # Paso 3: K-fold CV (Estabilidad del modelo)
         cv_scores = cross_val_score(base_model, X_train, y_train, cv=5, scoring='accuracy')
         cv_mean = float(cv_scores.mean())
         cv_std = float(cv_scores.std())
         class_distribution = (
-            y.map({1: "BOUNCE", 0: "BREAKOUT"})
+            y.map({1: "BOUNCE_STRONG", 0: "BREAKOUT"})
             .value_counts()
             .to_dict()
         )
@@ -262,8 +261,13 @@ class OracleTrainer_v3(BaseComponentV3):
         # 2. Desbalance
         if 'outcome' not in df.columns:
             return False, {"reason": "Missing outcome column", "passed": False}
+        
+        # Filtrar muestras INCONCLUSIVE/BOUNCE_WEAK
+        valid_df = df[df['outcome'].astype(str).str.upper().isin(["BOUNCE_STRONG", "BREAKOUT"])]
+        if len(valid_df) < 10:
+            return False, {"reason": f"Insufficient valid samples ({len(valid_df)} < 10)", "passed": False}
             
-        counts = df['outcome'].astype(str).str.upper().value_counts(normalize=True)
+        counts = valid_df['outcome'].astype(str).str.upper().value_counts(normalize=True)
         min_class_pct = counts.min()
         if min_class_pct < 0.15:
             return False, {"reason": f"Extreme class imbalance ({min_class_pct:.1%})", "passed": False, "counts": counts.to_dict()}
@@ -389,6 +393,25 @@ class OracleTrainer_v3(BaseComponentV3):
 
     def _normalize_sample(self, sample: Dict[str, Any]) -> Dict[str, Any]:
         normalized: Dict[str, Any] = {}
+        
+        # Schema v2.0 support (ReentrySnapshot)
+        if "_meta" in sample and "schema_version" in sample.get("_meta", {}):
+            l2 = sample.get("l2_snapshot_at_touch", {})
+            zg = sample.get("zone_geometry", {})
+            cl = sample.get("clearance", {})
+            out = sample.get("outcome", {})
+            
+            normalized["vwap_at_retest"] = l2.get("vwap_at_retest")
+            normalized["obi_10_at_retest"] = l2.get("obi_10")
+            normalized["cumulative_delta_at_retest"] = l2.get("cumulative_delta")
+            normalized["delta_divergence"] = l2.get("delta_divergence")
+            normalized["atr_14"] = cl.get("atr_at_detection")
+            normalized["regime"] = cl.get("regime")
+            normalized["direction"] = zg.get("direction")
+            normalized["outcome"] = out.get("label")
+            return normalized
+
+        # Legacy support
         nested = sample.get("features")
         if isinstance(nested, dict):
             normalized.update(nested)
