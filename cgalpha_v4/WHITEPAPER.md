@@ -221,6 +221,9 @@ Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
 | 2026-05-02 | feat | Microestructura viva @depth20 + CumDelta | L2 OBI real en ShadowTrader |
 | 2026-05-03 | docs | Crónica v3.1 + Whitepaper v4.1 sincronizados | Hoja de ruta Fases 10-14 |
 | 2026-05-03 | audit | Evaluación Estructural del Oracle | 5 debilidades, Fase Puente insertada, Fases 10-14 revisadas |
+| 2026-05-04 | feat | Arquitectura Doble Velocidad | Adaptador L2 a nivel de tick en ShadowTrader |
+| 2026-05-04 | feat | Etiquetado Terciario Diferido | BOUNCE_STRONG/WEAK/BREAKOUT sin fallback |
+| 2026-05-04 | docs | Actualización de Crónica y Whitepaper | Registro de Fase Puente L2 ejecutada y metas |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 

@@ -843,6 +843,22 @@ Solución: `lookahead = max(5, min(20, int(5 + zone_width_atr * 3)))`
 con los mismos snapshots estáticos y el mismo etiquetado binario contaminado.
 El salto predictivo habría sido marginal independientemente del algoritmo utilizado.
 
+### Ejecución de la Fase Puente (4 mayo 2026)
+
+Se implementó con éxito la Fase Puente para dotar al sistema de "Resolución de Microsegundo", abordando estructuralmente las vulnerabilidades identificadas. Hitóos completados:
+
+- **Arquitectura de Doble Velocidad (`LiveDataFeedAdapter v2`)**: 
+  - *Velocidad Lenta (1 min)*: Descubrimiento de nuevas zonas usando la vela cerrada.
+  - *Velocidad Tick (~30/s)*: Comprobación de toques a la zona (retests) en el milisegundo exacto de cruce del precio. Esto permite sintetizar el **Perfil Temporal L2 (30s)** en el instante de impacto, no 45 segundos después.
+- **Etiquetado Terciario (`DeferredOutcomeMonitor`)**: Se eliminó el *fallback* engañoso ("BOUNCE" por defecto). Ahora los resultados se diferencian en `BOUNCE_STRONG`, `BOUNCE_WEAK`, `BREAKOUT` e `INCONCLUSIVE`, según el desarrollo del precio y el *Maximum Favorable Excursion* (MFE).
+- **Lookahead Adaptativo**: El tiempo de resolución difiere dinámicamente basado en la medida de la zona ponderada por ATR (zonas estrechas = resolución rápida; zonas anchas = resolución prolongada).
+- **Persistencia L2 (Buffer Crudo)**: Todo ReentrySnapshot exitoso además persiste un `.gz` con la lectura cruda de 300 ms L2 (Order Book y Cum Delta) permitiendo rediseño futuro de features sin requerir recolección en vivo desde cero.
+
+**Estado Actual:** El sistema está preparado para la recolección en vivo de nuevas muestras de alta fidelidad. 
+**Siguientes Pasos (Próximos a concluir):**
+1. **Pipeline de Forense GUI**: Crear paneles de visualización L2 para auditar a simple vista la calidad de los nuevos ReentrySnapshots.
+2. **Re-entrenamiento OOS (Fase 10)**: Acumular un stock de al menos 50 muestras L2 nuevas bajo el formato de alta fidelidad, antes de reentrenar a Oracle v5.
+
 ---
 
 ## 9) Principio rector del proyecto
