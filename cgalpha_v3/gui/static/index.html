@@ -1000,6 +1000,7 @@
                         class="badge" style="display:none">0</span></button>
                 <button class="nav-btn" onclick="showSection('training')">Training Review</button>
                 <button class="nav-btn" onclick="showSection('learning')">Learning</button>
+                <button class="nav-btn" onclick="showSection('forensics')">L2 Forensics 🔬</button>
                 <button class="nav-btn" onclick="showSection('help')">Help ?</button>
             </nav>
             <div class="topbar-right">
@@ -2200,6 +2201,84 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- L2 FORENSICS -->
+        <main id="section-forensics" class="section">
+            <div class="section-title">
+                <h2>🔬 L2 Forensics — Deferred Labeling Pipeline</h2>
+                <p>Monitoreo en tiempo real del pipeline de microestructura: retests pendientes, resolución terciaria y dataset de entrenamiento v2.</p>
+            </div>
+
+            <!-- KPI CARDS -->
+            <div class="grid-4" style="margin-bottom:16px;">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">⏳</span><h2>Pending Labels</h2></div>
+                    <div class="panel-body" style="text-align:center;">
+                        <div id="forensics-pending" style="font-size:2.5rem; font-weight:900; color:var(--yellow);">0</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Retests esperando resolución</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">✅</span><h2>Resolved</h2></div>
+                    <div class="panel-body" style="text-align:center;">
+                        <div id="forensics-resolved" style="font-size:2.5rem; font-weight:900; color:var(--accent);">0</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Labels completados (sesión)</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">💾</span><h2>Dataset v2</h2></div>
+                    <div class="panel-body" style="text-align:center;">
+                        <div id="forensics-dataset" style="font-size:2.5rem; font-weight:900; color:var(--accent2);">0</div>
+                        <div style="font-size:11px; color:var(--text-dim);">Muestras totales en training_dataset_v2.jsonl</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">📊</span><h2>Distribución</h2></div>
+                    <div class="panel-body" id="forensics-distribution">
+                        <div style="font-size:11px; color:var(--text-muted); text-align:center;">Sin datos aún</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTIVE MONITORS -->
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🎯</span><h2>Active Monitors (MFE/MAE en vivo)</h2></div>
+                    <div class="panel-body" id="forensics-monitors">
+                        <div class="placeholder">
+                            <span class="ph-icon">🔇</span>
+                            Sin retests pendientes.<br>El sistema está esperando un toque de zona.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESOLVED TIMELINE -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🕐</span>
+                        <h2>Resolved Timeline</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="fetchForensicsHistory()" style="margin-left:auto;">Refresh</button>
+                    </div>
+                    <div class="panel-body" id="forensics-timeline" style="max-height:420px; overflow-y:auto;">
+                        <div class="placeholder">
+                            <span class="ph-icon">📭</span>
+                            Sin samples resueltos aún.<br>Los resultados aparecerán aquí tras la resolución.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SNAPSHOT MODAL -->
+            <div id="forensics-modal" class="modal-overlay hidden">
+                <div class="modal-card" style="width:700px; max-height:80vh; border-color:var(--accent2);">
+                    <h2 style="color:var(--accent2);">🔍 ReentrySnapshot — <span id="forensics-modal-id">...</span></h2>
+                    <pre id="forensics-modal-json" style="background:var(--bg3); padding:16px; border-radius:8px; font-size:11px; color:var(--text-dim); overflow:auto; max-height:55vh; white-space:pre-wrap;">Cargando...</pre>
+                    <div class="modal-actions">
+                        <button class="btn btn-ghost" onclick="document.getElementById('forensics-modal').classList.add('hidden')">Cerrar</button>
                     </div>
                 </div>
             </div>

@@ -1264,6 +1264,137 @@ async function runLearningRegimeCheck() {
     }
 }
 
+// ── L2 FORENSICS ───────────────────────────────────────────
+let _forensicsInterval = null;
+
+async function fetchForensicsStatus() {
+    try {
+        const data = await apiFetch("/api/l2-forensics/status");
+        setText("forensics-pending", data.pending_count || 0);
+        setText("forensics-resolved", data.resolved_count || 0);
+        setText("forensics-dataset", data.dataset_total || 0);
+        renderForensicsDistribution(data.outcome_distribution || {});
+        renderForensicsMonitors(data.active_monitors || []);
+    } catch { /* silencioso */ }
+}
+
+function renderForensicsDistribution(dist) {
+    const el = document.getElementById("forensics-distribution");
+    if (!el) return;
+    const colors = {
+        BOUNCE_STRONG: "var(--accent)",
+        BOUNCE_WEAK: "var(--yellow)",
+        BREAKOUT: "var(--red)",
+        INCONCLUSIVE: "var(--text-muted)"
+    };
+    const total = Object.values(dist).reduce((a, b) => a + b, 0);
+    if (total === 0) {
+        el.innerHTML = '<div style="font-size:11px; color:var(--text-muted); text-align:center;">Sin datos aún</div>';
+        return;
+    }
+    el.innerHTML = Object.entries(dist).map(([label, count]) => {
+        const pct = total > 0 ? Math.max((count / total) * 100, 3) : 0;
+        const color = colors[label] || "var(--text-dim)";
+        return `
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                <span style="width:90px; font-size:10px; color:${color}; font-weight:600;">${escHtml(label)}</span>
+                <div style="flex:1; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden;">
+                    <div style="height:100%; width:${pct}%; background:${color}; border-radius:4px; transition:width 0.4s;"></div>
+                </div>
+                <span style="width:24px; text-align:right; font-size:10px; color:var(--text-dim);">${count}</span>
+            </div>`;
+    }).join("");
+}
+
+function renderForensicsMonitors(monitors) {
+    const el = document.getElementById("forensics-monitors");
+    if (!el) return;
+    if (!monitors.length) {
+        el.innerHTML = '<div class="placeholder"><span class="ph-icon">🔇</span>Sin retests pendientes.<br>El sistema está esperando un toque de zona.</div>';
+        return;
+    }
+    el.innerHTML = monitors.map(m => {
+        const progress = m.lookahead_bars > 0 ? Math.min((m.bars_elapsed / m.lookahead_bars) * 100, 100) : 0;
+        const dirColor = m.direction === "bullish" ? "var(--accent)" : "var(--red)";
+        const mfeColor = m.mfe > 0 ? "var(--accent)" : "var(--text-dim)";
+        const maeColor = m.mae > 0 ? "var(--red)" : "var(--text-dim)";
+        return `
+            <div style="background:var(--bg3); padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; cursor:pointer;" onclick="openForensicsSnapshot('${escHtml(m.sample_id)}')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <span style="font-size:12px; font-weight:700; color:var(--text);">${escHtml(m.sample_id)}</span>
+                    <span style="font-size:10px; color:${dirColor}; text-transform:uppercase; font-weight:700;">${escHtml(m.direction)}</span>
+                </div>
+                <div style="display:flex; gap:16px; font-size:11px; margin-bottom:6px;">
+                    <span>Entry: <strong>${formatNum(m.entry_price, 1)}</strong></span>
+                    <span>MFE: <strong style="color:${mfeColor};">+${formatNum(m.mfe, 2)}</strong></span>
+                    <span>MAE: <strong style="color:${maeColor};">-${formatNum(m.mae, 2)}</strong></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:10px; color:var(--text-dim);">${m.bars_elapsed}/${m.lookahead_bars}</span>
+                    <div style="flex:1; height:6px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden;">
+                        <div style="height:100%; width:${progress}%; background:linear-gradient(90deg, var(--accent), var(--accent2)); border-radius:3px; transition:width 0.4s;"></div>
+                    </div>
+                </div>
+            </div>`;
+    }).join("");
+}
+
+async function fetchForensicsHistory() {
+    try {
+        const data = await apiFetch("/api/l2-forensics/history?limit=30");
+        renderForensicsTimeline(data.entries || []);
+    } catch { /* silencioso */ }
+}
+
+function renderForensicsTimeline(entries) {
+    const el = document.getElementById("forensics-timeline");
+    if (!el) return;
+    if (!entries.length) {
+        el.innerHTML = '<div class="placeholder"><span class="ph-icon">📭</span>Sin samples resueltos aún.<br>Los resultados aparecerán aquí tras la resolución.</div>';
+        return;
+    }
+    const labelColors = {
+        BOUNCE_STRONG: { bg: "rgba(0,212,170,0.12)", border: "var(--accent)", text: "var(--accent)" },
+        BOUNCE_WEAK: { bg: "rgba(245,158,11,0.12)", border: "var(--yellow)", text: "var(--yellow)" },
+        BREAKOUT: { bg: "rgba(255,107,107,0.12)", border: "var(--red)", text: "var(--red)" },
+        INCONCLUSIVE: { bg: "rgba(119,119,119,0.12)", border: "var(--text-muted)", text: "var(--text-muted)" },
+    };
+    el.innerHTML = entries.map(e => {
+        const style = labelColors[e.label] || labelColors.INCONCLUSIVE;
+        const ts = e.capture_ts ? new Date(e.capture_ts).toLocaleString() : "—";
+        return `
+            <div style="background:${style.bg}; border-left:3px solid ${style.border}; padding:10px 12px; border-radius:8px; margin-bottom:6px; cursor:pointer;" onclick="openForensicsSnapshot('${escHtml(e.sample_id)}')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-size:12px; font-weight:700; color:${style.text};">${escHtml(e.label)}</span>
+                    <span style="font-size:10px; color:var(--text-muted);">${escHtml(ts)}</span>
+                </div>
+                <div style="display:flex; gap:12px; font-size:10px; color:var(--text-dim);">
+                    <span>${escHtml(e.direction || "?")} @ ${formatNum(e.retest_price, 1)}</span>
+                    <span>MFE: ${formatNum(e.mfe_atr, 2)} ATR</span>
+                    <span>MAE: ${formatNum(e.mae_atr, 2)} ATR</span>
+                    <span>Bars: ${e.bars_to_resolution || "—"}</span>
+                    <span>OBI: ${formatNum(e.obi_10, 3)}</span>
+                </div>
+            </div>`;
+    }).join("");
+}
+
+async function openForensicsSnapshot(sampleId) {
+    const modal = document.getElementById("forensics-modal");
+    const idEl = document.getElementById("forensics-modal-id");
+    const jsonEl = document.getElementById("forensics-modal-json");
+    if (!modal || !jsonEl) return;
+    modal.classList.remove("hidden");
+    idEl.textContent = sampleId;
+    jsonEl.textContent = "Cargando...";
+    try {
+        const snap = await apiFetch(`/api/l2-forensics/snapshot/${encodeURIComponent(sampleId)}`);
+        jsonEl.textContent = JSON.stringify(snap, null, 2);
+    } catch (e) {
+        jsonEl.textContent = "Error cargando snapshot: " + e.message;
+    }
+}
+
 function _libRead(id) {
     return (document.getElementById(id)?.value || "").trim();
 }
@@ -1352,6 +1483,10 @@ function showSection(name) {
     }
     if (name === "training") {
         fetchTrainingReviewData();
+    }
+    if (name === "forensics") {
+        fetchForensicsStatus();
+        fetchForensicsHistory();
     }
     if (name === "help") {
         helpSearch('inicio');
