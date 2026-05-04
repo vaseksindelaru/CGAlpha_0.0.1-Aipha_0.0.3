@@ -2769,6 +2769,130 @@ def _simulation_loop():
             time.sleep(10)
 
 
+# ---------------------------------------------------------------------------
+# L2 Forensics API — Observabilidad del pipeline de microestructura
+# ---------------------------------------------------------------------------
+
+@app.route("/api/l2-forensics/status", methods=["GET"])
+@require_auth
+def api_l2_forensics_status():
+    """
+    Vista principal del monitor forense L2.
+    Devuelve contadores y lista de pending labels con MFE/MAE en vivo.
+    """
+    btc_adapter = _adapters.get("BTCUSDT")
+    if not btc_adapter:
+        return jsonify({"error": "BTCUSDT adapter not found"}), 500
+
+    monitor = btc_adapter.deferred_monitor
+    pending_summary = monitor.get_pending_summary()
+    pending_count = monitor.get_pending_count()
+    resolved_count = monitor.get_resolved_count()
+
+    # Leer contadores del dataset de entrenamiento v2
+    training_path = project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+    dataset_lines = 0
+    outcome_distribution = {"BOUNCE_STRONG": 0, "BOUNCE_WEAK": 0, "BREAKOUT": 0, "INCONCLUSIVE": 0}
+    if training_path.exists():
+        try:
+            with open(training_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    dataset_lines += 1
+                    try:
+                        row = json.loads(line)
+                        label = row.get("outcome", {}).get("label", "UNKNOWN")
+                        if label in outcome_distribution:
+                            outcome_distribution[label] += 1
+                    except json.JSONDecodeError:
+                        pass
+        except OSError:
+            pass
+
+    return jsonify({
+        "pending_count": pending_count,
+        "resolved_count": resolved_count,
+        "dataset_total": dataset_lines,
+        "outcome_distribution": outcome_distribution,
+        "active_monitors": pending_summary,
+    })
+
+
+@app.route("/api/l2-forensics/history", methods=["GET"])
+@require_auth
+def api_l2_forensics_history():
+    """
+    Últimos N samples resueltos del training dataset v2.
+    Query param: ?limit=20 (default 20, max 100)
+    """
+    limit = min(int(request.args.get("limit", 20)), 100)
+
+    training_path = project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+    entries = []
+    if training_path.exists():
+        try:
+            with open(training_path) as f:
+                all_lines = f.readlines()
+            # Leer las últimas N líneas (más recientes al final)
+            for line in all_lines[-limit:]:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    # Extraer solo campos esenciales para la timeline
+                    meta = row.get("_meta", {})
+                    zg = row.get("zone_geometry", {})
+                    outcome = row.get("outcome", {})
+                    l2 = row.get("l2_snapshot_at_touch", {})
+                    entries.append({
+                        "sample_id": meta.get("sample_id", "unknown"),
+                        "capture_ts": meta.get("capture_ts_unix_ms", 0),
+                        "symbol": meta.get("symbol", "BTCUSDT"),
+                        "direction": zg.get("direction", "?"),
+                        "zone_top": zg.get("zone_top"),
+                        "zone_bottom": zg.get("zone_bottom"),
+                        "zone_width_atr": zg.get("zone_width_atr"),
+                        "retest_price": l2.get("retest_price"),
+                        "obi_10": l2.get("obi_10"),
+                        "cum_delta": l2.get("cumulative_delta"),
+                        "label": outcome.get("label", "UNKNOWN"),
+                        "mfe": outcome.get("mfe"),
+                        "mae": outcome.get("mae"),
+                        "mfe_atr": outcome.get("mfe_atr"),
+                        "mae_atr": outcome.get("mae_atr"),
+                        "bars_to_resolution": outcome.get("bars_to_resolution"),
+                    })
+                except json.JSONDecodeError:
+                    pass
+        except OSError:
+            pass
+
+    return jsonify({"entries": list(reversed(entries))})  # Más reciente primero
+
+
+@app.route("/api/l2-forensics/snapshot/<sample_id>", methods=["GET"])
+@require_auth
+def api_l2_forensics_snapshot(sample_id: str):
+    """
+    Devuelve el ReentrySnapshot completo (JSON crudo) para inspección forense.
+    """
+    # Sanitizar sample_id para evitar path traversal
+    safe_id = re.sub(r"[^a-zA-Z0-9_\-]", "", sample_id)
+    snap_path = project_root / "aipha_memory" / "snapshots" / f"{safe_id}.json"
+
+    if not snap_path.exists():
+        return jsonify({"error": f"Snapshot '{safe_id}' not found"}), 404
+
+    try:
+        snapshot = json.loads(snap_path.read_text())
+        return jsonify(snapshot)
+    except (json.JSONDecodeError, OSError) as e:
+        return jsonify({"error": f"Could not read snapshot: {e}"}), 500
+
+
 def main():
     """Entry point para lanzar el servidor de GUI."""
     _ensure_dirs()
