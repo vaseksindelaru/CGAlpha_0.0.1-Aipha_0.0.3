@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "n_samples": 261,
+  "class_balance": {
+    "BOUNCE": 0.7318007662835249,
+    "BREAKOUT": 0.2681992337164751
+  },
+  "nan_ratio": 0.0,
+  "timestamp": "2026-05-03 00:12:28.816982"
+}

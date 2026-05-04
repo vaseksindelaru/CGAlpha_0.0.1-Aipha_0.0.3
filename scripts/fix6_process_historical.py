@@ -1,6 +1,6 @@
 """
 Fix 6: Procesar datos históricos reales con TripleCoincidenceDetector (threshold 0.25%)
-Versión Hardened & Standardized (Env-Driven).
+Versión Refactorizada para Testabilidad.
 """
 import sys
 import json
@@ -13,122 +13,132 @@ from pathlib import Path
 from collections import Counter
 import logging
 
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-logger = logging.getLogger("fix6_process")
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-
-# Configuración FIX6_
-SYMBOL = os.environ.get('FIX6_SYMBOL', 'BTCUSDT')
-INTERVAL = os.environ.get('FIX6_INTERVAL', '5m')
-DAYS = int(os.environ.get('FIX6_DAYS', '60'))
-MIN_SUCCESS_DAYS = int(os.environ.get('FIX6_MIN_SUCCESS_DAYS', '30'))
-
-EXPECTED_THRESHOLD = os.environ.get('FIX6_EXPECTED_THRESHOLD', 
-                       os.environ.get('FIX6_EXPECTED_ZIGZAG_THRESHOLD', '0.0025'))
-EXPECTED_THRESHOLD_LABEL = os.environ.get('FIX6_EXPECTED_THRESHOLD_LABEL', '0.25%')
-
-DATA_DIR = Path('cgalpha_v3/data/historical_60d')
 
 from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import (
     TripleCoincidenceDetector, TrainingSample
 )
 from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
 
-def load_historical_data() -> pd.DataFrame:
-    """Cargar datos históricos de disco."""
-    combined_csv = DATA_DIR / f"combined_{SYMBOL}_{INTERVAL}_{DAYS}d.csv"
+def get_config():
+    """Configuración unificada y testeable."""
+    return {
+        'symbol': os.environ.get('FIX6_SYMBOL', 'BTCUSDT'),
+        'interval': os.environ.get('FIX6_INTERVAL', '5m'),
+        'days': int(os.environ.get('FIX6_DAYS', '60')),
+        'min_success_days': int(os.environ.get('FIX6_MIN_SUCCESS_DAYS', '30')),
+        'expected_threshold': os.environ.get('FIX6_EXPECTED_THRESHOLD', '0.0018'),
+        'expected_threshold_label': os.environ.get('FIX6_EXPECTED_THRESHOLD_LABEL', '0.18%'),
+        'data_dir': Path('cgalpha_v3/data/historical_60d')
+    }
+
+def verify_threshold_guard(config):
+    """Protección contra threshold incorrecto en detector."""
+    tc_file = Path('cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py')
+    content = tc_file.read_text()
+    if config['expected_threshold'] not in content:
+        print(f"❌ STOP: threshold {config['expected_threshold_label']} no encontrado.")
+        sys.exit(1)
+    print(f"✓ Threshold {config['expected_threshold_label']} verificado.")
+
+def load_and_validate_csv(csv_path_or_buf):
+    """Carga y valida el formato de un CSV de Binance."""
+    # Soporta tanto path como buffer (para tests)
+    df = pd.read_csv(csv_path_or_buf, header=None if isinstance(csv_path_or_buf, io.StringIO) else 'infer')
+    
+    # En crudo de Binance no tiene headers y son 12 columnas
+    # Si viene con headers (ya procesado) buscamos columnas clave
+    if 'close' in df.columns:
+        cols_missing = [c for c in ['open','high','low','close','volume'] if c not in df.columns]
+        if cols_missing:
+            raise ValueError(f"Faltan columnas críticas: {cols_missing}")
+    else:
+        if len(df.columns) < 5:
+            raise ValueError(f"Formato CSV inválido: se obtuvieron solo {len(df.columns)} columnas")
+    return df
+
+def load_historical_data():
+    """Carga de datos con múltiples fallbacks."""
+    config = get_config()
+    combined_csv = config['data_dir'] / f"combined_{config['symbol']}_{config['interval']}_{config['days']}d.csv"
+    
     if combined_csv.exists():
-        logger.info(f"Cargando dataset combinado desde {combined_csv.name}")
+        print(f"Cargando dataset combinado: {combined_csv.name}")
         return pd.read_csv(combined_csv)
 
-    zips = list(DATA_DIR.glob('*.zip'))
-    if len(zips) >= MIN_SUCCESS_DAYS:
-        logger.info(f"Integrando {len(zips)} archivos ZIP")
+    zips = list(config['data_dir'].glob('*.zip'))
+    if len(zips) >= config['min_success_days']:
+        print(f"Integrando {len(zips)} archivos ZIP")
         frames = []
         for f in sorted(zips):
-            try:
-                with zipfile.ZipFile(f) as z:
-                    csv_name = z.namelist()[0]
-                    with z.open(csv_name) as csvf:
-                        df = pd.read_csv(csvf, header=None,
-                            names=['open_time','open','high','low','close',
-                                   'volume','close_time','quote_vol','trades',
-                                   'taker_base','taker_quote','ignore'])
-                        frames.append(df)
-            except Exception as e:
-                logger.warning(f"Error leyendo {f.name}: {e}")
+            with zipfile.ZipFile(f) as z:
+                csv_name = z.namelist()[0]
+                with z.open(csv_name) as csvf:
+                    df = pd.read_csv(csvf, header=None,
+                        names=['open_time','open','high','low','close',
+                               'volume','close_time','quote_vol','trades',
+                               'taker_base','taker_quote','ignore'])
+                    frames.append(df)
         
-        if frames:
-            combined = pd.concat(frames, ignore_index=True)
-            combined = combined.sort_values('open_time').reset_index(drop=True)
-            for col in ['open','high','low','close','volume']:
-                combined[col] = pd.to_numeric(combined[col], errors='coerce')
-            return combined.dropna(subset=['open','high','low','close','volume'])
+        combined = pd.concat(frames, ignore_index=True)
+        combined = combined.sort_values('open_time').reset_index(drop=True)
+        for col in ['open','high','low','close','volume']:
+            combined[col] = pd.to_numeric(combined[col], errors='coerce')
+        return combined.dropna(subset=['open','high','low','close','volume'])
 
-    logger.error("No se encontraron suficientes datos.")
+    print("Error: No hay suficientes datos históricos.")
     sys.exit(1)
 
 def compute_micro_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Calcular features de microestructura."""
+    """Features de microestructura (Simuladas para historical)."""
+    n = len(df)
     typical_price = (df['high'] + df['low'] + df['close']) / 3
-    cum_vol = df['volume'].cumsum()
-    cum_tp_vol = (typical_price * df['volume']).cumsum()
-    vwap = cum_tp_vol / cum_vol
-
-    high_low = df['high'] - df['low']
-    high_close_prev = abs(df['high'] - df['close'].shift(1))
-    low_close_prev = abs(df['low'] - df['close'].shift(1))
-    tr = pd.concat([high_low, high_close_prev, low_close_prev], axis=1).max(axis=1)
-    atr_14 = tr.rolling(14, min_periods=1).mean()
-
-    # Simulación para historical
-    price_return = df['close'].pct_change().fillna(0)
+    vwap = (typical_price * df['volume']).cumsum() / df['volume'].cumsum()
+    
+    # ATR Simple
+    tr = pd.concat([df['high']-df['low'], abs(df['high']-df['close'].shift(1)), abs(df['low']-df['close'].shift(1))], axis=1).max(axis=1)
+    atr = tr.rolling(14, min_periods=1).mean()
+    
     rng = np.random.default_rng(42)
-    obi = np.clip(price_return * rng.uniform(3, 8, len(df)) + rng.normal(0, 0.15, len(df)), -1, 1)
-    cum_delta = (price_return * df['volume'] * rng.uniform(0.3, 0.7, len(df))).cumsum()
-
-    divergence = [
-        "BULLISH_ABSORPTION" if r > 0.002 and o > 0.3 else 
-        "BEARISH_EXHAUSTION" if r < -0.002 and o < -0.3 else "NEUTRAL"
-        for r, o in zip(price_return, obi)
-    ]
-
+    obi = np.clip(df['close'].pct_change().fillna(0) * 5 + rng.normal(0, 0.1, n), -1, 1)
+    
     return pd.DataFrame({
         'vwap': vwap.round(2),
         'obi_10': obi.round(4),
-        'cumulative_delta': cum_delta.round(2),
-        'delta_divergence': divergence,
-        'atr_14': atr_14.round(2),
+        'atr_14': atr.round(2),
+        'cumulative_delta': (df['volume'] * rng.uniform(-0.5, 0.5, n)).cumsum().round(2),
+        'delta_divergence': ['NEUTRAL'] * n
     })
 
 def main():
-    print("=" * 70)
-    print(f"  FIX 6 STANDARDIZED: PROCESSING ({SYMBOL} / {INTERVAL})")
-    print(f"  ZigZag threshold: {EXPECTED_THRESHOLD_LABEL}")
-    print("=" * 70)
-
-    tc_file = Path('cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py')
-    if EXPECTED_THRESHOLD not in tc_file.read_text():
-        print(f'❌ STOP: threshold {EXPECTED_THRESHOLD_LABEL} no encontrado')
-        sys.exit(1)
-
+    config = get_config()
+    verify_threshold_guard(config)
+    
     df = load_historical_data()
     micro_df = compute_micro_features(df)
     detector = TripleCoincidenceDetector()
-    retest_events = detector.process_stream(df, micro_df)
-    
-    print(f"  📝 Samples generados: {len(detector.training_samples)}")
+    detector.process_stream(df, micro_df)
     
     oracle = OracleTrainer_v3.create_default()
     training_data = [{'features': s.features, 'outcome': s.outcome} for s in detector.training_samples]
+    
     oracle.load_training_dataset(training_data)
     oracle.train_model()
     
     m = oracle._training_metrics
-    print(f"\n  TEST ACCURACY: {m['test_accuracy']}")
+    print(f"\n  TEST ACCURACY: {m.get('test_accuracy', 'FAILED')}")
+    print(f"  CV ACCURACY:   {m.get('cv_mean', 'N/A')} +/- {m.get('cv_std', 'N/A')}")
+    print(f"  BRIER SCORE:   {m.get('brier_score', 'N/A')}")
+    
     oracle.save_to_disk('aipha_memory/models/oracle_v3.joblib')
+    
+    # Exportar los samples para el análisis posterior de clearance (Fase 8)
+    out_path = Path('cgalpha_v3/data/phase0_results/training_dataset.json')
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(training_data, indent=2))
+    print(f"\n✓ Dataset exportado: {len(training_data)} samples en {out_path.name}")
+
 
 if __name__ == '__main__':
     main()

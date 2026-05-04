@@ -32,9 +32,13 @@ class ActiveZone:
     key_candle: Dict
     accumulation_zone: Dict
     mini_trend: Dict
+    atr_at_detection: float
+    max_price_since_detection: float = -1.0
+    min_price_since_detection: float = 1e10
     retest_detected: bool = False
     retest_index: Optional[int] = None
     outcome: Optional[str] = None  # 'BOUNCE' | 'BREAKOUT' | 'PENDING'
+    last_retest_ts_ms: Optional[int] = None  # Debounce: last tick-level retest timestamp
 
 
 @dataclass
@@ -331,7 +335,7 @@ class MiniTrendDetector:
         defaults = {
             'r2_min': 0.45,
             'min_trend_length': 5,
-            'zigzag_threshold': 0.0025  # 0.25% — P75-P80 rango vela 5m BTCUSDT
+            'zigzag_threshold': 0.0018,  # 0.18% — P75 rango real vela 5m BTCUSDT
         }
         self.config = {**defaults, **(config or {})}
         self.data = None
@@ -541,7 +545,7 @@ class TripleCoincidenceDetector:
             'quality_threshold': 0.45,
             'r2_min': 0.45,
             'min_trend_length': 5,
-            'zigzag_threshold': 0.0025,  # 0.25% — P75-P80 rango vela 5m BTCUSDT
+            'zigzag_threshold': 0.0018,  # 0.18% — P75 rango real vela 5m BTCUSDT
             'proximity_tolerance': 8,
             'retest_timeout_bars': 50,
             'outcome_lookahead_bars': 10,
@@ -661,10 +665,16 @@ class TripleCoincidenceDetector:
         """
         Procesa una vela cerrada en tiempo real.
         Mantiene el historial interno (buffer) para los cálculos de indicadores.
+        
+        Incluye etiquetado diferido: los retests detectados se almacenan con sus
+        features L2 y se etiquetan con outcome después de outcome_lookahead_bars
+        velas adicionales, momento en el que se genera el TrainingSample completo.
         """
         # 1. Mantener buffer interno de velas (necesario para indicadores como ATR/regresión)
         if not hasattr(self, '_kline_buffer'):
             self._kline_buffer = []
+        if not hasattr(self, '_pending_live_retests'):
+            self._pending_live_retests = []
         
         self._kline_buffer.append(new_kline)
         if len(self._kline_buffer) > 200:
@@ -689,19 +699,70 @@ class TripleCoincidenceDetector:
         self.active_zones.extend(new_zones)
 
         # 4. Monitorear retests de zonas activas
+        curr_high = float(new_kline['high'])
+        curr_low = float(new_kline['low'])
+        
         for zone in self.active_zones:
+            # Instrumentación observacional de clearance (Live)
+            zone.max_price_since_detection = max(zone.max_price_since_detection, curr_high)
+            zone.min_price_since_detection = min(zone.min_price_since_detection, curr_low)
+
             if not zone.retest_detected:
-                # Mock de micro-features para la comparación
-                # En live, micro_data viene del WS
+                # En live, micro_data viene del WS con obi_10 y cumulative_delta reales
                 mf = pd.DataFrame([micro_data]) 
-                # Ajustamos el índice para que coincida con lo esperado por _check_retest
                 retest = self._check_retest(df, current_idx, zone, mf.rename(index={0: current_idx}))
                 if retest:
                     retest_events.append(retest)
                     zone.retest_detected = True
                     zone.retest_index = current_idx
 
-        # 5. Limpieza de zonas expiradas
+                    # Calcular clearance en el momento del retest
+                    if zone.direction == 'bullish':
+                        clearance = (zone.max_price_since_detection - zone.zone_top) / zone.atr_at_detection
+                    else:
+                        clearance = (zone.zone_bottom - zone.min_price_since_detection) / zone.atr_at_detection
+
+                    # Guardar en buffer de pendientes para etiquetado diferido
+                    self._pending_live_retests.append({
+                        'retest': retest,
+                        'zone': zone,
+                        'detected_at_buffer_idx': current_idx,
+                        'features': {
+                            'vwap_at_retest': retest.vwap_at_retest,
+                            'obi_10_at_retest': retest.obi_10_at_retest,
+                            'cumulative_delta_at_retest': retest.cumulative_delta_at_retest,
+                            'delta_divergence': retest.delta_divergence,
+                            'atr_14': retest.atr_14,
+                            'regime': retest.regime,
+                            'direction': zone.direction,
+                            'max_clearance_atr': round(float(clearance), 4)
+                        },
+                        'zone_id': f"{zone.candle_index}_{zone.direction}",
+                    })
+
+        # 5. Etiquetado diferido: resolver outcomes de retests pendientes
+        lookahead = self.config['outcome_lookahead_bars']
+        resolved = []
+        for i, pending in enumerate(self._pending_live_retests):
+            bars_elapsed = current_idx - pending['detected_at_buffer_idx']
+            if bars_elapsed >= lookahead:
+                # Tenemos suficientes velas futuras para etiquetar
+                outcome = self._determine_outcome(df, pending['detected_at_buffer_idx'], pending['zone'])
+                if outcome != 'PENDING':
+                    training_sample = TrainingSample(
+                        features=pending['features'],
+                        outcome=outcome,
+                        zone_id=pending['zone_id'],
+                        retest_timestamp=pending['retest'].retest_timestamp
+                    )
+                    self.training_samples.append(training_sample)
+                    resolved.append(i)
+
+        # Limpiar resueltos (en orden inverso para no corromper índices)
+        for i in sorted(resolved, reverse=True):
+            self._pending_live_retests.pop(i)
+
+        # 6. Limpieza de zonas expiradas
         self._cleanup_expired_zones(current_idx)
 
         return retest_events
@@ -738,6 +799,12 @@ class TripleCoincidenceDetector:
 
             # 2. Monitorear retests de zonas activas
             for zone in self.active_zones:
+                # 2. Actualizar extremos de precio (Instrumentación Cat.1)
+                curr_high = df.iloc[idx]['high']
+                curr_low = df.iloc[idx]['low']
+                zone.max_price_since_detection = max(zone.max_price_since_detection, curr_high)
+                zone.min_price_since_detection = min(zone.min_price_since_detection, curr_low)
+
                 if not zone.retest_detected:
                     retest = self._check_retest(df, idx, zone, micro_features)
                     if retest:
@@ -751,7 +818,13 @@ class TripleCoincidenceDetector:
                             retest.outcome = outcome
                             zone.outcome = outcome
 
-                            # 4. Guardar sample de entrenamiento
+                            # Calcular max_clearance_atr normalizado por ATR de detección
+                            if zone.direction == 'bullish':
+                                clearance = (zone.max_price_since_detection - zone.zone_top) / zone.atr_at_detection
+                            else:
+                                clearance = (zone.zone_bottom - zone.min_price_since_detection) / zone.atr_at_detection
+                            
+                            # 4. Guardar sample de entrenamiento con la nueva feature
                             training_sample = TrainingSample(
                                 features={
                                     'vwap_at_retest': retest.vwap_at_retest,
@@ -761,6 +834,7 @@ class TripleCoincidenceDetector:
                                     'atr_14': retest.atr_14,
                                     'regime': retest.regime,
                                     'direction': zone.direction,
+                                    'max_clearance_atr': round(float(clearance), 4)
                                 },
                                 outcome=outcome,
                                 zone_id=f"{zone.candle_index}_{zone.direction}",
@@ -801,6 +875,10 @@ class TripleCoincidenceDetector:
             zone_data = coinc['accumulation_zone']
             trend = coinc['mini_trend']
 
+            # Capturar ATR en el momento de detección para normalización futura
+            atr_now = self._calculate_atr(df, current_idx)
+            current_price = df.iloc[current_idx]['close']
+
             active_zone = ActiveZone(
                 candle_index=candle['index'],
                 zone_top=zone_data.get('high', zone_data.get('zone_top', candle['high'])),
@@ -811,6 +889,9 @@ class TripleCoincidenceDetector:
                 key_candle=candle,
                 accumulation_zone=zone_data,
                 mini_trend=trend,
+                atr_at_detection=atr_now,
+                max_price_since_detection=current_price,
+                min_price_since_detection=current_price
             )
             new_zones.append(active_zone)
 
@@ -919,6 +1000,103 @@ class TripleCoincidenceDetector:
             z for z in self.active_zones
             if current_idx - z.candle_index < timeout and not z.retest_detected
         ]
+
+    # ── Tick-level Retest Detection (Semana 2) ──────────────────
+
+    def check_intra_candle_retest(self, price: float, timestamp_ms: int,
+                                   debounce_ms: int = 5000) -> list:
+        """
+        Check if `price` touches any active zone. Called at tick speed
+        (~10-50x/second) from LiveDataFeedAdapter._process_trade().
+
+        O(n_zones) pure: no I/O, no DataFrame ops, no logging.
+        Heavy L2 synthesis happens ONLY when this returns a hit.
+
+        Args:
+            price: current trade price
+            timestamp_ms: Binance event timestamp in ms
+            debounce_ms: min ms between retests on the same zone (default 5s)
+
+        Returns:
+            List of dicts, one per zone touched:
+            [{
+                "zone": ActiveZone,
+                "price": float,
+                "timestamp_ms": int,
+                "clearance_atr": float,
+            }]
+        """
+        hits = []
+
+        for zone in self.active_zones:
+            if zone.retest_detected:
+                continue
+
+            # Debounce: skip if same zone was hit < debounce_ms ago
+            if zone.last_retest_ts_ms is not None:
+                if (timestamp_ms - zone.last_retest_ts_ms) < debounce_ms:
+                    continue
+
+            # Update price extremes (clearance tracking)
+            zone.max_price_since_detection = max(zone.max_price_since_detection, price)
+            zone.min_price_since_detection = min(zone.min_price_since_detection, price)
+
+            # Check if price is inside the zone
+            if zone.zone_bottom <= price <= zone.zone_top:
+                # Calculate clearance at this moment
+                atr = zone.atr_at_detection
+                if atr <= 0:
+                    atr = price * 0.001
+
+                if zone.direction == 'bullish':
+                    clearance = (zone.max_price_since_detection - zone.zone_top) / atr
+                else:
+                    clearance = (zone.zone_bottom - zone.min_price_since_detection) / atr
+
+                # Mark zone as retested (prevents future triggers)
+                zone.retest_detected = True
+                zone.last_retest_ts_ms = timestamp_ms
+
+                hits.append({
+                    "zone": zone,
+                    "price": price,
+                    "timestamp_ms": timestamp_ms,
+                    "clearance_atr": round(float(clearance), 4),
+                })
+
+        return hits
+
+    def feed_kline_for_zone_detection(self, kline: dict, micro_data: dict):
+        """
+        Called once per closed candle (1min) to detect NEW zones.
+        Separated from retest detection which now runs at tick speed.
+
+        This replaces the zone-detection portion of process_live_tick().
+        """
+        if not hasattr(self, '_kline_buffer'):
+            self._kline_buffer = []
+
+        self._kline_buffer.append(kline)
+        if len(self._kline_buffer) > 200:
+            self._kline_buffer.pop(0)
+
+        if len(self._kline_buffer) < self.config['lookback_candles']:
+            return
+
+        df = pd.DataFrame(self._kline_buffer)
+        current_idx = len(df) - 1
+
+        # Load data into sub-detectors
+        self.key_candle_detector.load_data(df)
+        self.zone_detector.load_data(df)
+        self.trend_detector.load_data(df)
+
+        # Detect new zones at this candle
+        new_zones = self._detect_new_zones(df, current_idx)
+        self.active_zones.extend(new_zones)
+
+        # Cleanup expired zones
+        self._cleanup_expired_zones(current_idx)
 
     def get_training_dataset(self) -> List[TrainingSample]:
         """Retorna dataset de entrenamiento para Oracle."""

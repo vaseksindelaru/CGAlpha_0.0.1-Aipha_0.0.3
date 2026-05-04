@@ -1,13 +1,16 @@
 from dataclasses import dataclass
 import json
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.utils import resample
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.metrics import brier_score_loss
 
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.records import MicrostructureRecord
@@ -64,10 +67,25 @@ class OracleTrainer_v3(BaseComponentV3):
 
     def train_model(self):
         """
-        Entrena el modelo con el dataset cargado.
+        Entrena el modelo con el dataset cargado previo paso por el Data Quality Gate.
         """
         if not self.training_data:
             raise ValueError("No training data loaded. Call load_training_dataset() first.")
+
+        # --- DATA QUALITY GATE (#2) ---
+        quality_passed, quality_report = self._run_quality_gate()
+        
+        # Guardar reporte para trazabilidad
+        report_path = Path("aipha_memory/reports/oracle_quality_latest.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(quality_report, indent=2))
+        
+        if not quality_passed:
+            import logging
+            logging.getLogger(__name__).warning(f"❌ DATA QUALITY GATE FAILED: {quality_report['reason']}")
+            # Retornamos sin entrenar para mantener el modelo anterior (o el placeholder)
+            self._training_metrics = {"quality_gate": "FAILED", "reason": quality_report['reason']}
+            return False
 
         records = [self._normalize_sample(sample) for sample in self.training_data]
         df = pd.DataFrame(records)
@@ -147,17 +165,31 @@ class OracleTrainer_v3(BaseComponentV3):
                 f"(oversampled to match majority)"
             )
 
-        self.model = RandomForestClassifier(
+        base_model = RandomForestClassifier(
             n_estimators=100,
             max_depth=5,
             min_samples_leaf=2,
             random_state=42,
             class_weight="balanced",
         )
+        
+        # Calibración Platt Scaling (sigmoid) — ideal para datasets < 1000 samples
+        self.model = CalibratedClassifierCV(base_model, method='sigmoid', cv='prefit')
+        
+        # Primero entrenar base con training set
+        base_model.fit(X_train, y_train)
+        # Luego calibrar (usando el mismo training set ya que cv='prefit')
         self.model.fit(X_train, y_train)
 
-        train_accuracy = float(self.model.score(X_train, y_train))
+        # Métricas OOS Reales
+        y_test_probs = self.model.predict_proba(X_test)[:, 1]
         test_accuracy = float(self.model.score(X_test, y_test))
+        brier_score = float(brier_score_loss(y_test, y_test_probs))
+        
+        # Paso 3: K-fold CV (Estabilidad del modelo)
+        cv_scores = cross_val_score(base_model, X_train, y_train, cv=5, scoring='accuracy')
+        cv_mean = float(cv_scores.mean())
+        cv_std = float(cv_scores.std())
         class_distribution = (
             y.map({1: "BOUNCE", 0: "BREAKOUT"})
             .value_counts()
@@ -166,19 +198,23 @@ class OracleTrainer_v3(BaseComponentV3):
         importances = dict(
             zip(
                 self._feature_cols,
-                [round(float(v), 4) for v in self.model.feature_importances_],
+                [round(float(v), 4) for v in base_model.feature_importances_],
             )
         )
         self._training_metrics = {
             "n_samples": int(len(X)),
             "n_train": int(len(X_train)),
             "n_test": int(len(X_test)),
-            "train_accuracy": round(train_accuracy, 4),
+            "train_accuracy": round(float(self.model.score(X_train, y_train)), 4),
             "test_accuracy": round(test_accuracy, 4),
+            "cv_mean": round(cv_mean, 4),
+            "cv_std": round(cv_std, 4),
+            "brier_score": round(brier_score, 6),
             "n_features": len(self._feature_cols),
-            "class_distribution": class_distribution,
             "rebalance_applied": rebalance_applied,
             "feature_importances": importances,
+            "calibration_method": "platt_sigmoid",
+            "is_calibrated": True
         }
         # Inyectar firma causal basada en este dataset
         self._causal_signature = {
@@ -205,6 +241,47 @@ class OracleTrainer_v3(BaseComponentV3):
             "causal_signature": self.get_causal_signature()
         }
         joblib.dump(data, path)
+
+    def _run_quality_gate(self) -> Tuple[bool, Dict]:
+        """
+        Verifica: 
+        1. Volumen de datos (min 50 samples)
+        2. Desbalance de clases (> 15% por clase)
+        3. Integridad (NaN ratio < 5%)
+        """
+        if not self.training_data:
+            return False, {"reason": "No data", "passed": False}
+        
+        df = pd.DataFrame([self._normalize_sample(s) for s in self.training_data])
+        
+        # 1. Volumen
+        n_samples = len(df)
+        if n_samples < 50:
+            return False, {"reason": f"Insufficient samples ({n_samples} < 50)", "passed": False, "n": n_samples}
+            
+        # 2. Desbalance
+        if 'outcome' not in df.columns:
+            return False, {"reason": "Missing outcome column", "passed": False}
+            
+        counts = df['outcome'].astype(str).str.upper().value_counts(normalize=True)
+        min_class_pct = counts.min()
+        if min_class_pct < 0.15:
+            return False, {"reason": f"Extreme class imbalance ({min_class_pct:.1%})", "passed": False, "counts": counts.to_dict()}
+            
+        # 3. Integridad (NaNs en features críticas)
+        nan_counts = df[self._feature_cols].isna().sum().sum()
+        total_cells = n_samples * len(self._feature_cols)
+        nan_ratio = nan_counts / total_cells if total_cells > 0 else 0
+        if nan_ratio > 0.05:
+            return False, {"reason": f"Too many NaNs ({nan_ratio:.1%})", "passed": False, "nan_ratio": nan_ratio}
+            
+        return True, {
+            "passed": True,
+            "n_samples": n_samples,
+            "class_balance": counts.to_dict(),
+            "nan_ratio": nan_ratio,
+            "timestamp": str(pd.Timestamp.now())
+        }
 
     def load_from_disk(self, path: str):
         """Carga modelo y metadatos."""

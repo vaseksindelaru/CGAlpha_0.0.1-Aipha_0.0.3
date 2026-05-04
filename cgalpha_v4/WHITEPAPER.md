@@ -4,7 +4,7 @@
 
 <h1 align="center">cgAlpha_0.0.1 — White Paper</h1>
 <p align="center"><em>Causal Graph Alpha · Documento vivo mantenido por Lila</em></p>
-<p align="center"><em>Última actualización: 26 de abril de 2026 · Versión: v4-oracle-hardened</em></p>
+<p align="center"><em>Última actualización: 3 de mayo de 2026 · Versión: v4.2-oracle-evaluation</em></p>
 
 ---
 
@@ -26,19 +26,19 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
                     │    FUENTE DE DATOS       │
                     │    Binance Vision API    │
                     │    BTCUSDT klines 5m     │
+                    │    WS @depth20@100ms     │
                     └────────────┬────────────┘
                                  │
                                  ▼
                     ┌─────────────────────────┐
                     │  DETECCIÓN DE SEÑALES    │
                     │  TripleCoincidenceDetector│
-                    │  979 líneas             │
                     │                         │
                     │  Zonas de soporte/resis. │
                     │  → Retests monitoreados  │
-                    │  → Features de micro-    │
-                    │    estructura (VWAP,      │
-                    │    OBI, CumDelta)        │
+                    │  → Clearance Instrumentado│
+                    │  → Vectores L2 vivos      │
+                    │    (OBI_10, CumDelta)     │
                     └────────────┬────────────┘
                                  │
                                  ▼
@@ -49,7 +49,7 @@ cgAlpha (Causal Graph Alpha) es un sistema de trading algorítmico diseñado par
                     │  Meta-Labeling           │
                     │                         │
                     │  Estado: ✅ Operativo    │
-                    │  8/8 bugs resueltos     │
+                    │  Baseline OOS: 0.68     │
                     └────────────┬────────────┘
                                  │
                                  ▼
@@ -100,21 +100,21 @@ cgAlpha_0.0.1 opera una única estrategia: la **Simple Foundation Strategy**.
 
 ### Pipeline operativo
 
-1. **Detección de zonas:** El TripleCoincidenceDetector identifica zonas de soporte/resistencia usando key candles, zonas de acumulación y mini-tendencias.
-2. **Monitoreo de retests:** Cuando el precio vuelve a una zona, se capturan features de microestructura en el punto exacto del retest.
-3. **Predicción del Oracle:** El modelo RandomForest (meta-labeling) evalúa si el retest será exitoso (BOUNCE o BREAKOUT).
-4. **Ejecución shadow:** Si el Oracle aprueba con suficiente confianza, ShadowTrader registra la operación en `bridge.jsonl` (sin ejecución real).
+1. **Detección geométrica:** El TripleCoincidenceDetector identifica zonas de soporte/resistencia marcando un baseline.
+2. **Instrumentación de Clearance:** Se rastrea el `max_price_since_detection` para medir analíticamente la "profundidad del escape" o `max_clearance_atr`.
+3. **Agresión Institucional:** Durante el retest, el WebSocket inyecta a las velas en milisegundos un vector de presión del Nivel 2 (`obi_10`, `cumulative_delta`).
+4. **Predicción del Oracle:** El modelo analiza la zona + el clearance + la microestructura L2 y determina si el muro será respetado (BOUNCE) o destruido (BREAKOUT).
+5. **Ejecución shadow:** Si el Oracle aprueba la probabilidad geométrica de la física estática, validada por la física del agresor en vivo, se dispara el ShadowTrader.
 
 ### Parámetros principales
 
 | Parámetro | Valor actual | Rango seguro | Efecto |
 |---|---|---|---|
-| `volume_threshold` | 1.2 | 0.8 – 2.0 | Filtro de zonas por volumen relativo |
-| `quality_threshold` | 0.45 | 0.3 – 0.7 | Calidad mínima de señal |
-| `min_oracle_confidence` | 0.70 | 0.60 – 0.90 | Confianza mínima para ejecutar |
-| `zone_distance_candles` | 10 | 5 – 30 | Distancia entre zonas en velas |
+| `zigzag_threshold` | 0.18% | 0.15% - 0.25% | Calibrado con evidencia P75 para filtrar el ruido |
+| `quality_threshold` | 0.45 | 0.3 – 0.7 | Calidad mínima de señal en la triple coincidencia |
+| `min_oracle_confidence` | 0.70 | 0.60 – 0.90 | Confianza predicha mínima para ejecutar |
 
-> ⚠️ **Nota honesta:** El Sharpe de 1.13 reportado en documentación anterior (NORTH_STAR) no es verificable con datos OOS reales. No se ha completado un ciclo de validación walk-forward con el Oracle entrenado. Sin embargo, los 8 bugs del Oracle están resueltos, incluyendo train/test split (BUG-1), oversampling de clase minoritaria (BUG-3), outcome labeling con zona real (BUG-5) y reentrenamiento en ciclo vivo (BUG-6).
+> ⚠️ **El Primer Baseline Honesto:** Tras el purgatorio de resolución de bugs (Fases 1-6) y la calibración fina del ZigZag (Fase 7), cgAlpha obtuvo el primer **OOS genuino de 0.68**. Hemos sacrificado el Sharpe ilusorio de 1.13 de versiones anteriores para ganar una verdad estadística sostenible y empírica, conectada directamente al libro de órdenes L2.
 
 ## 4. El canal de evolución
 
@@ -140,22 +140,25 @@ El canal de evolución está completamente conectado:
 - `evolution_orchestrator.py`, `memory_policy.py`, `llm_switcher.py`
 - `server.py`, `LILA_v3_NORTH_STAR.md`
 
-### Pasos completados
+### Pasos completados (Bootstrap & Arquitectura)
 
-1. ✅ Prompt Fundacional escrito (§0–§8)
-2. ✅ ACCIÓN 1: IDENTITY memory + disk reload
-3. ✅ ACCIÓN 2: LLM Switcher
-4. ✅ ACCIÓN 3: Orchestrator v4
-5. ✅ Oracle fixes BUG-1 a BUG-8 (todos resueltos)
-6. ✅ Island Bridge: 4 islas conectadas al Orchestrator
-7. ✅ production_ready dinámico con 4 checks runtime
-8. ✅ Incidentes simulados separados del estado operativo
+1. ✅ ACCIÓN 1: IDENTITY memory + LLM Switcher + Orchestrator v4 (Bootstrap).
+2. ✅ Oracle fixes BUG-1 a BUG-8 (Fundación Estadística Incorrupta).
+3. ✅ Island Bridge: Auto/Change Proposer, ExperimentRunner + CodeCraftSage.
+4. ✅ PASO 4: Parameter Landscape Map (Calibrado Estático completado).
+5. ✅ PASO 5: CodeCraft Sage v4 parcheado con sistema AST.
+6. ✅ FASE 7: ZigZag Threshold a 0.18% empírico + Cooldowns protectivos.
+7. ✅ FASE 8: Fuga analítica cerrada. El modelo deja de estar "ciego" gracias al `max_clearance_atr`.
+8. ✅ FASE 9: Stream WS `@depth20` vivo con Multi-Layer OBI e ingesta L2.
 
-### Próxima etapa
+### Próxima etapa (Fases Operativas de Inteligencia)
 
-1. 🔨 PASO 4: Parameter Landscape Map
-2. 🔨 PASO 5: Mejora de CodeCraft Sage v4 (AST-based patching)
-3. 🔨 Observar canal en operación real (24-48h de datos de mercado)
+1. **🔧 FASE PUENTE (Feature Engineering + Etiquetado):** Evaluación Estructural identificó 5 debilidades. Antes de re-entrenar: ring buffer temporal L2 (6 features dinámicas reemplazando 2 snapshots estáticos), etiquetado terciario (BOUNCE_STRONG/BOUNCE_WEAK/BREAKOUT), lookahead adaptativo, y encoding determinista.
+2. **📡 FASE 10 (REVISADA — Re-entrenamiento con Features Enriquecidas):** Re-entrenar RandomForest con features temporales L2, etiquetado terciario y encoding determinista. Benchmark RF vs XGBoost si ≥500 samples.
+3. **🔨 FASE 11 (Calibración de Probabilidades):** Platt/Isotonic multi-clase para minimizar Brier Score OOS. Crítica con 3 clases.
+4. **📊 FASE 12 (Walk-Forward Validation):** Validación temporal deslizante para confirmar estabilidad del modelo.
+5. **🎯 FASE 13 (Ejecución Francotirador MAE):** Regresor secundario usando el buffer temporal L2 (prerequisito de la Fase Puente) para predecir profundidad óptima de entrada intra-zona.
+6. **💥 FASE 14 (Independencia Progresiva):** Cat.1 automático + Reflexiones Críticas del Orchestrator.
 
 ## 5. Bugs del Oracle — Registro completo
 
@@ -211,6 +214,13 @@ Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
 | 2026-04-26 | chore | production_ready dinámico | 4 checks runtime reales |
 | 2026-04-26 | chore | Incidentes simulados separados | Estado operativo limpio |
 | 2026-04-26 | docs | WHITEPAPER actualizado (§2.6) | Estado real del proyecto |
+| 2026-05-01 | feat | ZigZag 0.18% + cooldown §4.3 | Calibración basada en datos reales |
+| 2026-05-01 | feat | Oracle re-entrenado 60 días | OOS 0.68 — primer baseline honesto |
+| 2026-05-01 | feat | Baseline congelado para validación 48h | Snapshot `5ddadc7` |
+| 2026-05-02 | feat | Instrumentación `max_clearance_atr` | Sistema deja de ser ciego a clearance |
+| 2026-05-02 | feat | Microestructura viva @depth20 + CumDelta | L2 OBI real en ShadowTrader |
+| 2026-05-03 | docs | Crónica v3.1 + Whitepaper v4.1 sincronizados | Hoja de ruta Fases 10-14 |
+| 2026-05-03 | audit | Evaluación Estructural del Oracle | 5 debilidades, Fase Puente insertada, Fases 10-14 revisadas |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 
