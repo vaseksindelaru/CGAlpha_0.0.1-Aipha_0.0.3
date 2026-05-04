@@ -859,6 +859,25 @@ Se implementó con éxito la Fase Puente para dotar al sistema de "Resolución d
 1. **Pipeline de Forense GUI**: Crear paneles de visualización L2 para auditar a simple vista la calidad de los nuevos ReentrySnapshots.
 2. **Re-entrenamiento OOS (Fase 10)**: Acumular un stock de al menos 50 muestras L2 nuevas bajo el formato de alta fidelidad, antes de reentrenar a Oracle v5.
 
+### GUI L2 Forensics Panel (4 mayo 2026)
+
+Se construyó el panel forense completo para observar en tiempo real el pipeline de microestructura:
+
+- **Backend API** (`server.py`): 3 nuevos endpoints REST:
+  - `GET /api/l2-forensics/status` — Contadores en vivo (Pending, Resolved, Dataset Size) + active monitors con MFE/MAE.
+  - `GET /api/l2-forensics/history` — Últimos N samples resueltos del `training_dataset_v2.jsonl`.
+  - `GET /api/l2-forensics/snapshot/<id>` — Visor JSON crudo del ReentrySnapshot completo para inspección forense.
+- **Frontend** (`index.html` + `app.js`): Pestaña "L2 Forensics 🔬" en la Control Room con:
+  - 4 tarjetas KPI (Pending Labels, Resolved, Dataset v2, Distribución de outcomes).
+  - Active Monitors: tabla dinámica con barras de progreso del lookahead adaptativo y MFE/MAE en vivo.
+  - Resolved Timeline: historial visual codificado por color (verde=BOUNCE_STRONG, amarillo=WEAK, rojo=BREAKOUT, gris=INCONCLUSIVE).
+  - Modal de inspección: clic sobre cualquier sample abre el JSON crudo completo.
+
+**Estado Actual:** La infraestructura de observabilidad está completa. El sistema está listo para recolección autónoma.
+**Siguiente Paso:**
+1. **Recolección en vivo**: Ejecutar el sistema y acumular ≥50 muestras L2 de alta fidelidad.
+2. **Re-entrenamiento Oracle v5 (Fase 10)**: Con las 50+ muestras, reentrenar usando features temporales L2 + etiquetado terciario.
+
 ---
 
 ## 9) Principio rector del proyecto

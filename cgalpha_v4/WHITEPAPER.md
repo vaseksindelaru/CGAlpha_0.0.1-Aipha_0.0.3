@@ -224,6 +224,7 @@ Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
 | 2026-05-04 | feat | Arquitectura Doble Velocidad | Adaptador L2 a nivel de tick en ShadowTrader |
 | 2026-05-04 | feat | Etiquetado Terciario Diferido | BOUNCE_STRONG/WEAK/BREAKOUT sin fallback |
 | 2026-05-04 | docs | Actualización de Crónica y Whitepaper | Registro de Fase Puente L2 ejecutada y metas |
+| 2026-05-04 | feat | L2 Forensics GUI Panel | 3 API endpoints + panel interactivo con KPIs, monitors y modal |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 
