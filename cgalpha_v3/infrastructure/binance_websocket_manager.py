@@ -41,6 +41,7 @@ class BinanceWebSocketManager(BaseComponentV3):
         # Buffers de tiempo real
         self.order_book_state: Dict[str, Dict] = {}
         self.last_trades: List[Dict] = []
+        self.last_known_binance_ts_ms: float = 0.0
         
         # Integración L2RingBuffer (P0)
         self._connection_epoch = 0
@@ -114,6 +115,7 @@ class BinanceWebSocketManager(BaseComponentV3):
         # Clock Drift y Timestamp Inconsistency (P1)
         # Usar siempre el timestamp del evento de Binance ('E' o 'T') antes que time.time()
         binance_ts_ms = data.get('E', data.get('T', time.time() * 1000))
+        self.last_known_binance_ts_ms = binance_ts_ms
 
         if ('b' in data and 'a' in data) and isinstance(data['b'], list):
             self.order_book_state[symbol] = {
@@ -189,7 +191,8 @@ class BinanceWebSocketManager(BaseComponentV3):
                 bid_depth_10=bid_depth_10, ask_depth_10=ask_depth_10,
                 spread_bps=spread_bps,
                 trade_count=trade_count,
-                agg_buy_vol=agg_buy_vol, agg_sell_vol=agg_sell_vol
+                aggressive_buy_vol=agg_buy_vol,
+                aggressive_sell_vol=agg_sell_vol
             )
 
         for cb in self.callbacks:
@@ -218,7 +221,8 @@ class BinanceWebSocketManager(BaseComponentV3):
         Delta acumulado de los últimos N segundos (P0).
         Reemplaza al delta global infinito.
         """
-        cutoff_ms = time.time() * 1000 - (window_seconds * 1000)
+        now_ms = self.last_known_binance_ts_ms if getattr(self, 'last_known_binance_ts_ms', 0) > 0 else time.time() * 1000
+        cutoff_ms = now_ms - (window_seconds * 1000)
         recent_trades = [t for t in self.last_trades if t["timestamp"] >= cutoff_ms]
         
         delta = sum(
