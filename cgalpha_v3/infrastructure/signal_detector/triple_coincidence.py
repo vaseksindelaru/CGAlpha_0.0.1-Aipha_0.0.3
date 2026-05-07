@@ -16,6 +16,36 @@ from typing import Optional, Dict, List, Any, Tuple
 from dataclasses import dataclass, field
 
 
+# ─── Shadow Harvesting v1: Zone Lifecycle ────────────────────────────────────
+
+from enum import Enum
+
+class ZoneLifecycleState(str, Enum):
+    """Estado de vida de una zona para el harvesting multi-toque."""
+    ACTIVE     = "active"      # Zona viva, esperando primer retest
+    HARVESTING = "harvesting"  # Breakout confirmado, esperando 2do/3er toque
+    EXHAUSTED  = "exhausted"   # Zona expirada (3 toques o TTL vencido)
+
+
+from dataclasses import dataclass as _dc, field as _field
+
+@_dc
+class TouchRecord:
+    """
+    Registro inmutable de un toque a la zona.
+    Se acumula en ActiveZone.touch_history.
+    """
+    touch_sequence: int           # 1 = primer retest, 2 = post-flip, 3 = terciario
+    touch_ts_unix_ms: float
+    touch_price: float
+    obi_10_at_touch: float = 0.0
+    cumulative_delta_at_touch: float = 0.0
+    outcome: str = "PENDING"      # Relleno diferidamente por DeferredOutcomeMonitor
+    polarity_flipped: bool = False # True si la zona había cambiado de polaridad
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 # ──────────────────────────────────────────────────────────────
 # DATACLASSES PARA LÓGICA CORRECTA
 # ──────────────────────────────────────────────────────────────
@@ -35,7 +65,89 @@ class ActiveZone:
     atr_at_detection: float
     max_price_since_detection: float = -1.0
     min_price_since_detection: float = 1e10
-    retest_detected: bool = False
+    retest_detected: bool = False  # Legado — usar lifecycle_state en su lugar
+    zone_id: str = ""
+
+    # ── Shadow Harvesting: Zone Lifecycle ──────────────────────────────────
+    lifecycle_state: ZoneLifecycleState = ZoneLifecycleState.ACTIVE
+    touch_count: int = 0
+    touch_history: list = None          # list[TouchRecord] — None → init en __post_init__
+    polarity_flipped: bool = False
+    flip_ts: float = None               # Unix timestamp del Breakout confirmado
+    flip_price: float = None            # Precio donde se confirmó el Breakout
+    harvest_expiry_ts: float = None     # TTL post-flip
+    HARVEST_TTL_SECONDS: float = 172800 # 48 horas
+    MAX_TOUCHES: int = 3
+
+    def __post_init__(self):
+        if self.touch_history is None:
+            object.__setattr__(self, "touch_history", [])
+
+    def register_breakout(self, breakout_price: float) -> None:
+        """
+        Transiciona la zona de ACTIVE → HARVESTING en lugar de eliminarla.
+        La polaridad se invierte: soporte previo se convierte en resistencia
+        y viceversa (Support/Resistance Flip).
+        """
+        import time as _time
+        self.polarity_flipped = True
+        self.flip_ts = _time.time()
+        self.flip_price = breakout_price
+        self.harvest_expiry_ts = self.flip_ts + self.HARVEST_TTL_SECONDS
+        self.lifecycle_state = ZoneLifecycleState.HARVESTING
+
+    def register_touch(self, price: float, obi: float = 0.0,
+                       cum_delta: float = 0.0) -> int:
+        """
+        Registra un toque y retorna el touch_sequence asignado.
+        Incrementa touch_count; si alcanza MAX_TOUCHES, marca EXHAUSTED.
+        """
+        import time as _time
+        self.touch_count += 1
+        seq = self.touch_count
+        rec = TouchRecord(
+            touch_sequence=seq,
+            touch_ts_unix_ms=_time.time() * 1000,
+            touch_price=price,
+            obi_10_at_touch=obi,
+            cumulative_delta_at_touch=cum_delta,
+            polarity_flipped=self.polarity_flipped,
+        )
+        self.touch_history.append(rec)
+        if self.touch_count >= self.MAX_TOUCHES:
+            self.lifecycle_state = ZoneLifecycleState.EXHAUSTED
+        return seq
+
+    def is_exhausted(self) -> bool:
+        """
+        Una zona está agotada cuando:
+          - Alcanzó MAX_TOUCHES, o
+          - El TTL post-flip expiró (48h por defecto)
+        """
+        import time as _time
+        if self.lifecycle_state == ZoneLifecycleState.EXHAUSTED:
+            return True
+        if (self.harvest_expiry_ts is not None
+                and _time.time() > self.harvest_expiry_ts):
+            self.lifecycle_state = ZoneLifecycleState.EXHAUSTED
+            return True
+        return False
+
+    @property
+    def effective_direction(self) -> str:
+        """
+        Dirección real post-flip para evaluar retests secundarios.
+        Si la zona fue bullish y rompió → ahora actúa como resistencia bearish.
+        """
+        if not self.polarity_flipped:
+            return self.direction
+        return "bearish" if self.direction == "bullish" else "bullish"
+
+    @property
+    def prior_outcomes(self) -> list:
+        """Lista de outcomes ya resueltos para contexto del 2do/3er toque."""
+        return [r.outcome for r in self.touch_history
+                if r.outcome not in ("PENDING", "")]
     retest_index: Optional[int] = None
     outcome: Optional[str] = None  # 'BOUNCE' | 'BREAKOUT' | 'PENDING'
     last_retest_ts_ms: Optional[int] = None  # Debounce: last tick-level retest timestamp
@@ -549,6 +661,7 @@ class TripleCoincidenceDetector:
             'proximity_tolerance': 8,
             'retest_timeout_bars': 50,
             'outcome_lookahead_bars': 10,
+            'breakout_confirm_atr_buffer': 0.03,  # 3% ATR para evitar flip por ruido de 1 tick
         }
         self.config = {**defaults, **(config or {})}
         self.key_candle_detector = KeyCandleDetector(self.config)
@@ -713,7 +826,7 @@ class TripleCoincidenceDetector:
                 retest = self._check_retest(df, current_idx, zone, mf.rename(index={0: current_idx}))
                 if retest:
                     retest_events.append(retest)
-                    zone.retest_detected = True
+                    zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
                     zone.retest_index = current_idx
 
                     # Calcular clearance en el momento del retest
@@ -809,7 +922,7 @@ class TripleCoincidenceDetector:
                     retest = self._check_retest(df, idx, zone, micro_features)
                     if retest:
                         retest_events.append(retest)
-                        zone.retest_detected = True
+                        zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
                         zone.retest_index = retest.retest_index
 
                         # 3. Determinar outcome (si hay suficientes datos futuros)
@@ -994,11 +1107,15 @@ class TripleCoincidenceDetector:
             return 'LATERAL'
 
     def _cleanup_expired_zones(self, current_idx: int):
-        """Elimina zonas que han expirado (timeout)."""
+        """Elimina zonas expiradas, preservando zonas en HARVESTING hasta su TTL."""
         timeout = self.config['retest_timeout_bars']
         self.active_zones = [
             z for z in self.active_zones
-            if current_idx - z.candle_index < timeout and not z.retest_detected
+            if (
+                (current_idx - z.candle_index < timeout
+                 or z.lifecycle_state == ZoneLifecycleState.HARVESTING)
+                and not z.is_exhausted()
+            )
         ]
 
     # ── Tick-level Retest Detection (Semana 2) ──────────────────
@@ -1029,7 +1146,7 @@ class TripleCoincidenceDetector:
         hits = []
 
         for zone in self.active_zones:
-            if zone.retest_detected:
+            if zone.is_exhausted():
                 continue
 
             # Debounce: skip if same zone was hit < debounce_ms ago
@@ -1040,6 +1157,18 @@ class TripleCoincidenceDetector:
             # Update price extremes (clearance tracking)
             zone.max_price_since_detection = max(zone.max_price_since_detection, price)
             zone.min_price_since_detection = min(zone.min_price_since_detection, price)
+
+            # Shadow Harvesting: al perforar el lado adverso, la zona pasa a HARVESTING.
+            if not zone.polarity_flipped:
+                atr_for_breakout = zone.atr_at_detection if zone.atr_at_detection > 0 else 0.0
+                breakout_buffer = atr_for_breakout * self.config.get('breakout_confirm_atr_buffer', 0.0)
+                lower_breakout_level = zone.zone_bottom - breakout_buffer
+                upper_breakout_level = zone.zone_top + breakout_buffer
+
+                if zone.direction == 'bullish' and price < lower_breakout_level:
+                    zone.register_breakout(breakout_price=price)
+                elif zone.direction == 'bearish' and price > upper_breakout_level:
+                    zone.register_breakout(breakout_price=price)
 
             # Check if price is inside the zone
             if zone.zone_bottom <= price <= zone.zone_top:
@@ -1054,7 +1183,7 @@ class TripleCoincidenceDetector:
                     clearance = (zone.zone_bottom - zone.min_price_since_detection) / atr
 
                 # Mark zone as retested (prevents future triggers)
-                zone.retest_detected = True
+                zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
                 zone.last_retest_ts_ms = timestamp_ms
 
                 hits.append({
