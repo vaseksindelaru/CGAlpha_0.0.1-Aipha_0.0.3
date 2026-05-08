@@ -1776,9 +1776,8 @@
         <!-- TRAINING REVIEW -->
         <main id="section-training" class="section">
             <div class="section-title">
-                <h2>🕯️ Training Review — Revisión de Datos de Entrenamiento</h2>
-                <p>Verifica visualmente las zonas y retests detectados antes de entrenar el Oracle. Aprueba o excluye
-                    detecciones para mejorar la calidad del dataset.</p>
+                <h2>🕯️ Training Review [LEGACY - FASE 0]</h2>
+                <p>Verifica visualmente las zonas y retests de la Fase 0 (simulada). Para métricas live, ve a L2 Forensics.</p>
             </div>
 
             <!-- Summary Stats -->
@@ -2244,19 +2243,40 @@
                 </div>
             </div>
 
-            <!-- ACTIVE MONITORS -->
+            <!-- ACTIVE ZONES & MONITORS -->
             <div class="grid-2">
-                <div class="panel">
-                    <div class="panel-header"><span class="panel-icon">🎯</span><h2>Active Monitors (MFE/MAE en vivo)</h2></div>
-                    <div class="panel-body" id="forensics-monitors">
+                <!-- ACTIVE ZONES -->
+                <div class="panel" id="panel-active-zones" style="position:relative; background:var(--bg2);">
+                    <div class="panel-header" style="display:flex; align-items:center;">
+                        <span class="panel-icon">🗺️</span><h2 style="flex:1;">Active Zones (Esperando retest)</h2>
+                        <button id="btn-audio-alert" class="btn btn-ghost btn-sm" onclick="toggleAudioAlerts()" style="margin-right:8px;">🔇 Audio / Alertas Off</button>
+                        <button class="btn btn-ghost btn-sm" onclick="toggleFullscreen('panel-active-zones')">⛶</button>
+                    </div>
+                    <div class="panel-body" id="forensics-active-zones" style="max-height:420px; overflow-y:auto;">
+                        <div class="placeholder">
+                            <span class="ph-icon">🔍</span>
+                            Sin zonas activas reportadas.<br>Esperando al detector.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTIVE MONITORS -->
+                <div class="panel" id="panel-active-monitors" style="position:relative; background:var(--bg2);">
+                    <div class="panel-header">
+                        <span class="panel-icon">🎯</span><h2>Active Monitors (MFE/MAE en vivo)</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="toggleFullscreen('panel-active-monitors')" style="margin-left:auto;">⛶</button>
+                    </div>
+                    <div class="panel-body" id="forensics-monitors" style="max-height:420px; overflow-y:auto;">
                         <div class="placeholder">
                             <span class="ph-icon">🔇</span>
                             Sin retests pendientes.<br>El sistema está esperando un toque de zona.
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- RESOLVED TIMELINE -->
+            <!-- RESOLVED TIMELINE -->
+            <div style="margin-top:20px;">
                 <div class="panel">
                     <div class="panel-header">
                         <span class="panel-icon">🕐</span>

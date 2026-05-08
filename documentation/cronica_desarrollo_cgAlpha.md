@@ -591,6 +591,7 @@ Protocolo de cuestionamiento (§6 del Mantra). Validación OOS de 3 ciclos + apr
   - `live_adapter.py`: Guardias silenciosos que bloquean la ejecución L2 cuando la zona ha sido vulnerada (*Harvesting Mode*), redireccionando la información hacia el Output.
   - `deferred_outcome_monitor.py`: Anexión de vector `touch_context` mapeando `polarity_flipped`, `prior_touch_outcomes`, `touch_sequence`, persistiendo exitosamente la información para re-entrenamientos futuros.
   - Operación en captura pura validada: cuarentena de modelos synth (`*.joblib.bak`) + `ORACLE_MODE=observe` para impedir ejecución decisoria hasta re-entrenamiento con datos orgánicos.
+  - Sincronización GUI Forensics: Solucionada desvinculación de proceso por la cual la GUI no mostraba conteos de L2 Forensics (Defer Labeling en '0') al depender de memoria local del supervisor; migrado exitosamente hacia lectura en disco + event loop.
 - Impacto: La arquitectura del pipeline ahora goza de verdadera **Persistencia** y recolección silente. Ya no es necesario depender de inferencias sobre rebotes múltiples, todo movimiento es capturado para una clasificación explícita.
 - Criterio de éxito: Validaciones de Integridad Estructural Unitarias pasando con éxito. El JSONL del ecosistema queda habilitado para `touch_context` en muestras resueltas post-parche (el histórico previo no lo trae por compatibilidad).
 

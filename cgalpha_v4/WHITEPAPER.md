@@ -238,6 +238,7 @@ Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
 | 2026-05-07 | feat | Shadow Harvesting | Recolección silente diferida de contexto de re-test (toque 2 y toque 3) sin ejecucion real |
 | 2026-05-07 | chore | Captura pura operativa | Modelos synth aislados en `.bak`; Oracle en observación hasta dataset orgánico |
 | 2026-05-08 | fix  | Intra-tick Breakout Detección | Confirmación con buffer `0.03 ATR` + GC tolerante a HARVESTING hasta TTL de 48h |
+| 2026-05-08 | fix  | Sincronización GUI L2 Forensics | Reparada ceguera en la UI del Deferred Labeling Pipeline por separación de procesos |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 

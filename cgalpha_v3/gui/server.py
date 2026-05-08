@@ -1213,12 +1213,37 @@ def api_status() -> ResponseReturnValue:
 @app.route("/api/events")
 @require_auth
 def api_events() -> ResponseReturnValue:
-    """Stream de eventos recientes (últimos N)."""
+    """Stream de eventos recientes reales del sistema desde logs."""
     try:
         limit = min(max(int(request.args.get("limit", 50)), 1), 200)
     except (ValueError, TypeError):
         limit = 50
-    return jsonify(list(reversed(_events_log[-limit:])))
+        
+    events = list(_events_log)
+    
+    # Inyectar logs del shadow trader
+    try:
+        log_path = project_root / "shadow_trader.log"
+        if log_path.exists():
+            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()[-limit:]
+            for line in lines:
+                if " [INFO] " in line or " [WARNING] " in line or " [ERROR] " in line:
+                    parts = line.strip().split(" ", 2)
+                    if len(parts) >= 3:
+                        lvl = "info"
+                        if "[WARNING]" in line: lvl = "warning"
+                        if "[ERROR]" in line: lvl = "error"
+                        events.append({
+                            "timestamp": f"Log: {parts[0]}",
+                            "level": lvl,
+                            "event": parts[2].strip()
+                        })
+    except Exception:
+        pass
+        
+    # Ordenar por timestamp (los logs inyectados se verán cronológicos)
+    return jsonify(list(reversed(events))[:limit])
 
 
 @app.route("/api/library/status", methods=["GET"])
@@ -2864,12 +2889,23 @@ def api_l2_forensics_status():
         except OSError:
             pass
 
+    # Leer Active Zones de disco
+    active_zones_disk = []
+    zones_path = project_root / "aipha_memory" / "operational" / "active_zones.json"
+    if zones_path.exists():
+        try:
+            with open(zones_path) as f:
+                active_zones_disk = json.load(f)
+        except Exception:
+            pass
+
     return jsonify({
         "pending_count": pending_count,
         "resolved_count": resolved_count,
         "dataset_total": dataset_lines,
         "outcome_distribution": outcome_distribution,
         "active_monitors": pending_summary,
+        "active_zones": active_zones_disk,
         "pending_source": pending_source,
     })
 

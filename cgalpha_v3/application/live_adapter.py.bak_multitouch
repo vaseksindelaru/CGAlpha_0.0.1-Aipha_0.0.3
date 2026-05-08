@@ -180,8 +180,6 @@ class LiveDataFeedAdapter(BaseComponentV3):
             f"Zonas={len(self.detector.active_zones)} "
             f"Pending={self.deferred_monitor.get_pending_count()}"
         )
-        
-        self._persist_active_zones()
 
         if not self._is_causally_safe:
             logger.warning(
@@ -203,29 +201,6 @@ class LiveDataFeedAdapter(BaseComponentV3):
     # ══════════════════════════════════════════════════════════════
     # RETEST HANDLER: The critical millisecond
     # ══════════════════════════════════════════════════════════════
-
-    def _persist_active_zones(self):
-        """Persiste el estado de las zonas activas en disco para la GUI."""
-        try:
-            import json
-            from pathlib import Path
-            path = Path("aipha_memory/operational/active_zones.json")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            zones_data = []
-            for z in self.detector.active_zones:
-                zones_data.append({
-                    "zone_id": z.zone_id,
-                    "direction": z.direction.value if hasattr(z.direction, "value") else z.direction,
-                    "state": z.lifecycle_state.value if hasattr(z.lifecycle_state, "value") else z.lifecycle_state,
-                    "zone_top": z.zone_top,
-                    "zone_bottom": z.zone_bottom,
-                    "touches": z.touch_sequence,
-                    "created_at": z.created_at_idx
-                })
-            with open(path, "w") as f:
-                json.dump(zones_data, f, indent=2)
-        except Exception as e:
-            logger.error(f"Error persisting active zones: {e}")
 
     def _on_retest_detected(self, hit: dict, price: float, timestamp_ms: int):
         """
@@ -414,35 +389,13 @@ class LiveDataFeedAdapter(BaseComponentV3):
             self.live_signals.pop(0)
 
         # Execute DryRun if Oracle approves
-        is_secondary_retest = False
-        if hasattr(zone, "lifecycle_state"):
-            # Using value explicitly in case it's an Enum string
-            is_secondary_retest = getattr(zone, "lifecycle_state") == "harvesting" or getattr(zone, "lifecycle_state").value == "harvesting"
-
-        if not is_secondary_retest:
-            if confidence > 0.70 and is_safe_by_mae:
-                self.order_mgr.execute_signal(signal)
-            elif confidence > 0.70 and not is_safe_by_mae:
-                logger.warning(f"🚫 Señal abortada por Capa 2 (MAE Seguridad): {mae_reason}")
-        else:
-            logger.info(f"🌾 [ShadowHarvest] Toque secuencial en {zone.zone_id} (polarity_flipped={getattr(zone, 'polarity_flipped', False)}). Sin ejecución viva.")
-
-        # Registrar toque en la zona (actualiza touch_count y touch_history)
-        if hasattr(zone, "register_touch"):
-            assigned_seq = zone.register_touch(price=price, obi=obi_10, cum_delta=cum_delta)
-        else:
-            assigned_seq = 1
+        if confidence > 0.70 and is_safe_by_mae:
+            self.order_mgr.execute_signal(signal)
+        elif confidence > 0.70 and not is_safe_by_mae:
+            logger.warning(f"🚫 Señal abortada por Capa 2 (MAE Seguridad): {mae_reason}")
 
         # ── 6. REGISTER WITH DEFERRED MONITOR ────────────────────
-        self.deferred_monitor.register_retest(
-            snapshot,
-            raw_buffer=raw_buffer,
-            touch_sequence=assigned_seq,
-            polarity_flipped=getattr(zone, "polarity_flipped", False),
-            prior_touch_outcomes=getattr(zone, "prior_outcomes", []),
-            zone_original_direction=getattr(zone, "direction", ""),
-            flip_ts=getattr(zone, "flip_ts", None)
-        )
+        self.deferred_monitor.register_retest(snapshot, raw_buffer=raw_buffer)
 
         # ── 7. LOG ───────────────────────────────────────────────
         logger.info(
@@ -454,9 +407,6 @@ class LiveDataFeedAdapter(BaseComponentV3):
             f"| Oracle conf={confidence:.2f} ({prediction}) "
             f"| Sample={sample_id}"
         )
-
-        # ── 8. PERSIST STATE FOR GUI ───────────────────────────────
-        self._persist_active_zones()
 
     # ══════════════════════════════════════════════════════════════
     # HELPERS

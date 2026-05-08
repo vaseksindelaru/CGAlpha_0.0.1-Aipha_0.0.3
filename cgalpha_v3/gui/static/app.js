@@ -1266,6 +1266,45 @@ async function runLearningRegimeCheck() {
 
 // ── L2 FORENSICS ───────────────────────────────────────────
 let _forensicsInterval = null;
+let _audioAlertsEnabled = false;
+let _previousActiveZones = [];
+
+function toggleAudioAlerts() {
+    _audioAlertsEnabled = !_audioAlertsEnabled;
+    const btn = document.getElementById("btn-audio-alert");
+    if (btn) {
+        if (_audioAlertsEnabled) {
+            btn.innerHTML = "🔊 Audio / Alertas On";
+            btn.style.color = "var(--accent)";
+            playDing(); // Test and unlock AudioContext
+            
+            // Solicitar permiso de notificaciones del sistema
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        } else {
+            btn.innerHTML = "🔇 Audio / Alertas Off";
+            btn.style.color = "";
+        }
+    }
+}
+
+function playDing() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) { console.error("Audio playback failed", e); }
+}
 
 async function fetchForensicsStatus() {
     try {
@@ -1276,8 +1315,29 @@ async function fetchForensicsStatus() {
         const source = data.pending_source || "in_memory";
         const sourceLabel = source === "disk_fallback" ? "disco (collector externo)" : "memoria local";
         setText("forensics-pending-note", `Retests esperando resolución · fuente: ${sourceLabel}`);
+        
+        const currentZones = data.active_zones || [];
+        if (_audioAlertsEnabled && _previousActiveZones.length > 0) {
+            const currentIds = currentZones.map(z => z.zone_id);
+            const prevIds = _previousActiveZones.map(z => z.zone_id);
+            const newZones = currentIds.filter(id => !prevIds.includes(id));
+            if (newZones.length > 0) {
+                playDing();
+                
+                // Disparar Notificación de Sistema
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("🚨 CGAlpha: Nueva Zona Detectada!", {
+                        body: `Se ha detectado una nueva zona de acumulación.\nID: ${newZones[0]}${newZones.length > 1 ? ` y ${newZones.length - 1} más` : ''}.`,
+                        requireInteraction: true
+                    });
+                }
+            }
+        }
+        _previousActiveZones = currentZones;
+
         renderForensicsDistribution(data.outcome_distribution || {});
         renderForensicsMonitors(data.active_monitors || []);
+        renderForensicsActiveZones(currentZones);
     } catch { /* silencioso */ }
 }
 
@@ -1306,6 +1366,42 @@ function renderForensicsDistribution(dist) {
                 </div>
                 <span style="width:24px; text-align:right; font-size:10px; color:var(--text-dim);">${count}</span>
             </div>`;
+    }).join("");
+}
+
+function renderForensicsActiveZones(zones) {
+    const el = document.getElementById("forensics-active-zones");
+    if (!el) return;
+    if (!zones || !zones.length) {
+        el.innerHTML = '<div class="placeholder"><span class="ph-icon">🔍</span>Sin zonas activas reportadas.<br>Esperando que el detector inicie o encuentre zonas.</div>';
+        return;
+    }
+    
+    // Ordenar de más reciente (mayor idx) a más antigua
+    zones.sort((a,b) => (b.created_at || 0) - (a.created_at || 0));
+    
+    el.innerHTML = zones.map(z => {
+        const dirColor = z.direction === "bullish" ? "var(--accent)" : "var(--red)";
+        let stateColor = "var(--text-dim)";
+        let stateLabel = z.state ? z.state.toUpperCase() : "UNKNOWN";
+        if (stateLabel === "HARVESTING") stateColor = "var(--accent2)";
+        else if (stateLabel === "ACTIVE") stateColor = "var(--accent)";
+        
+        return `<div style="background:var(--bg3); padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:12px; font-weight:700; color:var(--text); font-family:monospace;">${escHtml(z.zone_id || 'unknown')}</span>
+                <span style="font-size:10px; color:${stateColor}; border:1px solid ${stateColor}; padding:2px 6px; border-radius:4px; font-weight:600;">${escHtml(stateLabel)}</span>
+            </div>
+            <div style="display:flex; gap:16px; font-size:11px; margin-bottom:6px;">
+                <div><span style="color:var(--text-dim);">Top:</span> <span style="color:var(--text);">${z.zone_top?.toFixed(1) || 'N/A'}</span></div>
+                <div><span style="color:var(--text-dim);">Bottom:</span> <span style="color:var(--text);">${z.zone_bottom?.toFixed(1) || 'N/A'}</span></div>
+                <div style="margin-left:auto;"><span style="color:${dirColor}; font-weight:700;">${escHtml(z.direction ? z.direction.toUpperCase() : '')}</span></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim);">
+                <div>Toques actuales: <strong style="color:var(--text);">${z.touches || 0}</strong></div>
+                <div>Origen idx: ${z.created_at || '?'}</div>
+            </div>
+        </div>`;
     }).join("");
 }
 
@@ -1503,9 +1599,23 @@ function renderFooterTs() {
 }
 
 // ── UTILS ──────────────────────────────────────────────
-function setText(id, val) {
+function setText(id, text) {
     const el = document.getElementById(id);
-    if (el) el.textContent = val;
+    if (el) el.textContent = text;
+}
+
+function toggleFullscreen(elementId) {
+    const elem = document.getElementById(elementId);
+    if (!elem) return;
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => {
+            console.error(`Error al intentar iniciar fullscreen: ${err.message}`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
 }
 function setInputValue(id, val) {
     const el = document.getElementById(id);

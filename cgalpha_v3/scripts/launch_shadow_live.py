@@ -235,6 +235,10 @@ async def main():
     adapter.inject_oracle(oracle)
     adapter.inject_regressor(regressor)
 
+    logger.info("💾 Persistiendo zonas activas fundacionales (Bootstrap)...")
+    if hasattr(adapter, "_persist_active_zones"):
+        adapter._persist_active_zones()
+
     # 3. Iniciar bucle
     logger.info("🚀 Iniciando WebSocket Stream...")
     await ws_manager.start()
