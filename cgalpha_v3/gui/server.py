@@ -2773,6 +2773,49 @@ def _simulation_loop():
 # L2 Forensics API — Observabilidad del pipeline de microestructura
 # ---------------------------------------------------------------------------
 
+def _load_pending_labels_from_disk() -> list[dict[str, Any]]:
+    """
+    Carga pending labels persistidos en disco.
+    Fallback útil cuando el collector corre en otro proceso.
+    """
+    pending_path = project_root / "aipha_memory" / "operational" / "pending_labels.json"
+    if not pending_path.exists():
+        return []
+
+    try:
+        raw = json.loads(pending_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    if not isinstance(raw, list):
+        return []
+
+    summary: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        try:
+            mfe = round(float(item.get("mfe", 0.0) or 0.0), 2)
+            mae = round(float(item.get("mae", 0.0) or 0.0), 2)
+            bars_elapsed = int(item.get("bars_elapsed", 0) or 0)
+            lookahead_bars = int(item.get("lookahead_bars", 0) or 0)
+            entry_price = float(item.get("entry_price", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            continue
+
+        summary.append({
+            "sample_id": item.get("sample_id", "unknown"),
+            "direction": item.get("zone_direction", "?"),
+            "entry_price": entry_price,
+            "bars_elapsed": bars_elapsed,
+            "lookahead_bars": lookahead_bars,
+            "mfe": mfe,
+            "mae": mae,
+        })
+
+    return summary
+
+
 @app.route("/api/l2-forensics/status", methods=["GET"])
 @require_auth
 def api_l2_forensics_status():
@@ -2788,6 +2831,16 @@ def api_l2_forensics_status():
     pending_summary = monitor.get_pending_summary()
     pending_count = monitor.get_pending_count()
     resolved_count = monitor.get_resolved_count()
+    pending_source = "in_memory"
+
+    # Fallback de sincronización: si el recolector corre fuera del proceso GUI,
+    # la cola real vive en disco aunque este monitor local tenga 0 pendientes.
+    if pending_count == 0:
+        disk_pending_summary = _load_pending_labels_from_disk()
+        if disk_pending_summary:
+            pending_summary = disk_pending_summary
+            pending_count = len(disk_pending_summary)
+            pending_source = "disk_fallback"
 
     # Leer contadores del dataset de entrenamiento v2
     training_path = project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
@@ -2817,6 +2870,7 @@ def api_l2_forensics_status():
         "dataset_total": dataset_lines,
         "outcome_distribution": outcome_distribution,
         "active_monitors": pending_summary,
+        "pending_source": pending_source,
     })
 
 
@@ -2919,10 +2973,23 @@ def main():
 
     # Arrancar WS Managers en segundo plano (Fase 4.2)
     def start_all_ws():
-        async def _run():
-            tasks = [ws.start() for ws in _ws_managers.values()]
-            await asyncio.gather(*tasks)
-        asyncio.run(_run())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        async def _bootstrap():
+            for ws in _ws_managers.values():
+                await ws.start()
+
+        loop.run_until_complete(_bootstrap())
+        try:
+            loop.run_forever()
+        finally:
+            async def _shutdown():
+                for ws in _ws_managers.values():
+                    await ws.stop()
+
+            loop.run_until_complete(_shutdown())
+            loop.close()
     
     ws_thread = threading.Thread(target=start_all_ws, daemon=True)
     ws_thread.start()

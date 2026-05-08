@@ -139,6 +139,17 @@ Cada training sample es un **micro-documento probatorio** que debe responder tre
     "funding_rate_pct": 0.0043
   },
 
+  "touch_context": {
+    "touch_sequence": 2,
+    "polarity_flipped": true,
+    "zone_original_direction": "bullish",
+    "effective_direction": "bearish",
+    "prior_touch_outcomes": ["BREAKOUT"],
+    "hours_since_flip": 4.2,
+    "is_secondary_retest": true,
+    "is_tertiary_retest": false
+  },
+
   "outcome": null
 }
 ```
@@ -152,6 +163,7 @@ Cada training sample es un **micro-documento probatorio** que debe responder tre
 | `l2_snapshot_at_touch` | Foto del balance de fuerzas en el instante exacto. El OBI multi-nivel detecta concentración institucional | OBI-10 solo no detecta spoofing en nivel 1 |
 | `l2_temporal_profile` | **EL BLOQUE MÁS VALIOSO.** Convierte la foto estática en una película de 30s. Los gradientes distinguen defensa creciente (BOUNCE) de defensa desmoronándose (BREAKOUT) | Esta es la Debilidad #1 actual. Sin esto, el techo predictivo queda <0.72 |
 | `market_context` | Régimen y sesión determinan el comportamiento typical del book. Sesión asiática vs europea tiene OBI patterns radicalmente distintos | El modelo generaliza mal entre sesiones |
+| `touch_context` | **SHADOW HARVESTING.** Dota a la zona de persistencia y contexto de rebote múltiple (S/R flips y retests secundarios/terciarios). | Pierdes la macro-película del nivel de precio (2do y 3er toque). |
 | `outcome` | Se rellena diferidamente (ver sección 2). `null` hasta que el label se resuelve | Sin label no hay aprendizaje |
 
 ### 1.4 Arquitectura del Ring Buffer L2

@@ -32,6 +32,7 @@ logging.basicConfig(
     datefmt='%H:%M:%S'
 )
 logger = logging.getLogger("shadow_live")
+ACTIVE_WS_MANAGER = None
 
 # ─────────────────────────────────────────────────────────────────────
 # MÓDULO DE ARRANQUE EN FRÍO (Historical Pre-load)
@@ -137,9 +138,9 @@ def bootstrap_detector(detector, symbol: str = "BTCUSDT", interval: str = BOOTST
         logger.error(f"Bootstrap: process_stream falló — {exc}", exc_info=True)
         return {"candles_loaded": len(ohlcv_df), "zones_created": 0, "error": str(exc)}
 
-    active_zones = getattr(detector, "active_zones", {})
+    active_zones = getattr(detector, "active_zones", [])
     zones_created = len(active_zones) - zones_before
-    zone_ids = list(active_zones.keys())
+    zone_ids = [str(z) for z in active_zones]
     duration = round(time.monotonic() - t0, 2)
 
     report = {"candles_loaded": len(ohlcv_df), "zones_created": zones_created, "zones_total": len(active_zones), "from_ts": from_ts, "to_ts": to_ts, "duration_s": duration, "active_zone_ids": zone_ids}
@@ -159,21 +160,31 @@ def bootstrap_detector(detector, symbol: str = "BTCUSDT", interval: str = BOOTST
 
 async def shutdown(loop, ws_manager, signal=None):
     """Cleanup gracefully."""
+    global ACTIVE_WS_MANAGER
     if signal:
         logger.info(f"🛑 Señal recibida: {signal.name}...")
     
     logger.info("🔌 Cerrando conexiones...")
-    await ws_manager.stop()
+    manager = ws_manager if ws_manager is not None else ACTIVE_WS_MANAGER
+    if manager is not None:
+        try:
+            await manager.stop()
+        except Exception as exc:
+            logger.warning(f"⚠️ Error al detener ws_manager: {exc}")
+    else:
+        logger.warning("⚠️ Shutdown sin ws_manager activo; se omite stop().")
     
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
     
     logger.info(f"🧹 Cancelando {len(tasks)} tareas pendientes...")
     await asyncio.gather(*tasks, return_exceptions=True)
+    ACTIVE_WS_MANAGER = None
     loop.stop()
     logger.info("👋 ShadowTrader detenido.")
 
 async def main():
+    global ACTIVE_WS_MANAGER
     print("=" * 72)
     print("  🌌 CGAlpha v3 — MODO SHADOWTRADER LIVE")
     print("  Operando sobre: BTCUSDT (Binance Futures)")
@@ -219,6 +230,7 @@ async def main():
         logger.error(f"Bootstrap fallido: {bootstrap_report['error']}. Entorrno pasará a cold start ciego.")
 
     ws_manager = BinanceWebSocketManager.create_default()
+    ACTIVE_WS_MANAGER = ws_manager
     adapter = LiveDataFeedAdapter.create_default(ws_manager, detector)
     adapter.inject_oracle(oracle)
     adapter.inject_regressor(regressor)

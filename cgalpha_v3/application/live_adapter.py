@@ -50,6 +50,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.detector = detector
         self.order_mgr = order_manager or DryRunOrderManager()
         self._oracle = None
+        self._oracle_regressor = None
 
         # Candle aggregation
         self.current_kline: Dict[str, Any] = {}
@@ -74,6 +75,11 @@ class LiveDataFeedAdapter(BaseComponentV3):
         """Inyecta el modelo entrenado."""
         self._oracle = oracle
         logger.info("🧠 Oracle validado e inyectado en LiveAdapter.")
+
+    def inject_regressor(self, regressor):
+        """Inyecta el regresor MAE (Capa 2)."""
+        self._oracle_regressor = regressor
+        logger.info("🎯 Regresor MAE (Capa 2) inyectado en LiveAdapter.")
 
     # ══════════════════════════════════════════════════════════════
     # SPEED 2 (TICK): Entry point for every aggTrade (~10-50/s)
@@ -325,19 +331,38 @@ class LiveDataFeedAdapter(BaseComponentV3):
                     "obi_10_at_retest": obi_10,
                     "cumulative_delta_at_retest": cum_delta,
                     "delta_divergence": (
-                        "BULLISH_ABSORPTION" if zone.direction == "bullish"
-                        else "BEARISH_EXHAUSTION"
+                        "CONFIRMED" if (zone.direction == "bullish" and cum_delta > 0) or (zone.direction == "bearish" and cum_delta < 0)
+                        else "DIVERGENT"
                     ),
                     "atr_14": atr,
                     "regime": "LATERAL",
                     "direction": zone.direction,
                     "index": zone.candle_index,
+                    "zone_width_atr": round(zone_width / atr, 4),
+                    "zone_top": zone.zone_top,
+                    "zone_bottom": zone.zone_bottom,
                 }
                 oracle_result = self._oracle.predict(micro=None, signal_data=signal_data)
                 confidence = oracle_result.confidence
                 prediction = oracle_result.suggested_action
             except Exception as e:
                 logger.warning(f"⚠️ Oracle prediction failed: {e}")
+
+        # ── 4.5. REGRESIÓN MAE (CAPA 2) ──────────────────────────
+        predicted_mae_atr = 0.0
+        limit_price = price
+        is_safe_by_mae = True
+        mae_reason = "No MAE Regressor"
+
+        if confidence > 0.70 and prediction == "EXECUTE" and self._oracle_regressor:
+            try:
+                mae_pred = self._oracle_regressor.predict_mae(micro=None, signal_data=signal_data)
+                predicted_mae_atr = mae_pred.predicted_mae_atr
+                limit_price = mae_pred.limit_price
+                is_safe_by_mae = mae_pred.is_safe
+                mae_reason = mae_pred.reason
+            except Exception as e:
+                logger.warning(f"⚠️ MAE regression failed: {e}")
 
         # ── 5. BUILD SIGNAL & EXECUTE ────────────────────────────
         signal = {
@@ -353,6 +378,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
             "l2_snapshots": l2_profile.get("n_snapshots", 0),
             "clearance_atr": clearance_atr,
             "status": "active",
+            "predicted_mae_atr": predicted_mae_atr,
+            "limit_price": limit_price,
+            "mae_reason": mae_reason
         }
         self.live_signals.append(signal)
 
@@ -361,11 +389,35 @@ class LiveDataFeedAdapter(BaseComponentV3):
             self.live_signals.pop(0)
 
         # Execute DryRun if Oracle approves
-        if confidence > 0.70:
-            self.order_mgr.execute_signal(signal)
+        is_secondary_retest = False
+        if hasattr(zone, "lifecycle_state"):
+            # Using value explicitly in case it's an Enum string
+            is_secondary_retest = getattr(zone, "lifecycle_state") == "harvesting" or getattr(zone, "lifecycle_state").value == "harvesting"
+
+        if not is_secondary_retest:
+            if confidence > 0.70 and is_safe_by_mae:
+                self.order_mgr.execute_signal(signal)
+            elif confidence > 0.70 and not is_safe_by_mae:
+                logger.warning(f"🚫 Señal abortada por Capa 2 (MAE Seguridad): {mae_reason}")
+        else:
+            logger.info(f"🌾 [ShadowHarvest] Toque secuencial en {zone.zone_id} (polarity_flipped={getattr(zone, 'polarity_flipped', False)}). Sin ejecución viva.")
+
+        # Registrar toque en la zona (actualiza touch_count y touch_history)
+        if hasattr(zone, "register_touch"):
+            assigned_seq = zone.register_touch(price=price, obi=obi_10, cum_delta=cum_delta)
+        else:
+            assigned_seq = 1
 
         # ── 6. REGISTER WITH DEFERRED MONITOR ────────────────────
-        self.deferred_monitor.register_retest(snapshot, raw_buffer=raw_buffer)
+        self.deferred_monitor.register_retest(
+            snapshot,
+            raw_buffer=raw_buffer,
+            touch_sequence=assigned_seq,
+            polarity_flipped=getattr(zone, "polarity_flipped", False),
+            prior_touch_outcomes=getattr(zone, "prior_outcomes", []),
+            zone_original_direction=getattr(zone, "direction", ""),
+            flip_ts=getattr(zone, "flip_ts", None)
+        )
 
         # ── 7. LOG ───────────────────────────────────────────────
         logger.info(

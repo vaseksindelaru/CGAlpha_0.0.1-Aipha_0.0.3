@@ -4,7 +4,7 @@
 
 <h1 align="center">cgAlpha_0.0.1 — White Paper</h1>
 <p align="center"><em>Causal Graph Alpha · Documento vivo mantenido por Lila</em></p>
-<p align="center"><em>Última actualización: 3 de mayo de 2026 · Versión: v4.2-oracle-evaluation</em></p>
+<p align="center"><em>Última actualización: 8 de mayo de 2026 · Versión: v4.4-shadow-harvesting-hardening</em></p>
 
 ---
 
@@ -150,6 +150,11 @@ El canal de evolución está completamente conectado:
 6. ✅ FASE 7: ZigZag Threshold a 0.18% empírico + Cooldowns protectivos.
 7. ✅ FASE 8: Fuga analítica cerrada. El modelo deja de estar "ciego" gracias al `max_clearance_atr`.
 8. ✅ FASE 9: Stream WS `@depth20` vivo con Multi-Layer OBI e ingesta L2.
+9. ✅ FASE 10.5a: Shadow Harvesting multi-toque (`ACTIVE` → `HARVESTING` → `EXHAUSTED`) + `touch_context`.
+10. ✅ FASE 10.5b: Hardening temporal L2 (`last_known_binance_ts_ms`) + bootstrap histórico de 500 velas al arranque live.
+11. ✅ Captura pura operativa: cuarentena de modelos synth (`*.joblib.bak`) y `ORACLE_MODE=observe` para evitar ejecución decisoria prematura.
+
+**Nota de compatibilidad de dataset:** `touch_context` se adjunta en muestras resueltas post-parche. El histórico previo no lo incluye retroactivamente.
 
 ### Próxima etapa (Fases Operativas de Inteligencia)
 
@@ -227,6 +232,12 @@ Resolución de los 8 bugs del Oracle y conexión de las 4 islas:
 | 2026-05-04 | feat | L2 Forensics GUI Panel | 3 API endpoints + panel interactivo con KPIs, monitors y modal |
 | 2026-05-04 | dev | Synthetic Data Bridge | Script generador de 100 muestras L2 v2 completando Fase 10 sin espera pasiva |
 | 2026-05-04 | feat | Oracle v5 Sniper Retraining | Refactor de OracleTrainer_v3 para features temporales y drop de mediocres |
+| 2026-05-07 | feat | L2 Bootstrap Bootloader | Resuelve "Arranque Frio" retro-alimentando API 500-candles al arrancar ShadowTrader |
+| 2026-05-07 | fix  | Clock mismatch en rolling delta | `get_rolling_delta()` migra a referencia Binance (`last_known_binance_ts_ms`) |
+| 2026-05-07 | feat | Multi-Touch Zone Lifecycle | Las zonas toleran múltiples toques transitando de `ACTIVE` a `HARVESTING` |
+| 2026-05-07 | feat | Shadow Harvesting | Recolección silente diferida de contexto de re-test (toque 2 y toque 3) sin ejecucion real |
+| 2026-05-07 | chore | Captura pura operativa | Modelos synth aislados en `.bak`; Oracle en observación hasta dataset orgánico |
+| 2026-05-08 | fix  | Intra-tick Breakout Detección | Confirmación con buffer `0.03 ATR` + GC tolerante a HARVESTING hasta TTL de 48h |
 
 *Entradas futuras se añaden automáticamente por el Orchestrator.*
 

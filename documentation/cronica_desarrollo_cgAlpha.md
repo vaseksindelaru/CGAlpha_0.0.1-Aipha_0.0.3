@@ -1,11 +1,11 @@
 # Crónica de Desarrollo — cgAlpha / Aipha
-### Versión 3.2 — Actualizada 3 mayo 2026
+### Versión 3.4 — Actualizada 8 mayo 2026
 
 > Documento vivo para reconstruir el pasado, comprender el estado actual y orientar decisiones futuras.
-> Esta versión incorpora la **Evaluación Estructural del Oracle** (3 mayo 2026),
-> que identificó 5 debilidades en la resolución de features y el etiquetado,
-> insertó una Fase Puente en la hoja de ruta, y revisó las Fases 10-14
-> para coordinar la superación sistemática de cada ineficiencia.
+> Esta versión incorpora la **Construcción del Shadow Harvesting** (7 mayo 2026)
+> y su **Hardening Operativo** (8 mayo 2026),
+> que implementó persistencia multi-toque L2 y ciclos de vida para
+> zonas, sentando las bases masivas de captura para el futuro Oracle Secundario.
 
 ---
 
@@ -535,6 +535,9 @@ Protocolo de cuestionamiento (§6 del Mantra). Validación OOS de 3 ciclos + apr
 | `59b87ab` | Fase 8: Instrumentación de clearance a 0.18% | Medición empírica habilitada |
 | `d2afa23` | Fase 9: Microestructura viva (@depth20 + CumDelta) | L2 OBI real en ShadowTrader |
 | `9434105` | Etiquetado diferido en `process_live_tick` | Pipeline live genera TrainingSamples con L2 |
+| `8190fa1` | Clock mismatch en rolling delta | Ventana temporal L2 coherente con `event_time` de Binance |
+| `6d3483d` | Bootstrap histórico en `launch_shadow_live.py` | Resuelve arranque en frío del detector al iniciar Live |
+| `26da216` | Confirmación breakout con buffer ATR + GC HARVESTING | Reduce flips por ruido y preserva zonas hasta TTL |
 
 ---
 
@@ -559,7 +562,7 @@ Protocolo de cuestionamiento (§6 del Mantra). Validación OOS de 3 ciclos + apr
 
 ### Hito: Fase Puente — Feature Engineering + Corrección de Etiquetado (Cat.2)
 - Fecha: Planificado (post-cosecha viva L2)
-- Prerrequisito: ≥50 samples con `obi_10 ≠ 0` en `training_dataset.json`.
+- Prerrequisito: ≥50 samples con `obi_10 ≠ 0` en `training_dataset_v2.jsonl`.
 - Origen: Evaluación Estructural del Oracle (3 mayo 2026) identificó 5 debilidades.
 - Objetivo medible: Implementar 4 correcciones de ingeniería de features y labeling antes del re-entrenamiento.
 - Cambios requeridos:
@@ -577,6 +580,29 @@ Protocolo de cuestionamiento (§6 del Mantra). Validación OOS de 3 ciclos + apr
 - Criterio de éxito principal: OOS ≥ 0.68 (no regresión) + al menos 1 feature temporal L2 en top-3 de Feature Importance.
 - Criterio secundario: Si dataset ≥ 500 samples, benchmark RF vs XGBoost/LightGBM (Debilidad #4).
 - Impacto: El Oracle operará con features dinámicas (gradientes L2) en lugar de fotos estáticas, y con labels que distinguen bounces reales de ruido.
+
+### Hito: Fase 10.5 — Shadow Harvesting y Multi-Touch Zone Lifecycle (Cat.2)
+- Fecha: 7 de mayo 2026
+- Origen: La evaluación de la ceguera del detector en retests posteriores a la ruptura (soporte roto pasando a ser resistencia y viceversa).
+- Objetivo medible: Transicionar las zonas de estructuras estáticas (con variable booleana `retest_detected`) a Máquinas de Estado (`ZoneLifecycleState: ACTIVE, HARVESTING, EXHAUSTED`), que documentan los toques múltiples y la polaridad sin contaminar el trader principal.
+- Cambios requeridos:
+  - `triple_coincidence.py`: Refactor a `ActiveZone` para retener historial de toques. Modificación al _Garbage Collector_ para preservar zonas `HARVESTING` por encima del clásico timeout de 50 velas y aplicar un `HARVEST_TTL` robusto (48 horas).
+  - Incorporación de detección de Breakout activa a nivel intra-tick (milisegundo) protegiendo ruido de mercado con `breakout_confirm_atr_buffer` del 3%.
+  - `live_adapter.py`: Guardias silenciosos que bloquean la ejecución L2 cuando la zona ha sido vulnerada (*Harvesting Mode*), redireccionando la información hacia el Output.
+  - `deferred_outcome_monitor.py`: Anexión de vector `touch_context` mapeando `polarity_flipped`, `prior_touch_outcomes`, `touch_sequence`, persistiendo exitosamente la información para re-entrenamientos futuros.
+  - Operación en captura pura validada: cuarentena de modelos synth (`*.joblib.bak`) + `ORACLE_MODE=observe` para impedir ejecución decisoria hasta re-entrenamiento con datos orgánicos.
+- Impacto: La arquitectura del pipeline ahora goza de verdadera **Persistencia** y recolección silente. Ya no es necesario depender de inferencias sobre rebotes múltiples, todo movimiento es capturado para una clasificación explícita.
+- Criterio de éxito: Validaciones de Integridad Estructural Unitarias pasando con éxito. El JSONL del ecosistema queda habilitado para `touch_context` en muestras resueltas post-parche (el histórico previo no lo trae por compatibilidad).
+
+### Hito: Fase 10.5b — Hardening L2 Temporal y Warm Start Live (Cat.1/Cat.2)
+- Fecha: 7–8 de mayo 2026
+- Origen: Auditoría operativa detectó dos riesgos residuales: deriva temporal en `rolling_delta` (reloj local vs Binance) y ceguera de zonas al reiniciar en frío.
+- Cambios aplicados:
+  - `binance_websocket_manager.py`: `get_rolling_delta()` anclado a `last_known_binance_ts_ms` para eliminar el desajuste local/Exchange.
+  - `launch_shadow_live.py`: bootstrap de 500 velas cerradas vía REST para poblar zonas antes del primer tick vivo.
+  - Verificación explícita de ruta de persistencia cruda L2 (`raw_buffers/*.json.gz`) en `deferred_outcome_monitor.py`.
+  - Normalización operativa de rutas: cola activa en `aipha_memory/operational/pending_labels.json` (no `.jsonl`).
+- Criterio de éxito: conexión WS estable + detector inicializado con contexto histórico + integridad temporal consistente entre eventos Binance y ventanas de features.
 
 ### Hito: Fase 11 — Calibración Probabilística del Oracle (Post-Fase 10)
 - Objetivo: Asegurar que el `predict_proba` del Oracle refleje la frecuencia real de aciertos.

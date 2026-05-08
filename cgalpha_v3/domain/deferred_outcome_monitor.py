@@ -52,13 +52,20 @@ class PendingLabel:
     atr_at_detection: float
     lookahead_bars: int
     entry_price: float
-    snapshot_path: str           # Path al ReentrySnapshot JSON completo
+    snapshot_path: str = ""      # Path al ReentrySnapshot JSON completo
     bars_elapsed: int = 0
     mfe: float = 0.0            # Max favorable excursion (abs price)
     mae: float = 0.0            # Max adverse excursion (abs price)
     resolved: bool = False
     outcome: Optional[str] = None
     resolution_ts: Optional[float] = None
+    
+    # ── Shadow Harvesting: Secuencialidad multi-toque ──────────────────────
+    touch_sequence: int = 1
+    polarity_flipped: bool = False
+    prior_touch_outcomes: list = field(default_factory=list)
+    zone_original_direction: str = ""
+    hours_since_flip: float = 0.0
 
 
 class DeferredOutcomeMonitor:
@@ -77,7 +84,16 @@ class DeferredOutcomeMonitor:
 
     # ── Public API ──────────────────────────────────────────────
 
-    def register_retest(self, snapshot: dict, raw_buffer: Optional[list] = None) -> str:
+    def register_retest(
+        self,
+        snapshot: dict,
+        raw_buffer: Optional[list] = None,
+        touch_sequence: int = 1,
+        polarity_flipped: bool = False,
+        prior_touch_outcomes: list = None,
+        zone_original_direction: str = "",
+        flip_ts: float = None,
+    ) -> str:
         """
         Registra un nuevo retest para monitoreo diferido.
         Persiste el snapshot completo en disco y opcionalmente el raw L2 buffer.
@@ -111,6 +127,10 @@ class DeferredOutcomeMonitor:
             with gzip.open(raw_path, 'wt') as f:
                 json.dump(raw_buffer, f, default=str)
 
+        hours_since = 0.0
+        if flip_ts is not None:
+            hours_since = (time.time() - flip_ts) / 3600.0
+
         label = PendingLabel(
             sample_id=sample_id,
             capture_ts=meta.get("capture_ts_unix_ms", time.time() * 1000) / 1000.0,
@@ -122,6 +142,11 @@ class DeferredOutcomeMonitor:
             lookahead_bars=lookahead,
             entry_price=l2.get("retest_price", 0.0),
             snapshot_path=snap_path,
+            touch_sequence=touch_sequence,
+            polarity_flipped=polarity_flipped,
+            prior_touch_outcomes=list(prior_touch_outcomes or []),
+            zone_original_direction=zone_original_direction or zg.get("direction", "bullish"),
+            hours_since_flip=round(hours_since, 2),
         )
 
         self.pending.append(label)
@@ -287,6 +312,21 @@ class DeferredOutcomeMonitor:
                     "lookahead_bars_used": label.lookahead_bars,
                 }
 
+                snapshot["touch_context"] = {
+                    "touch_sequence": label.touch_sequence,
+                    "polarity_flipped": label.polarity_flipped,
+                    "zone_original_direction": label.zone_original_direction,
+                    "effective_direction": (
+                        ("bearish" if label.zone_original_direction == "bullish" else "bullish")
+                        if label.polarity_flipped
+                        else label.zone_original_direction
+                    ),
+                    "prior_touch_outcomes": label.prior_touch_outcomes,
+                    "hours_since_flip": label.hours_since_flip,
+                    "is_secondary_retest": label.touch_sequence > 1,
+                    "is_tertiary_retest": label.touch_sequence > 2,
+                }
+
                 f.write(json.dumps(snapshot, default=str) + "\n")
 
         logger.info(f"💾 Flushed {len(resolved)} resolved samples to {COMPLETED_SAMPLES_PATH}")
@@ -313,6 +353,12 @@ class DeferredOutcomeMonitor:
                     "mae": label.mae,
                     "entry_price": label.entry_price,
                     "snapshot_path": label.snapshot_path,
+                    # ── Shadow Harvesting ──────────────────────────────────
+                    "touch_sequence": label.touch_sequence,
+                    "polarity_flipped": label.polarity_flipped,
+                    "prior_touch_outcomes": label.prior_touch_outcomes,
+                    "zone_original_direction": label.zone_original_direction,
+                    "hours_since_flip": label.hours_since_flip,
                 })
 
         path.write_text(json.dumps(pending_data, indent=2))
@@ -326,6 +372,12 @@ class DeferredOutcomeMonitor:
         try:
             data = json.loads(path.read_text())
             for item in data:
+                # Compatibilidad hacia atrás: añadir defaults para campos nuevos
+                item.setdefault("touch_sequence", 1)
+                item.setdefault("polarity_flipped", False)
+                item.setdefault("prior_touch_outcomes", [])
+                item.setdefault("zone_original_direction", item.get("zone_direction", ""))
+                item.setdefault("hours_since_flip", 0.0)
                 self.pending.append(PendingLabel(**item))
 
             if self.pending:

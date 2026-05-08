@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.utils import resample
@@ -453,5 +453,232 @@ class OracleTrainer_v3(BaseComponentV3):
             heritage_contribution="Meta-Labeling principle and feature selection logic.",
             v3_adaptations="Training with retest dataset and trinity-based features.",
             causal_score=0.92 # El componente más confiable de v2 (83% acc)
+        )
+        return cls(manifest)
+
+@dataclass
+class MAEPrediction:
+    trade_id: str
+    predicted_mae_atr: float
+    limit_price: float
+    is_safe: bool
+    reason: str = ""
+
+class OracleRegressor_MAE(BaseComponentV3):
+    """
+    ╔═══════════════════════════════════════════════════════╗
+    ║  ORACLE REGRESSOR MAE — Capa 2 (Fase 13)             ║
+    ║  Apunta a estimar el Maximum Adverse Excursion normal-║
+    ║  izado por ATR para colocar órdenes Limit dinámicas.  ║
+    ╚═══════════════════════════════════════════════════════╝
+    """
+    def __init__(self, manifest: ComponentManifest):
+        super().__init__(manifest)
+        self.model: RandomForestRegressor | None = None
+        self.training_data: List[Dict[str, Any]] = []
+        self._encoders: Dict[str, LabelEncoder] = {}
+        self._training_metrics: Dict[str, Any] | None = None
+        self._feature_cols = [
+            "vwap_at_retest",
+            "obi_10_at_retest",
+            "cumulative_delta_at_retest",
+            "delta_divergence",
+            "atr_14",
+            "regime",
+            "direction",
+            "zone_width_atr" # Extra feature available in v2.0
+        ]
+        self.max_allowable_mae_ratio = 0.90 # 90% of zone width
+
+    def load_training_dataset(self, training_samples: List[Dict]):
+        """Carga el dataset (schema v2.0)."""
+        self.training_data = training_samples
+
+    def train_model(self):
+        if not self.training_data:
+            raise ValueError("No training data loaded. Call load_training_dataset() first.")
+
+        # Filtrar solo BOUNCE_STRONG para la regresión (donde MAE tiene sentido)
+        valid_samples = []
+        for sample in self.training_data:
+            if sample.get("outcome", {}).get("label") in ["BOUNCE_STRONG", "BOUNCE_WEAK"]:
+                valid_samples.append(sample)
+                
+        if len(valid_samples) < 10:
+            import logging
+            logging.getLogger(__name__).warning("❌ Insufficient BOUNCE samples for MAE Regression (< 10).")
+            return False
+
+        records = [self._normalize_sample(s) for s in valid_samples]
+        df = pd.DataFrame(records)
+
+        for col in self._feature_cols:
+            if col not in df.columns:
+                df[col] = np.nan
+
+        cat_defaults = {
+            "delta_divergence": "NEUTRAL",
+            "regime": "LATERAL",
+            "direction": "bullish",
+        }
+        for col, default in cat_defaults.items():
+            df[col] = df[col].fillna(default).astype(str)
+
+        self._encoders = {}
+        for col in ("delta_divergence", "regime", "direction"):
+            encoder = LabelEncoder()
+            df[col] = encoder.fit_transform(df[col])
+            self._encoders[col] = encoder
+
+        X = df[self._feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+        y = df["mae_atr"].apply(pd.to_numeric, errors="coerce")
+
+        valid_mask = y.notna()
+        X = X.loc[valid_mask]
+        y = y.loc[valid_mask]
+
+        if len(X) < 10:
+            return False
+
+        if len(X) >= 15:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        else:
+            X_train, X_test, y_train, y_test = X, X, y, y
+
+        self.model = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=5,
+            min_samples_leaf=2,
+            random_state=42
+        )
+        self.model.fit(X_train, y_train)
+
+        from sklearn.metrics import mean_absolute_error, r2_score
+        y_pred = self.model.predict(X_test)
+        mae_metric = float(mean_absolute_error(y_test, y_pred))
+        r2_metric = float(r2_score(y_test, y_pred))
+
+        importances = dict(zip(self._feature_cols, [round(float(v), 4) for v in self.model.feature_importances_]))
+        
+        self._training_metrics = {
+            "n_train": len(X_train),
+            "n_test": len(X_test),
+            "test_mae_atr": mae_metric,
+            "test_r2": r2_metric,
+            "feature_importances": importances
+        }
+        return True
+
+    def _normalize_sample(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        normalized: Dict[str, Any] = {}
+        if "_meta" in sample and "schema_version" in sample.get("_meta", {}):
+            l2 = sample.get("l2_snapshot_at_touch", {})
+            zg = sample.get("zone_geometry", {})
+            cl = sample.get("clearance", {})
+            out = sample.get("outcome", {})
+            
+            normalized["vwap_at_retest"] = l2.get("vwap_at_retest")
+            normalized["obi_10_at_retest"] = l2.get("obi_10")
+            normalized["cumulative_delta_at_retest"] = l2.get("cumulative_delta")
+            normalized["delta_divergence"] = l2.get("delta_divergence")
+            normalized["atr_14"] = cl.get("atr_at_detection")
+            normalized["regime"] = cl.get("regime")
+            normalized["direction"] = zg.get("direction")
+            normalized["zone_width_atr"] = zg.get("zone_width_atr", 0.5)
+            normalized["mae_atr"] = out.get("mae_atr")
+        return normalized
+
+    def predict_mae(self, micro: MicrostructureRecord, signal_data: Dict) -> MAEPrediction:
+        if self.model is None:
+            # Fallback a penetración moderada (e.g. 0.2 ATR)
+            return MAEPrediction(str(signal_data.get("index", "unknown")), 0.2, 0.0, True, "Placeholder model")
+
+        row = {
+            "vwap_at_retest": float(self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))),
+            "obi_10_at_retest": float(self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))),
+            "cumulative_delta_at_retest": float(self._pick(micro, "cumulative_delta", signal_data.get("cumulative_delta_at_retest", 0.0))),
+            "delta_divergence": float(self._safe_encode("delta_divergence", self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")))),
+            "atr_14": float(self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))),
+            "regime": float(self._safe_encode("regime", self._pick(micro, "regime", signal_data.get("regime", "LATERAL")))),
+            "direction": float(self._safe_encode("direction", signal_data.get("direction", self._pick(micro, "direction", "bullish")))),
+            "zone_width_atr": float(signal_data.get("zone_width_atr", 0.5))
+        }
+
+        features = pd.DataFrame([row], columns=self._feature_cols).fillna(0.0)
+        predicted_mae_atr = float(self.model.predict(features)[0])
+        
+        retest_price = signal_data.get("zone_top", 0) if row["direction"] == self._safe_encode("direction", "bullish") else signal_data.get("zone_bottom", 0)
+        atr_val = row["atr_14"]
+        
+        # bullish = rebota en zone_top y cae hasta (zone_top - mae_atr*atr) antes de subir
+        # bearish = rebota en zone_bottom y sube hasta (zone_bottom + mae_atr*atr) antes de caer
+        direction_str = signal_data.get("direction", "bullish")
+        
+        if direction_str == "bullish":
+            limit_price = retest_price - (predicted_mae_atr * atr_val)
+        else:
+            limit_price = retest_price + (predicted_mae_atr * atr_val)
+            
+        # Safety check: ¿el MAE predicho es mayor a lo que la zona puede aguantar?
+        zone_width_atr = row["zone_width_atr"]
+        if predicted_mae_atr > (zone_width_atr * self.max_allowable_mae_ratio):
+            is_safe = False
+            reason = f"Predicted MAE ({predicted_mae_atr:.2f} ATR) exceeds {self.max_allowable_mae_ratio*100:.0f}% of zone width ({zone_width_atr:.2f} ATR)"
+        else:
+            is_safe = True
+            reason = "OK"
+
+        return MAEPrediction(
+            trade_id=str(signal_data.get("index", "unknown")),
+            predicted_mae_atr=predicted_mae_atr,
+            limit_price=limit_price,
+            is_safe=is_safe,
+            reason=reason
+        )
+
+    def get_training_metrics(self) -> Dict[str, Any] | None:
+        """Retorna métricas del último entrenamiento."""
+        return self._training_metrics
+
+    def _safe_encode(self, field: str, value: Any) -> int:
+        if field not in self._encoders:
+            return 0
+        if value is None or (isinstance(value, float) and np.isnan(value)):
+            return 0
+        encoder = self._encoders[field]
+        value_str = str(value)
+        known = {str(v) for v in encoder.classes_}
+        if value_str not in known:
+            return 0
+        return int(encoder.transform([value_str])[0])
+
+    def _pick(self, record: Any, field: str, fallback: Any) -> Any:
+        if record is None: return fallback
+        if isinstance(record, dict): return record.get(field, fallback)
+        return getattr(record, field, fallback)
+
+    def save_to_disk(self, path: str):
+        import joblib
+        joblib.dump({"model": self.model, "encoders": self._encoders, "metrics": self._training_metrics}, path)
+
+    def load_from_disk(self, path: str):
+        import joblib
+        data = joblib.load(path)
+        self.model = data["model"]
+        self._encoders = data["encoders"]
+        self._training_metrics = data["metrics"]
+
+    @classmethod
+    def create_default(cls):
+        manifest = ComponentManifest(
+            name="OracleRegressor_MAE",
+            category="sizing",
+            function="Regresor de Maximum Adverse Excursion para Optimización de Entry Points",
+            inputs=["MicrostructureRecord", "SignalData"],
+            outputs=["MAEPrediction"],
+            heritage_source="Capa 2 / Fase 13",
+            heritage_contribution="Limit Order Targeting",
+            v3_adaptations="",
+            causal_score=0.90
         )
         return cls(manifest)

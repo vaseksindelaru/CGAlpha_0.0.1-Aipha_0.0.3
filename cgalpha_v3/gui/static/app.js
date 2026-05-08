@@ -1273,6 +1273,9 @@ async function fetchForensicsStatus() {
         setText("forensics-pending", data.pending_count || 0);
         setText("forensics-resolved", data.resolved_count || 0);
         setText("forensics-dataset", data.dataset_total || 0);
+        const source = data.pending_source || "in_memory";
+        const sourceLabel = source === "disk_fallback" ? "disco (collector externo)" : "memoria local";
+        setText("forensics-pending-note", `Retests esperando resolución · fuente: ${sourceLabel}`);
         renderForensicsDistribution(data.outcome_distribution || {});
         renderForensicsMonitors(data.active_monitors || []);
     } catch { /* silencioso */ }
