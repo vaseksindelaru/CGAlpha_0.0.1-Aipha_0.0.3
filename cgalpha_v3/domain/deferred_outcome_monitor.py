@@ -177,6 +177,7 @@ class DeferredOutcomeMonitor:
                 continue
 
             # Actualizar MFE/MAE
+            mfe_updated = False
             if label.zone_direction == "bullish":
                 favorable = current_price - label.entry_price
                 adverse = label.entry_price - current_price
@@ -184,8 +185,17 @@ class DeferredOutcomeMonitor:
                 favorable = label.entry_price - current_price
                 adverse = current_price - label.entry_price
 
-            label.mfe = max(label.mfe, favorable)
-            label.mae = max(label.mae, adverse)
+            if favorable > label.mfe:
+                label.mfe = favorable
+                mfe_updated = True
+            
+            if adverse > label.mae:
+                label.mae = adverse
+                mfe_updated = True
+
+            if mfe_updated:
+                # Journaling defensivo: guardar progreso para no perder MFE/MAE en reinicios
+                self._persist_pending()
 
             if bar_closed:
                 label.bars_elapsed += 1

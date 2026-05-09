@@ -1,7 +1,7 @@
 {
   "phase": "0 \u2014 Cosecha y Observabilidad",
   "strategy": "Triple Coincidence v3",
-  "timestamp": "2026-04-11T22:38:02.180950",
+  "timestamp": "2026-05-09T18:02:04.318108",
   "data": {
     "n_candles": 500,
     "interval": "1h",
@@ -17,12 +17,12 @@
   },
   "detection": {
     "active_zones": 0,
-    "retest_events": 21,
-    "training_samples": 21
+    "retest_events": 7,
+    "training_samples": 7
   },
   "outcomes": {
-    "BOUNCE": 19,
-    "BREAKOUT": 2
+    "BOUNCE": 6,
+    "BREAKOUT": 1
   },
   "oracle": {
     "status": "placeholder",
@@ -30,7 +30,7 @@
     "next_step": "Implementar RandomForestClassifier con dataset real"
   },
   "experiment_runner": {
-    "retests_via_runner": 21,
-    "dataset_via_runner": 21
+    "retests_via_runner": 7,
+    "dataset_via_runner": 7
   }
 }

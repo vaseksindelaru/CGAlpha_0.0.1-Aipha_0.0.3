@@ -205,8 +205,16 @@ class LiveDataFeedAdapter(BaseComponentV3):
     # ══════════════════════════════════════════════════════════════
 
     def _persist_active_zones(self):
-        """Persiste el estado de las zonas activas en disco para la GUI."""
+        """
+        Persiste el estado del detector y las zonas activas en disco.
+        Esto permite que la GUI y el motor de trading sobrevivan a reinicios.
+        """
         try:
+            # 1. El detector guarda su estado completo (para auto-recuperación térmica)
+            if hasattr(self.detector, "save_state"):
+                self.detector.save_state()
+            
+            # 2. El adaptador genera la vista simplificada para la GUI (active_zones.json)
             import json
             from pathlib import Path
             path = Path("aipha_memory/operational/active_zones.json")
@@ -214,13 +222,13 @@ class LiveDataFeedAdapter(BaseComponentV3):
             zones_data = []
             for z in self.detector.active_zones:
                 zones_data.append({
-                    "zone_id": z.zone_id,
-                    "direction": z.direction.value if hasattr(z.direction, "value") else z.direction,
+                    "zone_id": z.zone_id or f"{z.candle_index}_{z.direction}",
+                    "direction": z.direction,
                     "state": z.lifecycle_state.value if hasattr(z.lifecycle_state, "value") else z.lifecycle_state,
                     "zone_top": z.zone_top,
                     "zone_bottom": z.zone_bottom,
-                    "touches": z.touch_sequence,
-                    "created_at": z.created_at_idx
+                    "touches": getattr(z, "touch_count", 0),
+                    "created_at": z.detection_timestamp
                 })
             with open(path, "w") as f:
                 json.dump(zones_data, f, indent=2)

@@ -12,8 +12,11 @@ Lógica correcta de la estrategia:
 
 import pandas as pd
 import numpy as np
+import logging
 from typing import Optional, Dict, List, Any, Tuple
 from dataclasses import dataclass, field
+
+logger = logging.getLogger("detector")
 
 
 # ─── Shadow Harvesting v1: Zone Lifecycle ────────────────────────────────────
@@ -207,20 +210,28 @@ class KeyCandleDetector:
     def detect(self, index: int) -> Optional[Dict]:
         """
         Evalúa si la vela en `index` es una vela clave.
-
-        Returns:
-            dict | None: Información de la vela clave o None
+        Calcula Z-Score de volumen relativo y morfología observacional.
         """
         if self.data is None or index < self.config['lookback_candles']:
             return None
 
-        vpt = self.config['volume_percentile_threshold']
         bpt = self.config['body_percentage_threshold']
         lookback = self.config['lookback_candles']
 
-        volume_percentile = np.percentile(
-            self.data['volume'].iloc[index - lookback:index], vpt
-        )
+        # ── VOLUMEN ADAPTATIVO (Z-Score) ─────────────────────────
+        vol_history = self.data['volume'].iloc[index - lookback:index].values
+        mean_vol = np.mean(vol_history)
+        std_vol = np.std(vol_history)
+        current_vol = self.data['volume'].iloc[index]
+        
+        # Z-Score local (evita rigidez de percentiles globales)
+        z_score = (current_vol - mean_vol) / std_vol if std_vol > 0 else 0
+        
+        # Umbral configurable (default 0.5 para capturar velas como las 06:10)
+        # Nota: En v3 se usa volume_percentile_threshold de forma legacy si no hay z_threshold
+        z_threshold = self.config.get('volume_z_threshold', 0.5)
+        is_high_vol = z_score >= z_threshold
+
         current = self.data.iloc[index]
         body_size = abs(current['close'] - current['open'])
         candle_range = current['high'] - current['low']
@@ -229,8 +240,18 @@ class KeyCandleDetector:
             return None
 
         body_pct = 100 * body_size / candle_range
-        is_high_vol = current['volume'] >= volume_percentile
         is_small_body = body_pct <= bpt
+
+        # ── MORFOLOGÍA OBSERVACIONAL ─────────────────────────────
+        upper_wick = current['high'] - max(current['open'], current['close'])
+        lower_wick = min(current['open'], current['close']) - current['low']
+        
+        upper_wick_pct = 100 * upper_wick / candle_range
+        lower_wick_pct = 100 * lower_wick / candle_range
+        rejection = "NONE"
+        if upper_wick_pct > 40 and lower_wick_pct > 40: rejection = "BOTH"
+        elif upper_wick_pct > 40: rejection = "UP"
+        elif lower_wick_pct > 40: rejection = "DOWN"
 
         if is_high_vol and is_small_body:
             return {
@@ -240,9 +261,12 @@ class KeyCandleDetector:
                 'low': float(current['low']),
                 'close': float(current['close']),
                 'volume': float(current['volume']),
-                'volume_percentile': float(volume_percentile),
-                'body_percentage': body_pct,
-                'timestamp': self.data.index[index] if hasattr(self.data.index[index], '__int__') else index
+                'vol_z_score': float(z_score),
+                'body_percentage': float(body_pct),
+                'upper_wick_pct': float(upper_wick_pct),
+                'lower_wick_pct': float(lower_wick_pct),
+                'rejection_direction': rejection,
+                'timestamp': int(current.get('open_time', index))
             }
         return None
 
@@ -661,7 +685,9 @@ class TripleCoincidenceDetector:
             'proximity_tolerance': 8,
             'retest_timeout_bars': 50,
             'outcome_lookahead_bars': 10,
-            'breakout_confirm_atr_buffer': 0.03,  # 3% ATR para evitar flip por ruido de 1 tick
+            'breakout_confirm_atr_buffer': 0.03,
+            'volume_z_threshold': 0.5,
+            'state_path': "aipha_memory/operational/active_zones.json"
         }
         self.config = {**defaults, **(config or {})}
         self.key_candle_detector = KeyCandleDetector(self.config)
@@ -672,6 +698,85 @@ class TripleCoincidenceDetector:
         self.active_zones: List[ActiveZone] = []
         # Dataset de entrenamiento para Oracle
         self.training_samples: List[TrainingSample] = []
+        
+        # Buffers internos para Live Mode
+        self._kline_buffer = []
+        self._pending_live_retests = []
+        
+        # Intentar cargar estado persistente (Evita Cold Start de zonas)
+        self.load_state()
+
+    def seed_history(self, df: pd.DataFrame):
+        """
+        Pre-puebla el buffer de historial con datos previos (Warm Start).
+        Permite que el primer tick de WebSocket tenga contexto estadístico.
+        """
+        if df is None or df.empty:
+            return
+        # Convertir a lista de dicts (formato de ticks)
+        klines = df.to_dict('records')
+        self._kline_buffer = klines[-200:] # Mantener ultimas 200 para ATR/Z-Score
+        logger.info(f"📊 Detector hidratado con {len(self._kline_buffer)} velas de historial (Bootstrap).")
+
+    def save_state(self):
+        """Persiste las zonas activas en disco."""
+        import json
+        from pathlib import Path
+        path = Path(self.config['state_path'])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Serializar zonas a formato JSON puro
+        data = []
+        for z in self.active_zones:
+            # Simplificamos dataclass a dict para persistencia
+            z_dict = {
+                'candle_index': z.candle_index,
+                'zone_top': z.zone_top,
+                'zone_bottom': z.zone_bottom,
+                'vwap_at_detection': z.vwap_at_detection,
+                'detection_timestamp': z.detection_timestamp,
+                'direction': z.direction,
+                'key_candle': z.key_candle,
+                'accumulation_zone': z.accumulation_zone,
+                'mini_trend': z.mini_trend,
+                'atr_at_detection': z.atr_at_detection,
+                'lifecycle_state': z.lifecycle_state.value, # Enum a str
+                'touch_count': z.touch_count,
+                'polarity_flipped': z.polarity_flipped,
+                'zone_id': z.zone_id
+            }
+            data.append(z_dict)
+            
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=2)
+
+    def load_state(self):
+        """Carga zonas activas desde disco al iniciar."""
+        import json
+        from pathlib import Path
+        path = Path(self.config['state_path'])
+        if not path.exists():
+            return
+            
+        try:
+            with open(path, 'r') as f:
+                data = json.load(f)
+                
+            loaded_zones = []
+            for d in data:
+                # Convertir str de vuelta a Enum
+                state_str = d.pop('lifecycle_state', 'active')
+                state = ZoneLifecycleState(state_str)
+                
+                z = ActiveZone(**d)
+                z.lifecycle_state = state
+                loaded_zones.append(z)
+                
+            self.active_zones = loaded_zones
+            if loaded_zones:
+                logger.info(f"💾 Recuperadas {len(loaded_zones)} zonas del estado persistente.")
+        except Exception as e:
+            logger.warning(f"⚠️ No se pudo cargar el estado del detector: {e}")
 
     def detect(self, df: pd.DataFrame) -> List[TripleSignal]:
         """

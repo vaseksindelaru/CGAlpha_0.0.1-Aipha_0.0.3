@@ -132,6 +132,10 @@ def bootstrap_detector(detector, symbol: str = "BTCUSDT", interval: str = BOOTST
     zones_before = len(getattr(detector, "active_zones", {}))
 
     try:
+        # 1. Hidratar el historial estadístico del detector para evitar Cold Start
+        if hasattr(detector, "seed_history"):
+            detector.seed_history(ohlcv_df)
+
         training_samples = detector.process_stream(ohlcv_df, micro_df)
         logger.info(f"Bootstrap: process_stream completado. Samples generados: {len(training_samples) if training_samples else 0}.")
     except Exception as exc:

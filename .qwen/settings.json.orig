@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(sleep *)",
+      "Bash(curl *)",
+      "Bash(cd *)",
+      "Bash(head *)",
+      "Bash(ps *)",
+      "Bash(grep *)",
+      "Bash(nohup *)",
+      "Bash(kill *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
-  }
+  },
+  "$version": 3
 }
