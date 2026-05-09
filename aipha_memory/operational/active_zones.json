@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "zone_id": "TEST_DEBUG_123",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 100000.0,
+    "zone_bottom": 99900.0,
+    "touches": 0,
+    "created_at": 1715264000000
+  }
+]
