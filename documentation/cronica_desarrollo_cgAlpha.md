@@ -365,22 +365,30 @@ Hemos pasado de la intuición a la instrumentación.
 
 ---
 
-## 4) Estado actual (3 mayo 2026)
+## 4) Estado actual (10 mayo 2026)
 
 | Componente | Estado | Evidencia |
 |-----------|--------|-----------|
 | Canal de evolución | ✅ Operativo | 4 islas conectadas, Island Bridge |
 | Oracle OOS | ✅ 0.68 honesto | 30 días BTCUSDT, 121 samples reales |
+| Oracle v5 (Synth-Bridge) | ✅ Entrenado | 100 muestras sintéticas, modo `observe` |
 | ZigZag threshold | ✅ Calibrado | 0.18% — P75 de rango real de vela |
 | Safety Envelope | ✅ 28 parámetros | Gatekeeper activo |
 | Cooldown §4.3 | ✅ Implementado | `_count_recent_modifications()` |
 | Sage v4 AST | ✅ Operativo | 9/9 tests pasando |
-| Clearance instrumentation | ✅ **OPERATIVO** | 26 samples capturados en vivo (6h monitoring) |
+| Clearance instrumentation | ✅ **OPERATIVO** | Feature `max_clearance_atr` en TrainingSample |
 | OBI / CumDelta reales | ✅ **CONECTADO** | WS @depth20@100ms activo, ingesta L2 validada |
-| 60 días históricos | ✅ **COMPLETADO** | 261 samples limpios, CV OOS 0.688 |
-| Filtro rebotes prematuros | ⏳ Pendiente evidencia | Divergencia P25 < 0.2 ATR (insuficiente aún) |
-| Buffer temporal L2 | 🔴 **NO EXISTE** | Oracle solo ve snapshot estático — Debilidad #1 |
-| Etiquetado terciario | 🔴 **NO EXISTE** | Fallback `return 'BOUNCE'` L965 contamina labels — Debilidad #2 |
+| L2 Ring Buffer 30s | ✅ **OPERATIVO** | `l2_ring_buffer.py` — sintetiza 25 features L2 al retest |
+| Etiquetado terciario | ✅ **OPERATIVO** | BOUNCE_STRONG/BOUNCE_WEAK/BREAKOUT/INCONCLUSIVE |
+| DeferredOutcomeMonitor | ✅ **CON JOURNALING** | Persistencia inmediata MFE/MAE, labels diferidamente |
+| Warm Start (Cold Start fix) | ✅ **OPERATIVO** | `seed_history()` pre-popula 200 velas, 20 zonas al bootstrap |
+| Persistencia zonas + TTL 24h | ✅ **OPERATIVO** | `save_state()`/`load_state()` con rutas absolutas |
+| Z-Score volumen adaptativo | ✅ **OPERATIVO** | Umbral 0.5, ventana 30, instrumen. de calibración activa |
+| Morfología observacional | ✅ **OPERATIVO** | `wick_pct`, `rejection_direction` en ReentrySnapshot |
+| GUI visibilidad de zonas | ✅ **VERIFICADO** | 20 zonas visibles tras bootstrap, rutas absolutas, archivos separados |
+| Multi-Touch Clearance | ✅ **IMPLEMENTADO** | `min_clearance_atr=1.0`, per-touch tracking, MAX_TOUCHES=3 |
+| Z-Score Calibration Log | ✅ **RECOLECTANDO** | `zscore_calibration_log.jsonl`, Cat.1 observacional |
+| CHANGELOG_ALGO.md | ✅ **CREADO** | 7 entradas versionadas (v1.0.0 → v1.7.0) |
 | Encoding determinista | 🟡 **PENDIENTE** | `LabelEncoder` no-determinista en oracle.py — Debilidad #3 |
 | Lookahead adaptativo | 🟡 **PENDIENTE** | `outcome_lookahead_bars=10` fijo — Debilidad #5 |
 
@@ -441,20 +449,28 @@ Hemos pasado de la intuición a la instrumentación.
 
 ## 6) Próximos pasos — Hoja de ruta priorizada
 
-### COMPLETADOS (Fase 8 y 9)
+### COMPLETADOS (Fases 8, 9, 10.5, 10.5b, Hardening Fase 1 y 2)
 
 **[A] Cosecha de evidencia:** Instrumentación ciega `max_clearance_atr` inyectada y auditada en Live.
 **[B] Ampliar a 60 días históricos:** Ejecutado. Generó 261 muestras con el threshold real (0.18%).
-**[C] Análisis de percentiles:** Ejecutado empíricamente. Las diferencias de clearance entre P25(BOUNCE) y P25(BREAKOUT) fueron de apenas ~0.15 ATR. **Conclusión científica: el clearance puro de escape carece de poder predictivo suficiente.**
-**[D] Conexión de OBI y CumDelta (Cat.2):** Efectuado. Transición al stream `@depth20@100ms`, destruyendo la ceguera al flujo L2.
+**[C] Análisis de percentiles:** Ejecutado empíricamente. Divergencia P25 ~0.15 ATR. **Clearance puro como filtro espacial duro: poder predictivo insuficiente.**
+**[D] Conexión de OBI y CumDelta (Cat.2):** Transición al stream `@depth20@100ms`.
+**[E'] Multi-Touch Clearance Logic (Cat.2):** Implementada como gate de toques independientes (no como filtro espacial duro). `min_clearance_atr=1.0` exige que el precio se aleje 1 ATR antes de aceptar el 2do/3er toque. Esto no rechaza retests — asegura que son eventos independientes. Evolución de [E] que fue rechazado como filtro binario.
+**[F] Warm Start / Cold Start:** `seed_history()` pre-popula 200 velas. 20 zonas detectadas en <30s.
+**[G] Z-Score Volumen Adaptativo:** Reemplazo de P70 estático por Z-Score local (ventana 30, umbral 0.5). Instrumentación Cat.1 activa en `zscore_calibration_log.jsonl`.
+**[H] Persistencia robusta:** `save_state()`/`load_state()` con TTL 24h, rutas absolutas, archivos separados.
+**[I] Morfología Observacional:** Campos `wick_pct`, `rejection_direction` en ReentrySnapshot. Retrocompatible.
+**[J] Journaling Defensivo:** `DeferredOutcomeMonitor` persiste MFE/MAE inmediatamente en cada récord.
+**[K] GUI Visibilidad:** Rutas absolutas unificadas, separación `detector_state.json` / `active_zones.json`, flag `is_bootstrapping`. 20 zonas visibles en la GUI.
+**[L] CHANGELOG_ALGO.md:** Registro algorítmico con 7 entradas versionadas (v1.0.0 → v1.7.0).
 
 ### DESCARTADOS (Basado en Evidencia)
 
-**[E] Filtro de rebotes prematuros en `_check_retest` (Cat.2):** **RECHAZADO**. La matemática del Paso C dictaminó que un filtro espacial duro destruiría la robustez, filtrando retests legítimos de alta liquidez.
+**[E] Filtro de rebotes prematuros en `_check_retest` (Cat.2):** **RECHAZADO como filtro binario**. La matemática del Paso C dictaminó que un filtro espacial duro destruiría la robustez. Sin embargo, la lógica evolucionó hacia [E'] como gate de independencia entre toques.
 
 ### INMEDIATO — Esta semana (En progreso)
 
-**Cosecha Viva L2:** Dejar el ShadowTrader capturar retests con el stream `@depth20` recién instrumentado (>24h). El objetivo es acumular mínimo 50+ samples limpios con `obi_10` y `cumulative_delta` reales.
+**Cosecha Viva L2:** El sistema está recolectando retests con el stream `@depth20` con las 20 zonas activas del bootstrap. El objetivo es acumular ≥50 samples limpios con `obi_10` y `cumulative_delta` reales para re-entrenamiento del Oracle con datos orgánicos.
 
 ### PRÓXIMO — Fase Puente: Feature Engineering + Corrección de Etiquetado (Cat.2)
 
@@ -538,6 +554,10 @@ Protocolo de cuestionamiento (§6 del Mantra). Validación OOS de 3 ciclos + apr
 | `8190fa1` | Clock mismatch en rolling delta | Ventana temporal L2 coherente con `event_time` de Binance |
 | `6d3483d` | Bootstrap histórico en `launch_shadow_live.py` | Resuelve arranque en frío del detector al iniciar Live |
 | `26da216` | Confirmación breakout con buffer ATR + GC HARVESTING | Reduce flips por ruido y preserva zonas hasta TTL |
+| `2ad8ba8` | Shadow Harvesting Multi-Touch & Oracle L2 pipeline | Integration de lifecycle de zonas y pipeline L2 |
+| `c78fb8e` | Hardening Fase 1: Cold Start, Z-Score, Morfología | Warm Start operativo, detección adaptativa |
+| `2268d2f` | Hardening Fase 1 GUI: Persistencia y pipeline verificados | GUI pipeline verificado |
+| `4e40dd7` | Hardening Fase 2: Multi-Touch Clearance, Z-Score instrumentation, GUI fix | 20 zonas visibles, clearance activo, Cat.1 log activo |
 
 ---
 
