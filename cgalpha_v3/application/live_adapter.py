@@ -207,7 +207,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
     def _persist_active_zones(self):
         """
         Persiste el estado del detector y las zonas activas en disco.
-        Esto permite que la GUI y el motor de trading sobrevivan a reinicios.
+        Usa ruta ABSOLUTA para garantizar que el servidor GUI lea el mismo archivo.
         """
         try:
             # 1. El detector guarda su estado completo (para auto-recuperación térmica)
@@ -217,7 +217,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
             # 2. El adaptador genera la vista simplificada para la GUI (active_zones.json)
             import json
             from pathlib import Path
-            path = Path("aipha_memory/operational/active_zones.json")
+            # CRITICAL: Ruta absoluta calculada desde __file__, NO relativa al CWD
+            project_root = Path(__file__).resolve().parent.parent.parent
+            path = project_root / "aipha_memory" / "operational" / "active_zones.json"
             path.parent.mkdir(parents=True, exist_ok=True)
             zones_data = []
             for z in self.detector.active_zones:
@@ -225,15 +227,16 @@ class LiveDataFeedAdapter(BaseComponentV3):
                     "zone_id": z.zone_id or f"{z.candle_index}_{z.direction}",
                     "direction": z.direction,
                     "state": z.lifecycle_state.value if hasattr(z.lifecycle_state, "value") else z.lifecycle_state,
-                    "zone_top": z.zone_top,
-                    "zone_bottom": z.zone_bottom,
-                    "touches": getattr(z, "touch_count", 0),
-                    "created_at": z.detection_timestamp
+                    "zone_top": float(z.zone_top),
+                    "zone_bottom": float(z.zone_bottom),
+                    "touches": int(getattr(z, "touch_count", 0)),
+                    "created_at": int(z.detection_timestamp)
                 })
             with open(path, "w") as f:
                 json.dump(zones_data, f, indent=2)
+            logger.info(f"💾 Zonas GUI persistidas: {len(zones_data)} zonas → {path}")
         except Exception as e:
-            logger.error(f"Error persisting active zones: {e}")
+            logger.error(f"Error persisting active zones: {e}", exc_info=True)
 
     def _on_retest_detected(self, hit: dict, price: float, timestamp_ms: int):
         """
@@ -308,6 +311,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 ).isoformat() if zone.detection_timestamp > 1e9 else None,
                 "key_candle_volume_ratio": zone.key_candle.get("volume_percentile", 0),
                 "key_candle_body_pct": zone.key_candle.get("body_percentage", 0),
+                "key_candle_upper_wick_pct": zone.key_candle.get("upper_wick_pct", 0),
+                "key_candle_lower_wick_pct": zone.key_candle.get("lower_wick_pct", 0),
+                "key_candle_rejection": zone.key_candle.get("rejection_direction", "NONE"),
                 "accumulation_bar_count": (
                     zone.accumulation_zone.get("end_idx", 0)
                     - zone.accumulation_zone.get("start_idx", 0)

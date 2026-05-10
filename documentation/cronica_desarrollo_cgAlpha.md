@@ -1,11 +1,11 @@
 # Crónica de Desarrollo — cgAlpha / Aipha
-### Versión 3.4 — Actualizada 8 mayo 2026
+### Versión 3.5 — Actualizada 10 mayo 2026
 
 > Documento vivo para reconstruir el pasado, comprender el estado actual y orientar decisiones futuras.
-> Esta versión incorpora la **Construcción del Shadow Harvesting** (7 mayo 2026)
-> y su **Hardening Operativo** (8 mayo 2026),
-> que implementó persistencia multi-toque L2 y ciclos de vida para
-> zonas, sentando las bases masivas de captura para el futuro Oracle Secundario.
+> Esta versión incorpora el **Hardening Fase 1** (9 mayo 2026): Cold Start, Z-Score de volumen,
+> persistencia con TTL, y morfología observacional.
+> Y el **Hardening Fase 2** (10 mayo 2026): fix de visibilidad GUI, Multi-Touch Clearance Logic,
+> e instrumentación Z-Score para calibración futura.
 
 ---
 
@@ -914,6 +914,32 @@ Debido al largo tiempo requerido para acumular ≥50 muestras L2 de alta fidelid
 
 **Siguiente Paso (Fase 11):**  
 Ejecución del pipeline en Walk-Forward real o pruebas con datos del mercado en vivo activando la nueva "Triple Coincidence v3" contra Binance WebSocket.
+
+---
+
+### Hito: Hardening Fase 1 — Cold Start y Detección Adaptativa (9 mayo 2026)
+- Fecha: 9 de mayo 2026
+- Origen: El detector arrancaba en vacío y requería 8+ horas de mercado vivo para funcionar.
+- Cambios aplicados:
+  - **Warm Start** (`seed_history`): pre-popula buffer con 200 velas históricas, contexto ATR/Z-Score inmediato.
+  - **Z-Score de Volumen Adaptativo**: reemplazo del filtro P70 estático por Z-Score local (ventana 30, umbral 0.5).
+  - **Persistencia con TTL**: `save_state()`/`load_state()` con filtro de 24 horas para evitar zonas obsoletas.
+  - **Morfología Observacional**: campos `upper_wick_pct`, `lower_wick_pct`, `rejection_direction` en ReentrySnapshot.
+  - **Journaling Defensivo**: persistencia inmediata de MFE/MAE récord en `DeferredOutcomeMonitor`.
+  - **Deduplicación por `open_time`**: WebSocket actualiza vela en curso en lugar de duplicar.
+- Tests: 7 failed / 213 passed (baseline pre-existente, regresión cero).
+- Criterio de éxito: Tiempo a primera zona: <30s (vs 8+ horas anterior).
+
+### Hito: Hardening Fase 2 — Multi-Touch, Calibración, Visibilidad GUI (10 mayo 2026)
+- Fecha: 10 de mayo 2026
+- Origen: Tres problemas detectados durante la fase de cosecha.
+- Cambios aplicados:
+  - **Fix Visibilidad GUI**: Rutas absolutas en `save_state()`, `load_state()`, y `_persist_active_zones()`. Separación de `detector_state.json` (estado interno) y `active_zones.json` (vista GUI). Flag `is_bootstrapping` en `process_stream` para prevenir que `_cleanup_expired_zones` elimine zonas durante el bootstrap. Eliminación de 5 procesos zombie. **Resultado: 10 zonas visibles en la GUI inmediatamente tras bootstrap.**
+  - **Multi-Touch Clearance Logic** (Cat.2): Para el 2do+ toque de una zona, el precio debe haberse alejado ≥ `min_clearance_atr * ATR` (default 1.0) antes de aceptar un nuevo retest independiente. Campos `max_price_since_last_touch`, `min_price_since_last_touch` añadidos a ActiveZone (reset en `register_touch`). Máximo 3 toques por zona (EXHAUSTED).
+  - **Z-Score Calibration Instrumentation** (Cat.1): Log observacional en `zscore_calibration_log.jsonl` con `vol_z_score`, `body_pct`, `passed_filter`, `zone_detected` para cada vela procesada. Sin impacto en comportamiento; datos para calibración futura del umbral 0.5.
+  - **CHANGELOG_ALGO.md**: Creación del registro algorítmico con 7 entradas versionadas (v1.0.0 a v1.7.0).
+- Tests: 7 failed / 213 passed (baseline idéntica, regresión cero).
+- Criterio de éxito: GUI muestra zonas reales + clearance filtra oscilaciones laterales + instrumentación Cat.1 activa.
 
 ---
 

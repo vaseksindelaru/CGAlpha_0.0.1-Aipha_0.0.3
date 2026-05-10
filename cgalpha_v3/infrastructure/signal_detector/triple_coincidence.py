@@ -68,6 +68,8 @@ class ActiveZone:
     atr_at_detection: float
     max_price_since_detection: float = -1.0
     min_price_since_detection: float = 1e10
+    max_price_since_last_touch: float = -1.0   # Reset en cada register_touch
+    min_price_since_last_touch: float = 1e10   # Reset en cada register_touch
     retest_detected: bool = False  # Legado — usar lifecycle_state en su lugar
     zone_id: str = ""
 
@@ -117,6 +119,9 @@ class ActiveZone:
             polarity_flipped=self.polarity_flipped,
         )
         self.touch_history.append(rec)
+        # Reset per-touch extremes for clearance tracking of NEXT touch
+        self.max_price_since_last_touch = price
+        self.min_price_since_last_touch = price
         if self.touch_count >= self.MAX_TOUCHES:
             self.lifecycle_state = ZoneLifecycleState.EXHAUSTED
         return seq
@@ -687,7 +692,8 @@ class TripleCoincidenceDetector:
             'outcome_lookahead_bars': 10,
             'breakout_confirm_atr_buffer': 0.03,
             'volume_z_threshold': 0.5,
-            'state_path': "aipha_memory/operational/active_zones.json"
+            'min_clearance_atr': 1.0,
+            'state_path': "aipha_memory/operational/detector_state.json"
         }
         self.config = {**defaults, **(config or {})}
         self.key_candle_detector = KeyCandleDetector(self.config)
@@ -719,10 +725,13 @@ class TripleCoincidenceDetector:
         logger.info(f"📊 Detector hidratado con {len(self._kline_buffer)} velas de historial (Bootstrap).")
 
     def save_state(self):
-        """Persiste las zonas activas en disco."""
+        """Persiste las zonas activas en disco (estado interno del detector)."""
         import json
+        import numpy as np
         from pathlib import Path
-        path = Path(self.config['state_path'])
+        # Ruta absoluta basada en __file__ para evitar dependencia del CWD
+        project_root = Path(__file__).resolve().parent.parent.parent
+        path = project_root / self.config['state_path']
         path.parent.mkdir(parents=True, exist_ok=True)
         
         # Serializar zonas a formato JSON puro
@@ -751,10 +760,16 @@ class TripleCoincidenceDetector:
             json.dump(data, f, indent=2)
 
     def load_state(self):
-        """Carga zonas activas desde disco al iniciar."""
+        """
+        Carga zonas activas desde disco al iniciar.
+        Aplica un TTL de 24 horas para evitar cargar zonas obsoletas.
+        """
         import json
+        import time
         from pathlib import Path
-        path = Path(self.config['state_path'])
+        # Ruta absoluta basada en __file__
+        project_root = Path(__file__).resolve().parent.parent.parent
+        path = project_root / self.config['state_path']
         if not path.exists():
             return
             
@@ -1009,8 +1024,10 @@ class TripleCoincidenceDetector:
         all_trends = self.trend_detector.detect_all()
 
         retest_events = []
+        self.is_bootstrapping = True
 
-        for idx in range(len(df)):
+        try:
+          for idx in range(len(df)):
             # 1. Detectar nuevas zonas
             new_zones = self._detect_new_zones(df, idx, all_trends)
             self.active_zones.extend(new_zones)
@@ -1062,6 +1079,8 @@ class TripleCoincidenceDetector:
 
             # 3. Limpiar zonas expiradas (timeout)
             self._cleanup_expired_zones(idx)
+        finally:
+          self.is_bootstrapping = False
 
         return retest_events
 
@@ -1213,6 +1232,8 @@ class TripleCoincidenceDetector:
 
     def _cleanup_expired_zones(self, current_idx: int):
         """Elimina zonas expiradas, preservando zonas en HARVESTING hasta su TTL."""
+        if getattr(self, 'is_bootstrapping', False):
+            return
         timeout = self.config['retest_timeout_bars']
         self.active_zones = [
             z for z in self.active_zones
@@ -1275,6 +1296,10 @@ class TripleCoincidenceDetector:
                 elif zone.direction == 'bearish' and price > upper_breakout_level:
                     zone.register_breakout(breakout_price=price)
 
+            # Update per-touch price extremes (for clearance tracking)
+            zone.max_price_since_last_touch = max(zone.max_price_since_last_touch, price)
+            zone.min_price_since_last_touch = min(zone.min_price_since_last_touch, price)
+
             # Check if price is inside the zone
             if zone.zone_bottom <= price <= zone.zone_top:
                 # Calculate clearance at this moment
@@ -1286,6 +1311,20 @@ class TripleCoincidenceDetector:
                     clearance = (zone.max_price_since_detection - zone.zone_top) / atr
                 else:
                     clearance = (zone.zone_bottom - zone.min_price_since_detection) / atr
+
+                # ── CLEARANCE LOGIC (Multi-Touch) ────────────────────
+                # Para el 2do+ toque, exigir que el precio se haya
+                # alejado > min_clearance_atr * ATR de la zona antes
+                # de aceptar un nuevo retest independiente.
+                min_clearance = self.config.get('min_clearance_atr', 1.0)
+                if zone.touch_count > 0:
+                    if zone.direction == 'bullish':
+                        touch_clearance = (zone.max_price_since_last_touch - zone.zone_top) / atr
+                    else:
+                        touch_clearance = (zone.zone_bottom - zone.min_price_since_last_touch) / atr
+
+                    if touch_clearance < min_clearance:
+                        continue  # No acepto el toque — el precio no se alejó lo suficiente
 
                 # Mark zone as retested (prevents future triggers)
                 zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
@@ -1329,8 +1368,57 @@ class TripleCoincidenceDetector:
         new_zones = self._detect_new_zones(df, current_idx)
         self.active_zones.extend(new_zones)
 
+        # ── Z-Score Calibration Instrumentation (Cat.1, observacional) ──
+        self._log_zscore_calibration(df, current_idx, len(new_zones) > 0)
+
         # Cleanup expired zones
         self._cleanup_expired_zones(current_idx)
+
+    def _log_zscore_calibration(self, df: pd.DataFrame, idx: int, zone_detected: bool):
+        """
+        Registra Z-Score de volumen para cada vela procesada.
+        Archivo: aipha_memory/operational/zscore_calibration_log.jsonl
+        Cat.1: observacional, no cambia comportamiento.
+        """
+        import json
+        from pathlib import Path
+        from datetime import datetime, timezone
+        try:
+            current = df.iloc[idx]
+            vol = float(current['volume'])
+            candle_range = float(current['high']) - float(current['low'])
+            body_size = abs(float(current['close']) - float(current['open']))
+            body_pct = (100 * body_size / candle_range) if candle_range > 0 else 0
+
+            # Calcular Z-Score local (misma ventana que KeyCandleDetector)
+            window = min(30, idx)
+            if window < 5:
+                return
+            vol_series = df.iloc[max(0, idx - window):idx + 1]['volume'].astype(float)
+            mean_vol = vol_series.mean()
+            std_vol = vol_series.std()
+            z_score = (vol - mean_vol) / std_vol if std_vol > 0 else 0.0
+
+            threshold = self.config.get('volume_z_threshold', 0.5)
+            passed = z_score >= threshold
+
+            entry = {
+                "ts_utc": datetime.fromtimestamp(
+                    int(current.get('open_time', 0)) / 1000, tz=timezone.utc
+                ).isoformat() if current.get('open_time', 0) > 0 else datetime.now(timezone.utc).isoformat(),
+                "vol_z_score": round(float(z_score), 4),
+                "body_pct": round(float(body_pct), 1),
+                "passed_filter": passed,
+                "zone_detected": zone_detected,
+            }
+
+            project_root = Path(__file__).resolve().parent.parent.parent
+            log_path = project_root / "aipha_memory" / "operational" / "zscore_calibration_log.jsonl"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception:
+            pass  # Instrumentación Cat.1: no debe interrumpir el flujo principal
 
     def get_training_dataset(self) -> List[TrainingSample]:
         """Retorna dataset de entrenamiento para Oracle."""

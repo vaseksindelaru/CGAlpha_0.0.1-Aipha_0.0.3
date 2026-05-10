@@ -1,10 +1,5 @@
 {
-  "passed": true,
-  "n_samples": 100,
-  "class_balance": {
-    "BOUNCE_STRONG": 0.5333333333333333,
-    "BREAKOUT": 0.4666666666666667
-  },
-  "nan_ratio": 0.0,
-  "timestamp": "2026-05-04 20:54:45.648179"
+  "reason": "Insufficient samples (18 < 50)",
+  "passed": false,
+  "n": 18
 }
