@@ -1,11 +1,10 @@
 # Crónica de Desarrollo — cgAlpha / Aipha
-### Versión 3.5 — Actualizada 10 mayo 2026
+### Versión 3.6 — Actualizada 10 mayo 2026
 
 > Documento vivo para reconstruir el pasado, comprender el estado actual y orientar decisiones futuras.
-> Esta versión incorpora el **Hardening Fase 1** (9 mayo 2026): Cold Start, Z-Score de volumen,
-> persistencia con TTL, y morfología observacional.
-> Y el **Hardening Fase 2** (10 mayo 2026): fix de visibilidad GUI, Multi-Touch Clearance Logic,
-> e instrumentación Z-Score para calibración futura.
+> Esta versión incorpora el cierre formal del Hardening Fase 2:
+> confirmación de 20 zonas activas en GUI, diagnóstico de los
+> 3 bugs raíz de visibilidad, y lección metodológica nueva.
 
 ---
 
@@ -445,6 +444,27 @@ Hemos pasado de la intuición a la instrumentación.
     outcomes marginales. Los bounces débiles deben etiquetarse como categoría
     intermedia para que el modelo no entrene sobre ruido en la variable target.
 
+12. **Diagnosticar antes de implementar — siempre con evidencia de código:**
+    El Cold Start parecía un problema de hidratación de indicadores. El diagnóstico
+    con greps confirmó que era un problema de buffer no compartido entre
+    `process_stream()` y `process_live_tick()`. Implementar sin verificar
+    habría producido un fix correcto para el problema equivocado. La pregunta
+    "¿en qué línea exacta está el bug?" es más valiosa que cualquier propuesta
+    de solución.
+
+13. **Los bugs de visibilidad son bugs de datos, no bugs de UI:**
+    La GUI mostraba 0 zonas no porque el frontend fallara, sino por tres causas
+    en cascada en la capa de datos: rutas relativas dependientes del CWD,
+    colisión de archivos JSON, y cleanup eliminando zonas durante bootstrap.
+    Ante cualquier fallo de visualización, verificar primero que los datos
+    existen en disco antes de modificar el frontend.
+
+14. **El número de zonas no valida la calidad de zonas:**
+    20 zonas activas post-bootstrap es una mejora operativa (vs 8+ horas de
+    espera). Pero el criterio de éxito real sigue siendo el mismo:
+    ≥50 retests reales resueltos en `training_dataset_v2.jsonl` con
+    `obi_10 ≠ 0`. Las zonas son el prerequisito; los retests son el objetivo.
+
 ---
 
 ## 6) Próximos pasos — Hoja de ruta priorizada
@@ -468,9 +488,26 @@ Hemos pasado de la intuición a la instrumentación.
 
 **[E] Filtro de rebotes prematuros en `_check_retest` (Cat.2):** **RECHAZADO como filtro binario**. La matemática del Paso C dictaminó que un filtro espacial duro destruiría la robustez. Sin embargo, la lógica evolucionó hacia [E'] como gate de independencia entre toques.
 
-### INMEDIATO — Esta semana (En progreso)
+### INMEDIATO — Estado actual (10 mayo 2026, 20:00 UTC)
 
-**Cosecha Viva L2:** El sistema está recolectando retests con el stream `@depth20` con las 20 zonas activas del bootstrap. El objetivo es acumular ≥50 samples limpios con `obi_10` y `cumulative_delta` reales para re-entrenamiento del Oracle con datos orgánicos.
+Sistema operativo en Modo Cosecha Pura:
+- **Proceso activo:** `launch_shadow_live.py` corriendo en background
+- **Zonas monitoreadas:** 20 (detectadas en bootstrap de 500 velas históricas)
+- **Clearance Logic:** activa (`min_clearance_atr=1.0`)
+- **Samples reales acumulados:** 0 resueltos (cosecha iniciada hoy)
+- **Instrumentación Z-Score:** recolectando en `zscore_calibration_log.jsonl`
+
+**Próxima intervención humana requerida:**
+Solo cuando `training_dataset_v2.jsonl` alcance ≥50 líneas con precios >70,000 USD.
+Comando de verificación diario (30 segundos):
+
+```bash
+echo "Pending: $(wc -l < aipha_memory/operational/pending_labels.json 2>/dev/null || echo 0)"
+echo "Resueltos: $(wc -l < aipha_memory/operational/training_dataset_v2.jsonl 2>/dev/null || echo 0)"
+ps aux | grep launch_shadow_live | grep -v grep | wc -l
+```
+
+A ~3 retests diarios, el umbral de 50 se alcanza en ~17 días.
 
 ### PRÓXIMO — Fase Puente: Feature Engineering + Corrección de Etiquetado (Cat.2)
 
@@ -960,6 +997,32 @@ Ejecución del pipeline en Walk-Forward real o pruebas con datos del mercado en 
   - **CHANGELOG_ALGO.md**: Creación del registro algorítmico con 7 entradas versionadas (v1.0.0 a v1.7.0).
 - Tests: 7 failed / 213 passed (baseline idéntica, regresión cero).
 - Criterio de éxito: GUI muestra zonas reales + clearance filtra oscilaciones laterales + instrumentación Cat.1 activa.
+
+### Post-mortem: Los 3 bugs raíz de la invisibilidad en GUI
+Durante Hardening Fase 2, la GUI mostraba 0 zonas a pesar de que
+el detector las detectaba correctamente. La causa fue una cascada
+de tres bugs independientes:
+
+1. **Rutas relativas en `save_state()`/`load_state()`:** El archivo
+   `detector_state.json` se escribía en el CWD del proceso, que
+   difiere entre `launch_shadow_live.py` y `server.py`. Fix: rutas
+   absolutas ancladas a la raíz del proyecto.
+
+2. **Colisión de archivos JSON:** `detector_state.json` y
+   `active_zones.json` apuntaban al mismo path. El estado interno
+   del detector sobreescribía la vista destinada a la GUI. Fix:
+   separación en dos archivos con propósitos distintos.
+
+3. **Cleanup durante bootstrap:** `_cleanup_expired_zones()` eliminaba
+   zonas detectadas en índices tempranos antes de que terminara
+   `process_stream()`. Las zonas existían brevemente y luego
+   desaparecían. Fix: flag `is_bootstrapping` que suspende el
+   cleanup durante la fase de precarga.
+
+**Lección:** Los tres bugs eran invisibles individualmente — cada uno
+por separado habría producido síntomas diferentes. La combinación
+de los tres hacía que el sistema pareciera funcionalmente roto
+cuando la lógica de detección era correcta.
 
 ---
 
