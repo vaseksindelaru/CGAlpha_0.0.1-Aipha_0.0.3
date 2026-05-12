@@ -23,9 +23,12 @@ from pathlib import Path
 
 logger = logging.getLogger("deferred_labeler")
 
-PENDING_LABELS_PATH = "aipha_memory/operational/pending_labels.json"
-COMPLETED_SAMPLES_PATH = "aipha_memory/operational/training_dataset_v2.jsonl"
-RAW_BUFFERS_DIR = "aipha_memory/raw_buffers"
+# __file__ = cgalpha_v3/domain/deferred_outcome_monitor.py
+# parent = domain/, parent.parent = cgalpha_v3/, parent.parent.parent = project_root/
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PENDING_LABELS_PATH = str(_PROJECT_ROOT / "aipha_memory" / "operational" / "pending_labels.json")
+COMPLETED_SAMPLES_PATH = str(_PROJECT_ROOT / "aipha_memory" / "operational" / "training_dataset_v2.jsonl")
+RAW_BUFFERS_DIR = str(_PROJECT_ROOT / "aipha_memory" / "raw_buffers")
 
 
 def adaptive_lookahead(zone_width_atr: float) -> int:
@@ -115,7 +118,7 @@ class DeferredOutcomeMonitor:
         lookahead = adaptive_lookahead(zone_width_atr)
 
         # Path para el snapshot completo
-        snap_path = f"aipha_memory/snapshots/{sample_id}.json"
+        snap_path = str(_PROJECT_ROOT / "aipha_memory" / "snapshots" / f"{sample_id}.json")
         snap_file = Path(snap_path)
         snap_file.parent.mkdir(parents=True, exist_ok=True)
         snap_file.write_text(json.dumps(snapshot, indent=2, default=str))

@@ -235,6 +235,17 @@ class LiveDataFeedAdapter(BaseComponentV3):
             with open(path, "w") as f:
                 json.dump(zones_data, f, indent=2)
             logger.info(f"💾 Zonas GUI persistidas: {len(zones_data)} zonas → {path}")
+
+            # 3. Persist current market price for GUI dashboard
+            if self.current_kline and self.current_kline.get("close"):
+                price_path = project_root / "aipha_memory" / "operational" / "market_price.json"
+                price_data = {
+                    "symbol": self.symbol,
+                    "price": float(self.current_kline["close"]),
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                }
+                with open(price_path, "w") as f:
+                    json.dump(price_data, f)
         except Exception as e:
             logger.error(f"Error persisting active zones: {e}", exc_info=True)
 

@@ -285,7 +285,7 @@ _system_state: dict[str, Any] = {
     "data_quality": "valid",  # valid | stale | corrupted
     "market_symbol": "BTCUSDT",
     "market_interval": "5m",
-    "market_price": 68500.25,
+    "market_price": 0.0,  # Updated from live WebSocket via market_price.json
     "market_ts": datetime.now(timezone.utc).isoformat(),
     "primary_source_gap": 0.82,
     "experiment_loop_status": "idle",
@@ -1082,10 +1082,7 @@ def get_market_pulse() -> ResponseReturnValue:
     symbol = request.args.get("symbol", "BTCUSDT")
     obi = _ws_manager.get_current_obi(symbol)
     
-    # En un entorno real, el WS Manager nos daría el último precio. 
-    # Aquí simulamos fluctuación base para la demo.
-    base_price = 68500.0
-    price = base_price + (random.random() * 100.0)
+    price = _read_live_market_price()
     
     return jsonify({
         "symbol": symbol,
@@ -2765,14 +2762,48 @@ import threading
 import time
 import random
 
+
+def _read_live_market_price() -> float:
+    """
+    Lee el precio de mercado real persistido por el shadow trader.
+    Fallback: Binance REST API si el archivo no existe o es muy antiguo (>5min).
+    Retorna 0.0 solo si ambas fuentes fallan.
+    """
+    price_path = project_root / "aipha_memory" / "operational" / "market_price.json"
+    try:
+        if price_path.exists():
+            data = json.loads(price_path.read_text())
+            price = float(data.get("price", 0.0))
+            if price > 1000:  # Sanity check for BTC
+                return price
+    except (json.JSONDecodeError, OSError, TypeError):
+        pass
+
+    # Fallback: Binance REST API (one-shot, no dependency)
+    try:
+        import urllib.request
+        resp = urllib.request.urlopen(
+            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+            timeout=3
+        )
+        data = json.loads(resp.read().decode())
+        price = float(data.get("price", 0.0))
+        if price > 1000:
+            return price
+    except Exception:
+        pass
+
+    return 0.0
+
+
 def _simulation_loop():
     """Bucle de vida para animar la Sala de Mando (CGAlpha v3 Mock)."""
     while True:
         try:
-            # 1. Simular Movimiento de Mercado (TRINITY)
-            old_p = _system_state.get("market_price") or 68500.0
-            delta = random.uniform(-15.0, 15.0)
-            _system_state["market_price"] = round(old_p + delta, 2)
+            # 1. Read real market price from live pipeline
+            live_price = _read_live_market_price()
+            if live_price > 0:
+                _system_state["market_price"] = live_price
             _system_state["market_ts"] = datetime.now().isoformat()
             
             # 2. Simular Causal Drift & Trinity (OBI/Delta)
