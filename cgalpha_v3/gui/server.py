@@ -2485,7 +2485,7 @@ def reject_evolution_proposal(proposal_id):
 @app.route("/api/evolution/log", methods=["GET"])
 def get_evolution_log():
     """Devuelve el historial completo de evolución (log.jsonl)."""
-    log_path = Path("cgalpha_v3/memory/evolution_log.jsonl")
+    log_path = project_root / "cgalpha_v3/memory/evolution_log.jsonl"
     if not log_path.exists():
         return jsonify([])
     
@@ -2712,7 +2712,7 @@ def get_training_review_data():
 def approve_retest(retest_id):
     """Marcar un retest como aprobado para entrenamiento del Oracle."""
     try:
-        curation_file = Path("aipha_memory/evolutionary/retest_curation.jsonl")
+        curation_file = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
         curation_file.parent.mkdir(parents=True, exist_ok=True)
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(),
@@ -2735,7 +2735,7 @@ def approve_retest(retest_id):
 def reject_retest(retest_id):
     """Marcar un retest como excluido del entrenamiento del Oracle."""
     try:
-        curation_file = Path("aipha_memory/evolutionary/retest_curation.jsonl")
+        curation_file = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
         curation_file.parent.mkdir(parents=True, exist_ok=True)
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(),

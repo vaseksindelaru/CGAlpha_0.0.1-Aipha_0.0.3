@@ -239,6 +239,9 @@ async def main():
     adapter.inject_oracle(oracle)
     adapter.inject_regressor(regressor)
 
+    # Conectar el stream de eventos al adapter
+    ws_manager.add_callback(adapter.on_ws_message)
+
     logger.info("💾 Persistiendo zonas activas fundacionales (Bootstrap)...")
     if hasattr(adapter, "_persist_active_zones"):
         adapter._persist_active_zones()

@@ -367,5 +367,86 @@
     "zone_bottom": 81480.0,
     "touches": 0,
     "created_at": 1778548199999
+  },
+  {
+    "zone_id": "54_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 80918.0,
+    "zone_bottom": 80825.0,
+    "touches": 0,
+    "created_at": 1778419799999
+  },
+  {
+    "zone_id": "63_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 80970.0,
+    "zone_bottom": 80888.5,
+    "touches": 0,
+    "created_at": 1778422499999
+  },
+  {
+    "zone_id": "324_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 81145.9,
+    "zone_bottom": 81054.2,
+    "touches": 0,
+    "created_at": 1778500799999
+  },
+  {
+    "zone_id": "325_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 81145.9,
+    "zone_bottom": 81054.2,
+    "touches": 0,
+    "created_at": 1778501099999
+  },
+  {
+    "zone_id": "328_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 81145.9,
+    "zone_bottom": 81054.2,
+    "touches": 0,
+    "created_at": 1778501999999
+  },
+  {
+    "zone_id": "355_bullish",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 81221.0,
+    "zone_bottom": 80900.0,
+    "touches": 0,
+    "created_at": 1778510099999
+  },
+  {
+    "zone_id": "376_bullish",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 81399.0,
+    "zone_bottom": 81160.8,
+    "touches": 0,
+    "created_at": 1778516399999
+  },
+  {
+    "zone_id": "394_bullish",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 81635.9,
+    "zone_bottom": 81322.3,
+    "touches": 0,
+    "created_at": 1778521799999
+  },
+  {
+    "zone_id": "482_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 81641.5,
+    "zone_bottom": 81480.0,
+    "touches": 0,
+    "created_at": 1778548199999
   }
 ]
