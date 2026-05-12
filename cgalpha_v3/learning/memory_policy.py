@@ -44,8 +44,9 @@ class MemoryPolicyEngine:
     regime_events: list[RegimeShiftEvent] = field(default_factory=list)
     _regime_seq: int = 0
 
-    MEMORY_DIR = Path("cgalpha_v3/memory/memory_entries")
-    IDENTITY_DIR = Path("cgalpha_v3/memory/identity")
+    _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+    MEMORY_DIR = _PROJECT_ROOT / "cgalpha_v3/memory/memory_entries"
+    IDENTITY_DIR = _PROJECT_ROOT / "cgalpha_v3/memory/identity"
 
     TTL_BY_LEVEL_HOURS = {
         MemoryLevel.RAW: 24,

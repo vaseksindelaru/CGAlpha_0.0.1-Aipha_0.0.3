@@ -92,9 +92,9 @@ class EvolutionOrchestratorV4:
     switcher: Optional[LLMSwitcher] = None
     sage: Any = None  # CodeCraftSage
     assistant: Any = None  # LLMAssistant
-    evolution_log_path: Path = field(default_factory=lambda: Path("cgalpha_v3/memory/evolution_log.jsonl"))
-    project_root: Path = field(default_factory=lambda: Path("cgalpha_v3"))
-    landscape_artifact_path: Path = field(default_factory=lambda: Path("cgalpha_v3/data/parameter_landscape_map.json"))
+    evolution_log_path: Path = field(default_factory=lambda: Path(__file__).resolve().parent.parent.parent / "cgalpha_v3/memory/evolution_log.jsonl")
+    project_root: Path = field(default_factory=lambda: Path(__file__).resolve().parent.parent.parent / "cgalpha_v3")
+    landscape_artifact_path: Path = field(default_factory=lambda: Path(__file__).resolve().parent.parent.parent / "cgalpha_v3/data/parameter_landscape_map.json")
     _cooldown_seconds: int = 300  # 5 min between same-spec proposals
     _last_proposals: dict = field(default_factory=dict)
     _escalation_counts: dict = field(default_factory=dict)

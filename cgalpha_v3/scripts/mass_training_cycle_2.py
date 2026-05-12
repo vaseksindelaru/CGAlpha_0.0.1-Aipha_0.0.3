@@ -2,13 +2,16 @@ import asyncio
 from datetime import datetime, timedelta
 import logging
 from cgalpha_v3.application.pipeline import SimpleFoundationPipeline
+from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Configuración de Logging de Producción
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [LILA_v3_CORE] - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("cgalpha_v3/logs/mass_training.log"),
+        logging.FileHandler(str(_PROJECT_ROOT / "cgalpha_v3/logs/mass_training.log")),
         logging.StreamHandler()
     ]
 )
@@ -38,7 +41,7 @@ async def mass_training_cycle_2():
     
     # 4. Entrenamiento Recursivo del Oracle
     logger.info("🧠 Entrenando Oracle v3 (Meta-Labeling) con OutcomeOrdinals capturados...")
-    pipeline.oracle.retrain_recursive("aipha_memory/evolutionary/bridge.jsonl")
+    pipeline.oracle.retrain_recursive(str(_PROJECT_ROOT / "aipha_memory/evolutionary/bridge.jsonl"))
     
     logger.info(f"🏆 Entrenamiento Real Completado. Estado Nexus: {decision}")
     logger.info("📈 Resultados disponibles en el Vault Evolution Dashboard.")

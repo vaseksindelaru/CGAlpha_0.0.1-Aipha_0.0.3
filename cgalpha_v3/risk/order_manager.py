@@ -4,6 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
+from pathlib import Path
 
 logger = logging.getLogger("order_manager")
 
@@ -40,7 +41,8 @@ class DryRunOrderManager:
         self.max_exposure_per_symbol = 0.25 
         self.max_concurrent_positions = 5
         self.min_margin_available = 0.10 
-        self.trade_log_path = "aipha_memory/operational/dry_run_history.jsonl"
+        _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+        self.trade_log_path = str(_PROJECT_ROOT / "aipha_memory/operational/dry_run_history.jsonl")
         
         # Profit Target & Kill-Switch Psicológico (Fase 4.2+)
         self.daily_profit_target_pct = 0.02 # +2% de beneficio diario
@@ -195,6 +197,6 @@ class DryRunOrderManager:
             "entry_price": pos.entry_price,
             "exit_price": pos.exit_price
         }
-        Path("aipha_memory/operational").mkdir(parents=True, exist_ok=True)
+        Path(self.trade_log_path).parent.mkdir(parents=True, exist_ok=True)
         with open(self.trade_log_path, "a") as f:
             f.write(json.dumps(log_entry) + "\n")

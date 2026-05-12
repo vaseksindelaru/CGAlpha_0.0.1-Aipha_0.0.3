@@ -76,7 +76,8 @@ class OracleTrainer_v3(BaseComponentV3):
         quality_passed, quality_report = self._run_quality_gate()
         
         # Guardar reporte para trazabilidad
-        report_path = Path("aipha_memory/reports/oracle_quality_latest.json")
+        _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+        report_path = _PROJECT_ROOT / "aipha_memory/reports/oracle_quality_latest.json"
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(quality_report, indent=2))
         

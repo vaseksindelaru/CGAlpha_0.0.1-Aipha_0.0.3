@@ -12,13 +12,14 @@ from pathlib import Path
 from typing import Dict, Any, List, Callable
 
 log = logging.getLogger(__name__)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 class TaskBuffer:
     """
     Buffer persistente local (SQLite) para tareas que fallaron en Redis.
     Inyectado desde legacy_vault/v1/cgalpha/nexus/task_buffer.py.
     """
-    def __init__(self, db_path: str = "aipha_memory/temporary/task_buffer_v3.db"):
+    def __init__(self, db_path: str = str(_PROJECT_ROOT / "aipha_memory/temporary/task_buffer_v3.db")):
         self.db_path = Path(db_path)
         self._lock = threading.RLock()
         self._ensure_db()
