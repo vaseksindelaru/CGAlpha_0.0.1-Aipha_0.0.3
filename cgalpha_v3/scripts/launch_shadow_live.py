@@ -38,8 +38,6 @@ ACTIVE_WS_MANAGER = None
 # MÓDULO DE ARRANQUE EN FRÍO (Historical Pre-load)
 # ─────────────────────────────────────────────────────────────────────
 
-BINANCE_REST_BASE   = "https://fapi.binance.com"
-BINANCE_KLINES_PATH = "/fapi/v1/klines"
 BOOTSTRAP_LIMIT     = 500
 BOOTSTRAP_INTERVAL  = "5m"
 
@@ -47,7 +45,14 @@ def _ts_to_str(unix_ms: int | str) -> str:
     return datetime.fromtimestamp(int(unix_ms) / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 def _fetch_historical_klines(symbol: str, interval: str = BOOTSTRAP_INTERVAL, limit: int = BOOTSTRAP_LIMIT, retries: int = 3) -> list[list]:
-    url = f"{BINANCE_REST_BASE}{BINANCE_KLINES_PATH}"
+    market = os.environ.get("CGALPHA_BINANCE_MARKET", "futures").strip().lower()
+    if market == "spot":
+        base = "https://api.binance.com"
+        path = "/api/v3/klines"
+    else:
+        base = "https://fapi.binance.com"
+        path = "/fapi/v1/klines"
+    url = f"{base}{path}"
     params = {"symbol": symbol, "interval": interval, "limit": limit}
     for attempt in range(1, retries + 1):
         try:
@@ -218,8 +223,10 @@ async def main():
     detector = TripleCoincidenceDetector()
     
     SYMBOL   = os.environ.get("CGALPHA_SYMBOL", "BTCUSDT")
+    MARKET   = os.environ.get("CGALPHA_BINANCE_MARKET", "futures").strip().lower()
     DRY_RUN  = os.environ.get("CGALPHA_BOOTSTRAP_DRY_RUN", "false").lower() == "true"
     WARMUP_N = int(os.environ.get("CGALPHA_BOOTSTRAP_LIMIT", "500"))
+    logger.info(f"🌐 Mercado WebSocket/REST seleccionado: {MARKET.upper()}")
 
     # Bootstrapping (Arranque en Frío)
     bootstrap_report = bootstrap_detector(

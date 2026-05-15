@@ -14,6 +14,7 @@ exacto del retest, no 45 segundos después al cierre de la vela.
 
 import asyncio
 import logging
+import os
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
@@ -64,6 +65,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.micro_buffer: List[Dict] = []
         self.delta_causal = 0.0
         self._is_causally_safe = True
+        self._disable_nexus_gate = os.environ.get("CGALPHA_DISABLE_NEXUS_GATE", "0").lower() in {"1", "true", "yes"}
 
         # Deferred Labeling (Semana 3)
         self.deferred_monitor = DeferredOutcomeMonitor()
@@ -156,6 +158,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         2. Update NexusGate causal drift
         3. Resolve deferred labels (bar_closed=True)
         """
+        logger.info(f"📊 Candle close procesada: precio={kline['close']:.0f}")
         obi = self.ws.get_current_obi(self.symbol, levels=10)
         cum_delta = self.ws.get_rolling_delta(self.symbol, window_seconds=300)
         micro_data = {
@@ -172,6 +175,8 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         self.delta_causal = self.nexus.calculate_delta_causal(self.micro_buffer)
         self._is_causally_safe = self.nexus.is_safe(self.delta_causal)
+        if self._disable_nexus_gate:
+            self._is_causally_safe = True
 
         logger.info(
             f"🕯️ Vela Live Cerrada: {self.symbol} "
@@ -188,6 +193,8 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 f"🚨 NEXUSGATE CLOSED: ΔCausal ({self.delta_causal:.4f}) > "
                 f"Threshold ({self.nexus.threshold}). Señales suspendidas."
             )
+        elif self._disable_nexus_gate:
+            logger.info("🟡 NEXUSGATE BYPASS activo por entorno (modo cosecha).")
 
         # 2. Feed closed candle to detector for ZONE DETECTION (Speed 1)
         self.detector.feed_kline_for_zone_detection(kline, micro_data)
@@ -232,9 +239,20 @@ class LiveDataFeedAdapter(BaseComponentV3):
                     "touches": int(getattr(z, "touch_count", 0)),
                     "created_at": int(z.detection_timestamp)
                 })
-            with open(path, "w") as f:
-                json.dump(zones_data, f, indent=2)
-            logger.info(f"💾 Zonas GUI persistidas: {len(zones_data)} zonas → {path}")
+            try:
+                with open(path, "w") as f:
+                    json.dump(zones_data, f, indent=2)
+                logger.info(f"💾 Zonas GUI persistidas: {len(zones_data)} zonas → {path}")
+            except TypeError as e:
+                logger.critical(
+                    f"🔴 [PERSIST_ZONES] Serialización fallida — zona no guardada: {e}"
+                )
+                import sys; print(f"🔴 CRITICAL PERSIST_ZONES: {e}", file=sys.stderr, flush=True)
+            except IOError as e:
+                logger.critical(
+                    f"🔴 [PERSIST_ZONES] Error de disco — zona no guardada: {e}"
+                )
+                import sys; print(f"🔴 CRITICAL IO_ZONES: {e}", file=sys.stderr, flush=True)
 
             # 3. Persist current market price for GUI dashboard
             if self.current_kline and self.current_kline.get("close"):
@@ -244,10 +262,24 @@ class LiveDataFeedAdapter(BaseComponentV3):
                     "price": float(self.current_kline["close"]),
                     "ts": datetime.now(timezone.utc).isoformat(),
                 }
-                with open(price_path, "w") as f:
-                    json.dump(price_data, f)
+                try:
+                    with open(price_path, "w") as f:
+                        json.dump(price_data, f)
+                except TypeError as e:
+                    logger.critical(
+                        f"🔴 [PERSIST_ZONES] Serialización fallida — zona no guardada (price): {e}"
+                    )
+                    import sys; print(f"🔴 CRITICAL PERSIST_ZONES: {e}", file=sys.stderr, flush=True)
+                except IOError as e:
+                    logger.critical(
+                        f"🔴 [PERSIST_ZONES] Error de disco — zona no guardada (price): {e}"
+                    )
+                    import sys; print(f"🔴 CRITICAL IO_ZONES: {e}", file=sys.stderr, flush=True)
         except Exception as e:
-            logger.error(f"Error persisting active zones: {e}", exc_info=True)
+            if not isinstance(e, (TypeError, IOError)):
+                logger.error(f"Error persisting active zones: {e}", exc_info=True)
+            else:
+                pass
 
     def _on_retest_detected(self, hit: dict, price: float, timestamp_ms: int):
         """

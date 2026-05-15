@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import time
+import os
 from typing import Dict, List, Optional, Callable
 import websockets
 from datetime import datetime, timezone
@@ -33,7 +34,13 @@ class BinanceWebSocketManager(BaseComponentV3):
 
     def __init__(self, manifest: ComponentManifest, symbols: List[str] = ["btcusdt"]):
         super().__init__(manifest)
-        self.base_url = "wss://fstream.binance.com/ws"
+        market = os.environ.get("CGALPHA_BINANCE_MARKET", "futures").strip().lower()
+        self.market = market if market in {"futures", "spot"} else "futures"
+        self.base_url = (
+            "wss://stream.binance.com:9443/ws"
+            if self.market == "spot"
+            else "wss://fstream.binance.com/ws"
+        )
         self.symbols = [s.lower() for s in symbols]
         self.is_running = False
         self._loop_task: Optional[asyncio.Task] = None
@@ -92,7 +99,10 @@ class BinanceWebSocketManager(BaseComponentV3):
                     buf.mark_reconnection(self._connection_epoch)
                 
                 async with websockets.connect(url) as ws:
-                    logger.info(f"✅ Conectado a Binance WS: {url} (Epoch: {self._connection_epoch})")
+                    logger.info(
+                        f"✅ Conectado a Binance WS [{self.market.upper()}]: "
+                        f"{url} (Epoch: {self._connection_epoch})"
+                    )
                     while self.is_running:
                         message = await ws.recv()
                         data = json.loads(message)
@@ -236,7 +246,7 @@ class BinanceWebSocketManager(BaseComponentV3):
         manifest = ComponentManifest(
             name="BinanceWebSocketManager",
             category="infrastructure",
-            function="Ingesta de datos en tiempo real via Binance Futures WebSocket",
+            function="Ingesta de datos en tiempo real via Binance WebSocket",
             inputs=["symbol_list"],
             outputs=["LiveStreamEvents", "TickData"],
             causal_score=0.95

@@ -730,7 +730,7 @@ class TripleCoincidenceDetector:
         import numpy as np
         from pathlib import Path
         # Ruta absoluta basada en __file__ para evitar dependencia del CWD
-        project_root = Path(__file__).resolve().parent.parent.parent
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
         path = project_root / self.config['state_path']
         path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -749,10 +749,18 @@ class TripleCoincidenceDetector:
                 'accumulation_zone': z.accumulation_zone,
                 'mini_trend': z.mini_trend,
                 'atr_at_detection': z.atr_at_detection,
+                'max_price_since_detection': z.max_price_since_detection,
+                'min_price_since_detection': z.min_price_since_detection,
+                'max_price_since_last_touch': z.max_price_since_last_touch,
+                'min_price_since_last_touch': z.min_price_since_last_touch,
+                'retest_detected': z.retest_detected,
                 'lifecycle_state': z.lifecycle_state.value, # Enum a str
                 'touch_count': z.touch_count,
                 'polarity_flipped': z.polarity_flipped,
-                'zone_id': z.zone_id
+                'zone_id': z.zone_id,
+                'flip_ts': z.flip_ts,
+                'flip_price': z.flip_price,
+                'harvest_expiry_ts': z.harvest_expiry_ts,
             }
             data.append(z_dict)
             
@@ -768,7 +776,7 @@ class TripleCoincidenceDetector:
         import time
         from pathlib import Path
         # Ruta absoluta basada en __file__
-        project_root = Path(__file__).resolve().parent.parent.parent
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
         path = project_root / self.config['state_path']
         if not path.exists():
             return
@@ -782,6 +790,17 @@ class TripleCoincidenceDetector:
                 # Convertir str de vuelta a Enum
                 state_str = d.pop('lifecycle_state', 'active')
                 state = ZoneLifecycleState(state_str)
+                d.setdefault('max_price_since_detection', -1.0)
+                d.setdefault('min_price_since_detection', 1e10)
+                d.setdefault('max_price_since_last_touch', -1.0)
+                d.setdefault('min_price_since_last_touch', 1e10)
+                d.setdefault('retest_detected', False)
+                d.setdefault('touch_count', 0)
+                d.setdefault('polarity_flipped', False)
+                d.setdefault('zone_id', '')
+                d.setdefault('flip_ts', None)
+                d.setdefault('flip_price', None)
+                d.setdefault('harvest_expiry_ts', None)
                 
                 z = ActiveZone(**d)
                 z.lifecycle_state = state
@@ -1412,7 +1431,7 @@ class TripleCoincidenceDetector:
                 "zone_detected": zone_detected,
             }
 
-            project_root = Path(__file__).resolve().parent.parent.parent
+            project_root = Path(__file__).resolve().parent.parent.parent.parent
             log_path = project_root / "aipha_memory" / "operational" / "zscore_calibration_log.jsonl"
             log_path.parent.mkdir(parents=True, exist_ok=True)
             with open(log_path, "a") as f:
