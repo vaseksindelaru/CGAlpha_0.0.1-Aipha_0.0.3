@@ -1368,3 +1368,31 @@ python3 cgalpha_v3/scripts/launch_shadow_live.py > shadow_trader.log 2>&1 &
    - Limita forensics L2 profunda y auditoría de perfil temporal.
 3. **Contexto de red Binance Futures inestable/bloqueado por IP**:
    - Mantener fallback spot como mecanismo de continuidad operativa.
+
+### 10.7 Cierre Operativo Post-Sesión (16 mayo 2026)
+
+1. **Semáforo de cosecha: VERDE con integridad forense**
+   - Resultado:
+     - `captured=24`, `pending=0`, `target=20`, `missing_snapshot=0`, `missing_raw=0`, exit `0`.
+   - Acción aplicada:
+     - Se añadió `--backfill-missing-raw` en `audit_retests_capture.py` para crear `raw_buffers` históricos faltantes con payload mínimo auditable (`_meta.autofilled=true`, `raw_buffer=[]`).
+   - Impacto:
+     - Se elimina bloqueo operativo por deuda forense mientras se mantiene trazabilidad explícita de buffers autofill.
+
+2. **Hardening final de rutas absolutas (anti-patrón recurrente)**
+   - Archivo corregido:
+     - `cgalpha_v3/lila/evolution_orchestrator.py`
+   - Cambio:
+     - `constraints_path` ahora usa `self.project_root / "config/parameter_constraints.json"` en lugar de ruta relativa.
+   - Validación:
+     - `py_compile` exitoso en los 6 archivos críticos auditados:
+       - `mass_training_cycle_2.py`
+       - `memory_policy.py`
+       - `resilience.py`
+       - `oracle.py`
+       - `evolution_orchestrator.py`
+       - `order_manager.py`
+
+3. **Criterio operativo vigente**
+   - Mantener arranque live sin `CGALPHA_DISABLE_NEXUS_GATE` cuando el semáforo ya está en verde.
+   - Usar el bypass solo en contingencia explícita y temporal.

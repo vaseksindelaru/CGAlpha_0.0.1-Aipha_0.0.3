@@ -218,7 +218,7 @@ class EvolutionOrchestratorV4:
 
     def _load_constraints(self) -> dict:
         """Load parameter_constraints.json (Safety Envelope)."""
-        constraints_path = Path("cgalpha_v3/config/parameter_constraints.json")
+        constraints_path = self.project_root / "config/parameter_constraints.json"
         if constraints_path.exists():
             try:
                 data = json.loads(constraints_path.read_text(encoding="utf-8"))
