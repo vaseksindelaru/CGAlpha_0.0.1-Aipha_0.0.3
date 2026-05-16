@@ -124,7 +124,7 @@ class DeferredOutcomeMonitor:
         snap_file.write_text(json.dumps(snapshot, indent=2, default=str))
 
         # Persistir raw L2 buffer comprimido (~8KB/retest)
-        if raw_buffer:
+        if raw_buffer is not None:
             raw_path = Path(RAW_BUFFERS_DIR) / f"{sample_id}.json.gz"
             raw_path.parent.mkdir(parents=True, exist_ok=True)
             with gzip.open(raw_path, 'wt') as f:
@@ -346,6 +346,7 @@ class DeferredOutcomeMonitor:
 
     def _persist_pending(self):
         """Guarda estado de pending labels para sobrevivir reinicios."""
+        import dataclasses
         path = Path(PENDING_LABELS_PATH)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -369,12 +370,20 @@ class DeferredOutcomeMonitor:
                     # ── Shadow Harvesting ──────────────────────────────────
                     "touch_sequence": label.touch_sequence,
                     "polarity_flipped": label.polarity_flipped,
-                    "prior_touch_outcomes": label.prior_touch_outcomes,
+                    "prior_touch_outcomes": [dataclasses.asdict(tr) if hasattr(tr, '__dataclass_fields__') else tr for tr in label.prior_touch_outcomes],
                     "zone_original_direction": label.zone_original_direction,
                     "hours_since_flip": label.hours_since_flip,
                 })
 
-        path.write_text(json.dumps(pending_data, indent=2))
+        try:
+            path.write_text(json.dumps(pending_data, indent=2))
+            logger.debug(f"✅ Persistido: {path}")
+        except TypeError as e:
+            logger.critical(f"🔴 SERIALIZACIÓN FALLIDA en {path}: {e} — datos: {type(pending_data)}")
+            raise
+        except IOError as e:
+            logger.critical(f"🔴 ESCRITURA FALLIDA en {path}: {e}")
+            raise
 
     def _load_pending(self):
         """Recarga pending labels sobrevivientes a un reinicio."""

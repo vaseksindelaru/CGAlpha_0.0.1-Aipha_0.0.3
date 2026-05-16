@@ -44,7 +44,7 @@ class MemoryPolicyEngine:
     regime_events: list[RegimeShiftEvent] = field(default_factory=list)
     _regime_seq: int = 0
 
-    _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+    _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
     MEMORY_DIR = _PROJECT_ROOT / "cgalpha_v3/memory/memory_entries"
     IDENTITY_DIR = _PROJECT_ROOT / "cgalpha_v3/memory/identity"
 

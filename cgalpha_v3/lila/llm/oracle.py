@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.utils import resample
 from sklearn.calibration import CalibratedClassifierCV
@@ -44,7 +43,7 @@ class OracleTrainer_v3(BaseComponentV3):
         self.min_confidence = 0.65# Umbral canónico
         self.model: RandomForestClassifier | str | None = None
         self.training_data: List[Dict[str, Any]] = []
-        self._encoders: Dict[str, LabelEncoder] = {}
+        self._encoders: Dict[str, Dict[str, int]] = {}
         self._training_metrics: Dict[str, Any] | None = None
         self._feature_cols = [
             "vwap_at_retest",
@@ -55,6 +54,14 @@ class OracleTrainer_v3(BaseComponentV3):
             "regime",
             "direction",
         ]
+
+    @staticmethod
+    def _deterministic_encoders() -> Dict[str, Dict[str, int]]:
+        return {
+            "delta_divergence": {"UNKNOWN": 0, "NEUTRAL": 1, "BULLISH": 2, "BEARISH": 3},
+            "regime": {"UNKNOWN": 0, "LATERAL": 1, "TREND": 2, "HIGH_VOL": 3},
+            "direction": {"UNKNOWN": 0, "BULLISH": 1, "BEARISH": 2},
+        }
 
     def load_training_dataset(self, training_samples: List[Dict]):
         """
@@ -107,11 +114,9 @@ class OracleTrainer_v3(BaseComponentV3):
         for col, default in cat_defaults.items():
             df[col] = df[col].fillna(default).astype(str)
 
-        self._encoders = {}
+        self._encoders = self._deterministic_encoders()
         for col in ("delta_divergence", "regime", "direction"):
-            encoder = LabelEncoder()
-            df[col] = encoder.fit_transform(df[col])
-            self._encoders[col] = encoder
+            df[col] = df[col].apply(lambda v: self._safe_encode(col, v)).astype(int)
 
         X = (
             df[self._feature_cols]
@@ -357,12 +362,38 @@ class OracleTrainer_v3(BaseComponentV3):
             return 0
         if value is None or (isinstance(value, float) and np.isnan(value)):
             return 0
-        encoder = self._encoders[field]
-        value_str = str(value)
-        known = {str(v) for v in encoder.classes_}
-        if value_str not in known:
-            return 0
-        return int(encoder.transform([value_str])[0])
+        value_str = str(value).strip().upper()
+
+        # Compatibilidad con modelos antiguos serializados con LabelEncoder
+        encoder_obj = self._encoders[field]
+        if hasattr(encoder_obj, "classes_") and hasattr(encoder_obj, "transform"):
+            known = {str(v) for v in encoder_obj.classes_}
+            if value_str not in known:
+                return 0
+            return int(encoder_obj.transform([value_str])[0])
+
+        mapping = encoder_obj
+        if field == "direction":
+            if "BULL" in value_str:
+                return mapping.get("BULLISH", 1)
+            if "BEAR" in value_str:
+                return mapping.get("BEARISH", 2)
+        elif field == "delta_divergence":
+            if "BULL" in value_str:
+                return mapping.get("BULLISH", 2)
+            if "BEAR" in value_str:
+                return mapping.get("BEARISH", 3)
+            if "NEUTRAL" in value_str:
+                return mapping.get("NEUTRAL", 1)
+        elif field == "regime":
+            if "LATERAL" in value_str:
+                return mapping.get("LATERAL", 1)
+            if "HIGH" in value_str and "VOL" in value_str:
+                return mapping.get("HIGH_VOL", 3)
+            if "TREND" in value_str or "BULL" in value_str or "BEAR" in value_str:
+                return mapping.get("TREND", 2)
+
+        return mapping.get(value_str, mapping.get("UNKNOWN", 0))
 
     def get_training_metrics(self) -> Dict[str, Any] | None:
         """Retorna métricas del último entrenamiento."""
@@ -477,7 +508,7 @@ class OracleRegressor_MAE(BaseComponentV3):
         super().__init__(manifest)
         self.model: RandomForestRegressor | None = None
         self.training_data: List[Dict[str, Any]] = []
-        self._encoders: Dict[str, LabelEncoder] = {}
+        self._encoders: Dict[str, Dict[str, int]] = {}
         self._training_metrics: Dict[str, Any] | None = None
         self._feature_cols = [
             "vwap_at_retest",
@@ -490,6 +521,14 @@ class OracleRegressor_MAE(BaseComponentV3):
             "zone_width_atr" # Extra feature available in v2.0
         ]
         self.max_allowable_mae_ratio = 0.90 # 90% of zone width
+
+    @staticmethod
+    def _deterministic_encoders() -> Dict[str, Dict[str, int]]:
+        return {
+            "delta_divergence": {"UNKNOWN": 0, "NEUTRAL": 1, "BULLISH": 2, "BEARISH": 3},
+            "regime": {"UNKNOWN": 0, "LATERAL": 1, "TREND": 2, "HIGH_VOL": 3},
+            "direction": {"UNKNOWN": 0, "BULLISH": 1, "BEARISH": 2},
+        }
 
     def load_training_dataset(self, training_samples: List[Dict]):
         """Carga el dataset (schema v2.0)."""
@@ -525,11 +564,9 @@ class OracleRegressor_MAE(BaseComponentV3):
         for col, default in cat_defaults.items():
             df[col] = df[col].fillna(default).astype(str)
 
-        self._encoders = {}
+        self._encoders = self._deterministic_encoders()
         for col in ("delta_divergence", "regime", "direction"):
-            encoder = LabelEncoder()
-            df[col] = encoder.fit_transform(df[col])
-            self._encoders[col] = encoder
+            df[col] = df[col].apply(lambda v: self._safe_encode(col, v)).astype(int)
 
         X = df[self._feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
         y = df["mae_atr"].apply(pd.to_numeric, errors="coerce")
@@ -646,12 +683,38 @@ class OracleRegressor_MAE(BaseComponentV3):
             return 0
         if value is None or (isinstance(value, float) and np.isnan(value)):
             return 0
-        encoder = self._encoders[field]
-        value_str = str(value)
-        known = {str(v) for v in encoder.classes_}
-        if value_str not in known:
-            return 0
-        return int(encoder.transform([value_str])[0])
+        value_str = str(value).strip().upper()
+
+        # Compatibilidad con modelos antiguos serializados con LabelEncoder
+        encoder_obj = self._encoders[field]
+        if hasattr(encoder_obj, "classes_") and hasattr(encoder_obj, "transform"):
+            known = {str(v) for v in encoder_obj.classes_}
+            if value_str not in known:
+                return 0
+            return int(encoder_obj.transform([value_str])[0])
+
+        mapping = encoder_obj
+        if field == "direction":
+            if "BULL" in value_str:
+                return mapping.get("BULLISH", 1)
+            if "BEAR" in value_str:
+                return mapping.get("BEARISH", 2)
+        elif field == "delta_divergence":
+            if "BULL" in value_str:
+                return mapping.get("BULLISH", 2)
+            if "BEAR" in value_str:
+                return mapping.get("BEARISH", 3)
+            if "NEUTRAL" in value_str:
+                return mapping.get("NEUTRAL", 1)
+        elif field == "regime":
+            if "LATERAL" in value_str:
+                return mapping.get("LATERAL", 1)
+            if "HIGH" in value_str and "VOL" in value_str:
+                return mapping.get("HIGH_VOL", 3)
+            if "TREND" in value_str or "BULL" in value_str or "BEAR" in value_str:
+                return mapping.get("TREND", 2)
+
+        return mapping.get(value_str, mapping.get("UNKNOWN", 0))
 
     def _pick(self, record: Any, field: str, fallback: Any) -> Any:
         if record is None: return fallback
