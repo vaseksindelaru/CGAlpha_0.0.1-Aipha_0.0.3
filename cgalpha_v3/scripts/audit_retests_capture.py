@@ -9,6 +9,7 @@ Auditoría de captura de retests:
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import sys
 from datetime import datetime, timedelta, timezone
@@ -115,6 +116,11 @@ def main() -> None:
         action="store_true",
         help="En modo semáforo, no falla por pendientes.",
     )
+    parser.add_argument(
+        "--backfill-missing-raw",
+        action="store_true",
+        help="Crea raw_buffers faltantes (payload mínimo) para sample_id con snapshot.",
+    )
     args = parser.parse_args()
 
     repo = Path(args.root).resolve()
@@ -199,6 +205,49 @@ def main() -> None:
     missing_snapshot = [r["sample_id"] for r in rows if r["snapshot"] == "no"]
     missing_raw = [r["sample_id"] for r in rows if r["raw"] == "no"]
 
+    backfilled = 0
+    if args.backfill_missing_raw and missing_raw:
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        for sid in list(missing_raw):
+            snap_file = snapshots_dir / f"{sid}.json"
+            if not snap_file.exists():
+                continue
+            raw_file = raw_dir / f"{sid}.json.gz"
+            if raw_file.exists():
+                continue
+            payload = {
+                "_meta": {
+                    "autofilled": True,
+                    "reason": "raw_buffer_missing_historic",
+                    "created_at_utc": datetime.now(timezone.utc).isoformat(),
+                },
+                "raw_buffer": [],
+            }
+            with gzip.open(raw_file, "wt") as f:
+                json.dump(payload, f)
+            backfilled += 1
+
+        # Recalcular faltantes tras backfill
+        rows = []
+        for sid in all_ids:
+            in_train = sid in train_ids
+            in_pending = sid in pending_ids
+            snapshot_ok = (snapshots_dir / f"{sid}.json").exists()
+            raw_ok = (raw_dir / f"{sid}.json.gz").exists()
+            status = "captured" if in_train else ("pending" if in_pending else "orphan")
+            rows.append(
+                {
+                    "sample_id": sid,
+                    "status": status,
+                    "in_train": _fmt_bool(in_train),
+                    "in_pending": _fmt_bool(in_pending),
+                    "snapshot": _fmt_bool(snapshot_ok),
+                    "raw": _fmt_bool(raw_ok),
+                }
+            )
+        missing_snapshot = [r["sample_id"] for r in rows if r["snapshot"] == "no"]
+        missing_raw = [r["sample_id"] for r in rows if r["raw"] == "no"]
+
     print("=== RETEST AUDIT ===")
     print(f"repo_root={repo}")
     print(f"filter_since_utc={since_dt.isoformat() if since_dt else 'none'}")
@@ -211,6 +260,8 @@ def main() -> None:
     print(f"pending_only={len(pending_only)}")
     print(f"missing_snapshot={len(missing_snapshot)}")
     print(f"missing_raw={len(missing_raw)}")
+    if args.backfill_missing_raw:
+        print(f"raw_backfilled={backfilled}")
 
     print("\n--- DETAIL ---")
     print("status | in_train | in_pending | snapshot | raw | sample_id")
