@@ -11,12 +11,12 @@ from cgalpha_v3.domain.records import MicrostructureRecord
 from cgalpha_v3.lila.llm.oracle import OraclePrediction, OracleTrainer_v3
 
 
-def _make_training_data(n: int = 30, nested: bool = False) -> list[dict]:
+def _make_training_data(n: int = 60, nested: bool = False) -> list[dict]:
     rng = np.random.default_rng(42)
     samples: list[dict] = []
 
     for i in range(n):
-        outcome = "BREAKOUT" if i % 5 == 0 else "BOUNCE"
+        outcome = "BREAKOUT" if i % 5 == 0 else "BOUNCE_STRONG"
         features = {
             "vwap_at_retest": float(65000 + rng.normal(0, 1500)),
             "obi_10_at_retest": float(rng.uniform(-0.7, 0.7)),
@@ -64,7 +64,7 @@ def _sample_micro() -> MicrostructureRecord:
 
 def test_train_model_real() -> None:
     oracle = OracleTrainer_v3.create_default()
-    oracle.load_training_dataset(_make_training_data(30))
+    oracle.load_training_dataset(_make_training_data(60))
     oracle.train_model()
 
     assert oracle.model is not None
@@ -73,17 +73,17 @@ def test_train_model_real() -> None:
 
 def test_train_model_with_nested_features_dataset() -> None:
     oracle = OracleTrainer_v3.create_default()
-    oracle.load_training_dataset(_make_training_data(30, nested=True))
+    oracle.load_training_dataset(_make_training_data(60, nested=True))
     oracle.train_model()
 
     metrics = oracle.get_training_metrics()
     assert metrics is not None
-    assert metrics["n_samples"] == 30
+    assert metrics["n_samples"] == 60
 
 
 def test_predict_with_trained_model() -> None:
     oracle = OracleTrainer_v3.create_default()
-    oracle.load_training_dataset(_make_training_data(30))
+    oracle.load_training_dataset(_make_training_data(60))
     oracle.train_model()
 
     pred = oracle.predict(_sample_micro(), {"index": 100, "direction": "bullish"})
@@ -94,19 +94,19 @@ def test_predict_with_trained_model() -> None:
 
 def test_training_metrics_available() -> None:
     oracle = OracleTrainer_v3.create_default()
-    oracle.load_training_dataset(_make_training_data(30))
+    oracle.load_training_dataset(_make_training_data(60))
     oracle.train_model()
 
     metrics = oracle.get_training_metrics()
     assert metrics is not None
     assert "train_accuracy" in metrics
     assert "feature_importances" in metrics
-    assert metrics["n_samples"] == 30
+    assert metrics["n_samples"] == 60
 
 
 def test_safe_encode_unknown_category() -> None:
     oracle = OracleTrainer_v3.create_default()
-    oracle.load_training_dataset(_make_training_data(30))
+    oracle.load_training_dataset(_make_training_data(60))
     oracle.train_model()
 
     result = oracle._safe_encode("regime", "UNKNOWN_REGIME")
@@ -123,14 +123,17 @@ def test_backward_compatible_placeholder() -> None:
 def test_min_samples_threshold() -> None:
     oracle = OracleTrainer_v3.create_default()
     oracle.load_training_dataset(_make_training_data(5))
-    oracle.train_model()
-    assert oracle.model is not None
+    trained = oracle.train_model()
+    assert trained is False
+    assert oracle.model is None
 
 
 def test_retrain_recursive_merges_dataset(tmp_path: Path) -> None:
     oracle = OracleTrainer_v3.create_default()
-    oracle.load_training_dataset(_make_training_data(10))
-    oracle.train_model()
+    oracle.load_training_dataset(_make_training_data(60))
+    trained = oracle.train_model()
+    assert trained is not False
+    assert oracle.model is not None
 
     path = tmp_path / "new_training.json"
     new_data = _make_training_data(8, nested=True)
@@ -142,3 +145,21 @@ def test_retrain_recursive_merges_dataset(tmp_path: Path) -> None:
 
     assert after == before + 8
     assert oracle.model is not None
+
+
+def test_deterministic_encoding_is_order_independent() -> None:
+    oracle_a = OracleTrainer_v3.create_default()
+    data_a = _make_training_data(60)
+    oracle_a.load_training_dataset(data_a)
+    assert oracle_a.train_model() is not False
+    assert oracle_a.model is not None
+
+    oracle_b = OracleTrainer_v3.create_default()
+    data_b = list(reversed(data_a))
+    oracle_b.load_training_dataset(data_b)
+    assert oracle_b.train_model() is not False
+    assert oracle_b.model is not None
+
+    assert oracle_a._encoders == oracle_b._encoders
+    assert oracle_a._safe_encode("regime", "LATERAL") == oracle_b._safe_encode("regime", "LATERAL")
+    assert oracle_a._safe_encode("direction", "bullish") == oracle_b._safe_encode("direction", "bullish")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from cgalpha_v3.domain.models.signal import MemoryLevel
 from cgalpha_v3.learning.memory_policy import MemoryPolicyEngine
@@ -91,3 +92,11 @@ def test_parse_level_aliases():
         engine.parse_level("invalid")
     except ValueError as e:
         assert "invalid_level" in str(e)
+
+
+def test_memory_paths_resolve_inside_repo():
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    engine_root = MemoryPolicyEngine._PROJECT_ROOT.resolve()
+    assert engine_root == repo_root
+    assert str(MemoryPolicyEngine.MEMORY_DIR.resolve()).startswith(str(repo_root))
+    assert str(MemoryPolicyEngine.IDENTITY_DIR.resolve()).startswith(str(repo_root))
