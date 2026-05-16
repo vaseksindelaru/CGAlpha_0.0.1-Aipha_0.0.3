@@ -1,10 +1,13 @@
 # Crónica de Desarrollo — cgAlpha / Aipha
-### Versión 3.6 — Actualizada 10 mayo 2026
+### Versión 3.7 — Actualizada 15 mayo 2026
 
 > Documento vivo para reconstruir el pasado, comprender el estado actual y orientar decisiones futuras.
 > Esta versión incorpora el cierre formal del Hardening Fase 2:
 > confirmación de 20 zonas activas en GUI, diagnóstico de los
 > 3 bugs raíz de visibilidad, y lección metodológica nueva.
+> Además, incorpora la sesión de estabilización operativa del 15 mayo:
+> fallback spot/futures, auditoría con semáforo, scripts de control GUI,
+> hardening de rutas/persistencia multi-touch y recuperación de cosecha reciente.
 
 ---
 
@@ -998,6 +1001,178 @@ Ejecución del pipeline en Walk-Forward real o pruebas con datos del mercado en 
 - Tests: 7 failed / 213 passed (baseline idéntica, regresión cero).
 - Criterio de éxito: GUI muestra zonas reales + clearance filtra oscilaciones laterales + instrumentación Cat.1 activa.
 
+### Hito: Repriorización Estratégica — Cosecha, Encoding, Rutas y Codex (16 mayo 2026)
+
+#### Origen
+
+Se evaluó si Project Codex debía ser la máxima prioridad durante el período de cosecha de retests L2. El diagnóstico base del Codex es correcto: la historia del proyecto ya supera el tamaño útil de contexto de modelos locales y las decisiones pasadas no son suficientemente consultables. Sin embargo, el estado real del código al 16 mayo muestra riesgos más cercanos al re-entrenamiento que un índice documental no puede resolver por sí solo.
+Esta repriorización está basada explícitamente en la sesión de estabilización del 15 mayo documentada en `§10`.
+
+#### Veredicto
+
+**Project Codex no es la máxima prioridad inmediata.** La prioridad correcta es una secuencia corta de hardening no intrusivo que proteja la calidad de las muestras y el re-entrenamiento posterior. Codex debe construirse en paralelo únicamente después de cerrar los bloqueos Cat.1/Cat.2 que afectan la cosecha, la memoria o el entrenamiento.
+
+| Pista evaluada | Veredicto | Impacto sobre cosecha actual | Impacto sobre re-entrenamiento |
+|----------------|-----------|------------------------------|--------------------------------|
+| LabelEncoder no determinista | Real, no sobredimensionado | Bajo: las muestras guardan strings, no enteros | Alto: puede cambiar mappings entre entrenamientos y contaminar métricas |
+| Lookahead fijo | Stale para live | Bajo: `DeferredOutcomeMonitor` ya usa `adaptive_lookahead()` | Bajo/medio: queda deuda legacy en rutas históricas del detector |
+| Rutas relativas | Real y recurrente | Medio: ya causó estados paralelos y pérdida de visibilidad | Alto: `memory_policy.py` calcula root un nivel demasiado arriba y puede romper identidad/memoria |
+| Período de cosecha como "tiempo muerto" | Real parcialmente | Medio: solo deben tocarse piezas no intrusivas o ya bloqueantes | Alto: fixes de encoding/rutas/raw L2 deben preceder el re-entrenamiento |
+| Codex antes de arquitectura estable | Real parcialmente | Bajo: Codex baseline no toca trading | Medio: el mapa fino del Oracle cambiará tras Fase Puente; conviene limitar Codex inicial a decisiones y lecciones estables |
+
+#### Cambios recomendados
+
+| Componente | Estado | Evidencia |
+|------------|--------|-----------|
+| Cosecha live | 🟡 En curso | Auditoría reciente: `captured=18`, `pending=1`, objetivo operativo `20` |
+| NexusGate | 🟡 Bypass temporal | `CGALPHA_DISABLE_NEXUS_GATE=1` abierto solo para cosecha; debe cerrarse al llegar a objetivo |
+| Raw L2 buffers | 🔴 Pendiente | Auditoría reciente marca `missing_raw` en muestras nuevas; sin raw temporal, la re-derivación forense queda limitada |
+| Encoding Oracle | 🔴 Pendiente | `oracle.py` conserva `LabelEncoder` en Oracle clasificador y regresor MAE |
+| MemoryPolicyEngine paths | 🔴 Pendiente | `memory_policy.py` usa `parent.parent.parent.parent`, que apunta fuera del repo desde `cgalpha_v3/learning/` |
+| Codex baseline | 🟡 Correcto, no primero | Debe indexar decisiones estables, no congelar prematuramente el Oracle en mutación |
+
+#### Lista ordenada de prioridades reales
+
+| Orden | Qué | Categoría | Cuándo | Por qué ese orden | Impacto medible |
+|-------|-----|-----------|--------|-------------------|-----------------|
+| 1 | Cerrar semáforo de cosecha reciente y retirar bypass de NexusGate | Operativo / Cat.1 | Ahora | Garantiza que el sistema vuelve a capturar sin gate artificial permanente | `audit_retests_capture.py --target 20` devuelve exit `0`; `CGALPHA_DISABLE_NEXUS_GATE` deja de usarse |
+| 2 | Reparar captura de `raw_buffers` L2 en modo Spot/Futures | Cat.1 | Antes de seguir acumulando muchas muestras | Sin raw temporal, las muestras no son re-derivables para features futuras | `missing_raw=0` en muestras nuevas |
+| 3 | Reemplazar `LabelEncoder` por encoding determinista en Oracle y MAE | Cat.1 | Antes del próximo re-entrenamiento | Evita mappings cambiantes entre ciclos y estabiliza métricas OOS | Test de mapping estable en dos datasets con orden distinto |
+| 4 | Consolidar rutas absolutas restantes y añadir tests de raíz de proyecto | Cat.1 | Antes de Codex Cat.3 | Evita repetición del patrón que ya causó pérdida de estado y visibilidad | Tests prueban que memoria, evolution log, dry-run y reports escriben dentro del repo |
+| 5 | Construir Codex baseline limitado | Cat.3 | Después de 1-4, durante cosecha | Mejora memoria consultable sin bloquear trading ni congelar diseño inmaduro | `CODEX.md` pasa tests de integridad y tiene entradas D/L autocontenidas |
+| 6 | Codex trading component completo | Cat.3 posterior | Tras Oracle OOS >= 0.72 y walk-forward >= 3 ventanas | La arquitectura predictiva aún cambia; documentarla demasiado pronto indexa ruido | Codex refleja modelo validado, no hipótesis en transición |
+
+#### Criterio de éxito
+
+```bash
+# 1. Cosecha reciente cerrada
+python3 cgalpha_v3/scripts/audit_retests_capture.py \
+  --last-hours 24 --recent-only --target 20 --semaforo
+
+# 2. No queda dependencia operativa del bypass
+grep -R "CGALPHA_DISABLE_NEXUS_GATE=1" -n logs/ shadow_trader.log 2>/dev/null || true
+
+# 3. Encoding determinista verificado
+python3 -m pytest cgalpha_v3/tests -q -k "oracle and encoding"
+
+# 4. Rutas persistentes dentro del repo
+python3 -m pytest cgalpha_v3/tests -q -k "path or persistence or memory"
+```
+
+#### Tests
+
+| Test | Propósito | Resultado esperado |
+|------|-----------|--------------------|
+| `test_oracle_deterministic_encoding` | Dos datasets con orden distinto generan mismas columnas/features | Pass |
+| `test_mae_regressor_deterministic_encoding` | El regresor MAE no depende del orden de clases vistas | Pass |
+| `test_project_root_paths` | Memoria, evolution log, reports y dry-run escriben bajo root del repo | Pass |
+| `audit_retests_capture --require-raw` | Muestras nuevas tienen snapshot y raw buffer | Exit `0` |
+
+#### TechnicalSpec semilla del Codex
+
+```yaml
+title: "Project Codex Baseline — mapa consultable de decisiones y lecciones"
+category: "Cat.3"
+target_file: "cgalpha_v4/CODEX.md"
+objective: >
+  Crear un índice autocontenido y RAG-ready de decisiones, componentes,
+  bugs, fases y lecciones del proyecto sin interrumpir la cosecha live.
+sections:
+  "§1 Mapa de Decisiones":
+    entry_format: "D-XXX"
+    required_fields:
+      - "Componente"
+      - "Problema resuelto"
+      - "Decisión"
+      - "Evidencia"
+      - "Alternativas descartadas"
+      - "Lección relacionada"
+  "§2 Mapa de Componentes":
+    entry_format: "C-XXX"
+    required_fields:
+      - "Responsabilidad"
+      - "Archivos principales"
+      - "Entradas"
+      - "Salidas"
+      - "Estado"
+      - "Riesgos abiertos"
+  "§3 Mapa de Bugs":
+    entry_format: "B-XXX"
+    required_fields:
+      - "Síntoma"
+      - "Causa raíz"
+      - "Fix"
+      - "Regresión prevenida"
+      - "Tests/Evidencia"
+  "§4 Mapa de Fases":
+    entry_format: "F-XXX"
+    required_fields:
+      - "Objetivo"
+      - "Resultado"
+      - "Evidencia"
+      - "Siguiente dependencia"
+  "§5 Mapa de Lecciones":
+    entry_format: "L-XXX"
+    required_fields:
+      - "Patrón"
+      - "Riesgo"
+      - "Regla operativa"
+      - "Ejemplo histórico"
+tests:
+  - "Existe cgalpha_v4/CODEX.md"
+  - "Contiene exactamente las secciones §1-§5"
+  - "Cada D-XXX tiene todos los campos obligatorios"
+  - "Cada L-XXX referencia al menos un D-XXX/B-XXX/F-XXX"
+  - "No hay entradas duplicadas por título normalizado"
+  - "El archivo incluye índice inicial de 20-40 entradas, no documentación exhaustiva"
+```
+
+#### Principio rector
+
+**El Codex evita que el sistema repita errores, pero no sustituye corregir los errores que todavía están en el camino crítico. Durante cosecha, primero se protege la calidad de los datos y del re-entrenamiento; después se indexa el conocimiento para que Lila no vuelva a perderlo.**
+
+### Post-mortem: Los 4 bugs en cascada del pipeline de cosecha
+Durante el resurgimiento y puesta en marcha del Live Trading de Múltiples Toques, se resolvió un cuello de botella sistémico que impedía la generación de `pending_labels.json`. Este bloqueo fue diagnosticado como un problema agudo compuesto por 4 fallos en secuencia:
+- **Bug 1** — Campos de Clearance sin serializar (`max_price_since_last_touch` default `-1.0` y `min_price_since_last_touch` bloqueando el análisis de distancia para nuevos toques).
+- **Bug 2** — Ruta incorrecta de `detector_state.json` (resolución relativa al CWD que originaba creación de estado paralelo).
+- **Bug 3** — Atributo `retest_detected=True` persistiendo después del bootstrap originando desincronización de estado para nuevos ticks.
+- **Bug 4** — `TouchRecord` no instanciado en formato JSON serializable (`dataclasses`) causando interrupción crítica y excepciones silenciosas (`TypeError`) dentro de `_persist_pending()`.
+
+### Protocolo de Re-entrenamiento: Evaluación de la Cosecha
+Cuando los monitores diferidos recolecten muestras y `pending_labels.json` o `training_dataset_v2.jsonl` contengan más de 10 registros, se deberá correr imperativamente la auditoría L2 para verificar pureza de la muestra excluyendo componentes Synth-Bridge:
+
+```bash
+# Validar Precios Activos > 70K
+python3 -c "
+import json
+with open('aipha_memory/operational/pending_labels.json') as f:
+    labels = json.load(f)
+prices = [l.get('entry_price', 0) for l in labels]
+real = [p for p in prices if p > 70000]
+print(f'Total labels: {len(labels)}')
+print(f'Con precio real (>70k): {len(real)}')
+print(f'Rango: {min(prices):.0f} — {max(prices):.0f}')
+"
+```
+**Nota Operativa**: Resultados cruzados con el marcador histórico de 2024 (~$55,000) confirmarán que existe rezago sintético y se deberá ejecutar una limpieza antes de sumario.
+
+**La Decisión del Umbral 50**
+A nivel arquitectónico de reentrenamiento (Fase 10), una vez superados ≥50 samples vivos y puros de la L2 microestructura, el sistema optará por la resolución de Silos Concurrentes: `Oracle_PureL2` (Solo ~50 samples reales L2) vs `Oracle_Hybrid` (50 Vivos + 121 Históricos).
+
+*Metodología de Grid Search (`Oracle_PureL2`):*
+El hiperparámetro `max_depth` se debe rastrear obligatoriamente con Grid Search empírico (ej. `max_depth=3` o `4`), mitigando matemáticamente el sobreajuste propio de dimensionar 25 features L2 en tan corta muestra.
+
+*Matriz de Evaluación de Desempate Empírico:*
+
+| Criterio | `Oracle_PureL2` | `Oracle_Hybrid` |
+|----------|-----------------|-----------------|
+| **OOS Accuracy** | ≥ 0.65? | ≥ 0.65? |
+| **Brier Score** | menor = mejor | menor = mejor |
+| **L2 ext. (Top-3 Importance)** | ¿sí/no? | ¿sí/no? |
+| **Distribución de Predicciones** | ¿predice las 3 clases? | ¿predice las 3 clases? |
+
+**Criterio de Invalidez**: Si `Oracle_PureL2` resulta en *class-imbalance blind* (e.g. incapaz de predecir o resolver un `BREAKOUT` perdiendo dimensionalidad de clases debido al encogimiento natural del muestreo), perderá por *Defecto de Overfitting*, consolidando al híbrido.
+
 ### Post-mortem: Los 3 bugs raíz de la invisibilidad en GUI
 Durante Hardening Fase 2, la GUI mostraba 0 zonas a pesar de que
 el detector las detectaba correctamente. La causa fue una cascada
@@ -1035,3 +1210,161 @@ baseline OOS honesto de 0.68, y hoja de ruta calibrada hasta la independencia pr
 **La independencia del sistema se gana por evidencia, no por voluntad.
 Las métricas honestas valen más que las brillantes.
 Y los filtros solo se añaden después de medir, nunca antes.**
+
+---
+
+### Hito: Arquitectura de Conocimiento — Project Codex (Planificado)
+
+- **Fecha:** Mayo 2026 (PLANIFICADO)
+- **Origen:** Imposibilidad de consultar las ~3,000 líneas de historia de forma eficiente con límite de contexto de 8k (Qwen 2.5:3b local).
+- **Prerrequisito:** No interrumpe la actual cosecha de L2 (esperando la recolección de los 50 retests).
+- **Objetivo medible:** Construir un índice autocontenido y RAG-ready (`cgalpha_v4/CODEX.md`) que permita a la IA recuperar contexto técnico y lecciones históricas de forma determinista y granular sin abrumar el context limit de modelos locales.
+
+#### 1. FASE 1: Codex Baseline (Vía Canal de Evolución Cat.3)
+- **Prerrequisito:** La cosecha de datos del sistema de trading continúa en paralelo sin detenciones.
+- **Acción:** El operador inyecta propuesta Cat.3 con spec técnico `target_file="cgalpha_v4/CODEX.md"`. Se elige `CODEX.md` para evitar confusiones arquitectónicas con archivos raíz `index.js/html/md` convencionales.
+- **Estructura Creada:** 
+  - §1 Mapa de Decisiones (`D-XXX`)
+  - §2 Mapa de Componentes
+  - §3 Mapa de Bugs (los 8 originales documentados y resueltos)
+  - §4 Mapa de Fases
+  - §5 Mapa de Errores Evitados (`L-XXX`)
+- **Evidencia de éxito (Tests):** CodeCraft Sage crea commits con `tests/test_codex_integrity.py` que verifica la existencia de las secciones §1-§5, la inclusión de la tabla de bugs al 100%, y que el formato de los identificadores `D-XXX` y `L-XXX` sea estricto.
+- **Registro en Memoria:** Entrada de nivel `RELATIONS` indicando la inicialización del Codex.
+
+#### 2. FASE 2: Segunda Propuesta Humana (Documentación del Ecosistema Trading)
+- **Prerrequisito Estricto:** Oracle OOS ≥ 0.72, validación walk-forward muestra consistencia en ≥ 3 ventanas temporales, y `bridge.jsonl` acumula ≥ 200 registros con precios orgánicos BTC.
+- **Acción:** Segunda propuesta Cat.3 para documentar la arquitectura de microestructura, el pipeline de trading maduro, y las decisiones algorítmicas probadas en el §2 y §1 del Codex.
+- **Razón:** La memoria y documentación deben anclarse sobre un sistema validado; documentar fases inestables indexa el ruido en vez de asegurar conocimiento empírico.
+
+#### 3. FASE 3: Vectorización Local (ChromaDB)
+- **Prerrequisito:** El archivo `CODEX.md` excede el umbral de las 80 entradas (aproximando 16k tokens, saturando por completo la ventana de contexto de Qwen 2.5:3b).
+- **Acción:** Implementación de persistencia vectorial vía `chromadb.PersistentClient` y `all-MiniLM-L6-v2` corriendo en CPU localmente, integrado con el `MemoryPolicyEngine`.
+- **Evidencia de éxito:** Inferencia offline (FORCE_LOCAL_LLM=true) recuperando top-3 chunks de contexto exactos (ej: `D-042` sobre ZigZag threshold) en < 2 segundos basándose en consultas semánticas.
+
+#### 4. FASE 4: Capa de Interfaz Operativa (Hermes)
+- **Prerrequisito:** Fases 1 a 3 operativas e integradas algorítmicamente.
+- **Acción:** Despliegue de Hermes Agent exclusivamente como interfaz de usuario y operador de skills procedimentales (FTS5 inquiries).
+- **Restricción de Acceso:** Aislamiento total de escritura/ejecución sobre Orchestrator, MemoryPolicyEngine o pipeline predictivo.
+- **Evidencia de éxito:** Comodidad UI operativa sin alteración del core trading.
+
+**Principio rector del hito:**
+*El conocimiento no indexado equivale a conocimiento inexistente para un LLM iterativo. El Codex estructura el aprendizaje empírico pasado (RAG Local) para que cualquier inferencia futura parta del rigor técnico acumulado y evite la degradación cíclica.*
+
+---
+
+## 10) Sesión de Estabilización Live + Cosecha (15 mayo 2026)
+
+- **Fecha:** 15 mayo 2026
+- **Objetivo:** Recuperar ingesta/cosecha viva tras espiral de ediciones parciales, restaurar operatividad GUI y establecer monitoreo automático de retests.
+
+### 10.1 Cambios aplicados (código)
+
+1. **Fallback de mercado Binance (Futures/Spot) por entorno**
+   - Archivos:
+     - `cgalpha_v3/infrastructure/binance_websocket_manager.py`
+     - `cgalpha_v3/scripts/launch_shadow_live.py`
+   - Cambio:
+     - Nuevo selector `CGALPHA_BINANCE_MARKET` (`futures` por defecto, `spot` para contingencia).
+     - WebSocket y bootstrap REST alineados al mismo mercado.
+   - Razón:
+     - Diagnóstico previo confirmó timeout selectivo/instable sobre infraestructura Futures desde la IP del host; Spot seguía respondiendo.
+
+2. **Hardening de rutas absolutas en detector (bug de doble universo de estado)**
+   - Archivo:
+     - `cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py`
+   - Cambio:
+     - Corrección de `project_root` a `Path(__file__).resolve().parent.parent.parent.parent` en `save_state()`, `load_state()` y log de calibración.
+   - Síntoma resuelto:
+     - Escrituras mezcladas entre `aipha_memory/...` (raíz) y `cgalpha_v3/aipha_memory/...` (subárbol), causando desincronización GUI/collector.
+
+3. **Persistencia multi-touch reforzada**
+   - Archivo:
+     - `cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py`
+   - Cambio:
+     - Serialización explícita de campos críticos:
+       - `max_price_since_detection`, `min_price_since_detection`
+       - `max_price_since_last_touch`, `min_price_since_last_touch`
+       - `retest_detected`, `flip_ts`, `flip_price`, `harvest_expiry_ts`
+     - Defaults defensivos al cargar estado.
+   - Razón:
+     - Evitar pérdida de contexto entre reinicios y bloqueos en evaluación de clearance/retests subsecuentes.
+
+4. **Auditoría de cosecha con semáforo automatizable**
+   - Archivo nuevo:
+     - `cgalpha_v3/scripts/audit_retests_capture.py`
+   - Capacidades:
+     - Conteo `captured/pending/union` por `sample_id`.
+     - Integridad de artefactos (`snapshot` / `raw_buffer`).
+     - Filtros temporales: `--since`, `--last-hours`, `--recent-only`.
+     - Semáforo por exit code:
+       - `0`: objetivo cumplido
+       - `1`: faltan capturas o pendientes (si aplica)
+       - `2`: integridad forense incumplida al exigir `--require-raw`
+
+5. **Operación GUI simplificada**
+   - Archivos nuevos:
+     - `start_gui.sh`
+     - `stop_gui.sh`
+   - Función:
+     - `start_gui.sh`: precheck de puertos y fallback (`8080 -> 5000 -> 8081`), arranque background con log timestamp.
+     - `stop_gui.sh`: apagado limpio por patrón de proceso.
+
+6. **Bypass temporal de NexusGate para cosecha de emergencia**
+   - Archivo:
+     - `cgalpha_v3/application/live_adapter.py`
+   - Cambio:
+     - `CGALPHA_DISABLE_NEXUS_GATE=1` fuerza `_is_causally_safe=True` (modo cosecha), sin alterar lógica base en modo normal.
+   - Razón:
+     - En el host se observó `ΔCausal=40%` constante > `0.25`, bloqueando la entrada de nuevos retests.
+
+### 10.2 Evidencia operativa observada durante la sesión
+
+- Heartbeat de velas activo (`📊 Candle close procesada`), confirmando pipeline vivo.
+- Nuevos `pending labels` registrados en tiempo real (ej. `re_20260515_032609_BTCUSDT_bullish_136`), validando recuperación de captura.
+- Semáforo reciente:
+  - `captured=18`, `pending=1`, `target=20`, exit `1` (faltan 2 capturados recientes para verde).
+
+### 10.3 Estado de datos al cierre de sesión
+
+- Se superó ampliamente el histórico total del objetivo en dataset global.
+- Para ventana **reciente** (24h, `recent-only`), faltan aún 2 capturas para cumplir el objetivo operativo de 20.
+- Deuda forense persistente:
+  - `raw_buffers` ausentes en muestras recientes (`missing_raw > 0`), aunque snapshots recientes sí están presentes.
+
+### 10.4 Commit de integración
+
+- Commit: `7acc9c0`
+- Rama: `main`
+- Push: `origin/main`
+- Mensaje:
+  - `fix(live): spot fallback, retest audit semaphore, gui start/stop scripts, and path/state hardening`
+
+### 10.5 Comandos canónicos post-sesión
+
+```bash
+# Arranque GUI
+./start_gui.sh
+
+# Arranque Live (contingencia spot + bypass de gate para cosecha)
+PYTHONPATH=. CGALPHA_BINANCE_MARKET=spot CGALPHA_DISABLE_NEXUS_GATE=1 ORACLE_MODE=observe \
+python3 cgalpha_v3/scripts/launch_shadow_live.py > shadow_trader.log 2>&1 &
+
+# Semáforo de cosecha reciente
+python3 cgalpha_v3/scripts/audit_retests_capture.py \
+  --last-hours 24 --recent-only --target 20 --semaforo
+
+# Cuando el semáforo devuelva exit 0: CERRAR BYPASS de NexusGate
+# Reiniciar sin la variable CGALPHA_DISABLE_NEXUS_GATE
+PYTHONPATH=. CGALPHA_BINANCE_MARKET=spot ORACLE_MODE=observe \
+python3 cgalpha_v3/scripts/launch_shadow_live.py > shadow_trader.log 2>&1 &
+```
+
+### 10.6 Riesgos abiertos
+
+1. **Dependencia de bypass de NexusGate** para cerrar objetivo de cosecha:
+   - Debe revertirse tras alcanzar el umbral de muestras para no degradar control causal.
+2. **Falta de `raw_buffers`** en parte de las muestras:
+   - Limita forensics L2 profunda y auditoría de perfil temporal.
+3. **Contexto de red Binance Futures inestable/bloqueado por IP**:
+   - Mantener fallback spot como mecanismo de continuidad operativa.
