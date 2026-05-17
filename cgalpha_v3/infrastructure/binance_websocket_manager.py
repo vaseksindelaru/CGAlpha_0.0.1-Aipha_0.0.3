@@ -113,6 +113,7 @@ class BinanceWebSocketManager(BaseComponentV3):
 
     async def _handle_message(self, data: Dict):
         """Procesa y enruta los mensajes del WebSocket."""
+        stream_name = ""
         event_type = data.get('e')
         
         if 'stream' in data and 'data' in data:
@@ -120,7 +121,18 @@ class BinanceWebSocketManager(BaseComponentV3):
             data = data['data']
             event_type = data.get('e')
 
+        # ── SPOT FORMAT NORMALIZATION (P0) ─────────────────────────
+        # Spot depth20@100ms uses 'bids'/'asks' (not 'b'/'a') and has no 's' field.
+        # Normalize to Futures format so the rest of the pipeline works unchanged.
+        if 'bids' in data and 'asks' in data and 'b' not in data:
+            data['b'] = data['bids']
+            data['a'] = data['asks']
+
+        # Extract symbol from stream_name when 's' is absent (Spot depth20)
         symbol = (data.get('s') or "").upper()
+        if not symbol and stream_name:
+            # stream_name = "btcusdt@depth20@100ms" → "BTCUSDT"
+            symbol = stream_name.split('@')[0].upper()
         
         # Clock Drift y Timestamp Inconsistency (P1)
         # Usar siempre el timestamp del evento de Binance ('E' o 'T') antes que time.time()
