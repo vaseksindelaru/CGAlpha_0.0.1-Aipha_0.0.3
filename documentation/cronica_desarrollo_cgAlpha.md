@@ -1396,3 +1396,51 @@ python3 cgalpha_v3/scripts/launch_shadow_live.py > shadow_trader.log 2>&1 &
 3. **Criterio operativo vigente**
    - Mantener arranque live sin `CGALPHA_DISABLE_NEXUS_GATE` cuando el semáforo ya está en verde.
    - Usar el bypass solo en contingencia explícita y temporal.
+
+---
+
+## 11) Restauración L2, Primer Sample FULL y Oracle Encoding Determinista (17 mayo 2026)
+
+- **Fecha:** 17 mayo 2026
+- **Objetivo:** Restaurar la integridad del pipeline de ingesta L2, resolver la falta de microestructura en los snapshots, y asegurar el Oracle v5 con un encoding robusto antes del re-entrenamiento.
+
+### 11.1 Restauración del L2 Pipeline (Bug 1 y Bug 2)
+
+El sistema estaba capturando muestras etiquetadas con `l2_data_quality: EMPTY`. Cada *feature* L2 (como `obi_10`, `depth_ratio`, `delta_acceleration`) mostraba sistemáticamente valor `0.0` durante los últimos 3 meses (desde Fase 9). Adicionalmente, el WS de Binance Futures no entregaba *frames*.
+
+**Diagnóstico y Fixes (Commit `89f21d9`)**:
+1. **WS de Futuros Bloqueado**: Confirmado vía test de aislamiento, se migró exitosamente la conexión al entorno de Binance Spot WS (`stream.binance.com:9443`).
+2. **Formato en conflicto Spot vs Futures**: Se detectó que el API de Spot (usando `bids` y `asks` sin campo de símbolo `s`) era ignorado por el manejador original concebido para Futuros (`b` y `a`).
+   - Se inyectaron 8 líneas de normalización en `_handle_message()` para unificar el formato pre-procesando el OBI.
+
+**Hito del Proyecto**: Apenas minutos después del despliegue, el pipeline recolectó de forma autónoma la muestra `re_20260517_150606_BTCUSDT_bearish_199`. 
+- **`n_snapshots`: 300** (Historial pre-retest completo de 30s)
+- **`obi_10_gradient_5s`: 0.0126** (Flujo institucional medido real)
+- **La primer muestra de calidad `FULL` en la historia del proyecto**. Con esto, la **Debilidad Estructural #1** (*snapshot estático vs perfil temporal*) queda completamente superada.
+
+### 11.2 Fase Puente [F3] — Oracle One-Hot Encoding (Commit `44afd79`)
+
+Se retomó la **Debilidad Estructural #3** identificada a principios de mayo: el Oracle usaba `LabelEncoder` (creando mappings ordinales estáticos no determinísticos que cambiaban sin advertencia entre ciclos de recolección y sesgaban al RandomForest).
+
+**Cambios Implementados**:
+1. Abandono de `LabelEncoder` y del *encoding* ordinal.
+2. Inyección de *one-hot binary encoding* a través de un *helper* determinista `_to_binary_features()`.
+3. Expansión estructural de variables categóricas (`regime`, `direction`, `delta_divergence`):
+   - `OracleTrainer_v3`: Pasa de 7 a 11 features.
+   - `OracleRegressor_MAE`: Pasa de 8 a 12 features.
+4. Preservación hacia atrás de los antiguos diccionarios en disco (`save_to_disk` & `load_from_disk`) garantizando retrocompatibilidad total del pickle.
+
+### 11.3 Red de Seguridad (Commit `d63cead`)
+
+Previo a la migración de encoding, se inyectaron 17 (luego evolucionados a 19) tests puros Cat.1:
+- `TestOracleEncodingDeterminism` (determinismo y formato)
+- `TestNoLabelEncoderDependency` (pureza de dependencias y *matching*)
+- `TestOracleTrainingRegression` (entrenamiento, predicciones lógicas)
+- Cero regresiones logradas ante la suite completa global.
+
+### 11.4 Próximos pasos (Quality Gate)
+
+El sistema ahora opera en modo *Cosecha Autónoma de Alta Precisión*. Para forzar el re-entrenamiento del Oracle v5, se implementa conceptualmente el **Quality Gate**:
+1. ≥ 50 muestras de calidad `FULL`.
+2. ≥ 2 clases demostradas como desenlace (`BOUNCE_STRONG`, `BREAKOUT`, etc.), previniendo sesgos de mercado de un solo flujo.
+3. Pre-procesado logístico (pendiente): A los 239 `EMPTY` samples base, se les forzarán las métricas L2 nulas de `0.0` a `NaN` inmediatamente antes del `fit()`, integrando el pasado geométrico sano pero descartando sus nulos espurios que pudieran emborronar el peso del bosque aleatorio.
