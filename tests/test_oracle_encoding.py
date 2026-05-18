@@ -12,8 +12,9 @@ Created: 2026-05-17 | Category: Cat.1 (observational, no behavioral change)
 import pytest
 import numpy as np
 import random
-
-from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3, OracleRegressor_MAE
+from cgalpha_v3.lila.llm.oracle import (
+    OracleTrainer_v3, OracleRegressor_MAE, _to_binary_features
+)
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -151,34 +152,46 @@ class TestOracleEncodingDeterminism:
                     f"Mismatch for {field}={value} across instances"
 
     def test_encoding_handles_case_variants(self):
-        """Encoding works with mixed case input (bullish, BULLISH, Bullish)."""
-        oracle = OracleTrainer_v3.create_default()
-        oracle._encoders = oracle._deterministic_encoders()
-
-        # All case variants should produce the same encoding
-        assert oracle._safe_encode("direction", "bullish") == \
-               oracle._safe_encode("direction", "BULLISH")
-        assert oracle._safe_encode("regime", "lateral") == \
-               oracle._safe_encode("regime", "LATERAL")
-        assert oracle._safe_encode("regime", "high_vol") == \
-               oracle._safe_encode("regime", "HIGH_VOL")
+        """Binary encoding works with mixed case input (bullish, BULLISH, Bullish)."""
+        b1 = _to_binary_features("TREND", "bullish", "NEUTRAL")
+        b2 = _to_binary_features("trend", "BULLISH", "neutral")
+        b3 = _to_binary_features("Trend", "Bullish", "Neutral")
+        assert b1 == b2 == b3
 
     def test_encoding_unknown_returns_zero(self):
-        """Unknown categories return 0, not an exception."""
-        oracle = OracleTrainer_v3.create_default()
-        oracle._encoders = oracle._deterministic_encoders()
-
-        assert oracle._safe_encode("regime", "UNKNOWN_REGIME") == 0
-        assert oracle._safe_encode("direction", "sideways") == 0
-        assert oracle._safe_encode("nonexistent_field", "anything") == 0
+        """Unknown categories produce all-zero binary columns."""
+        b = _to_binary_features("UNKNOWN_REGIME", "sideways", "UNKNOWN")
+        assert b["is_trending"] == 0
+        assert b["is_lateral"] == 0
+        assert b["is_high_vol"] == 0
+        assert b["is_bullish"] == 0
+        # Unknown delta_div defaults to neutral
+        assert b["is_div_neutral"] == 1
 
     def test_encoding_handles_none_and_nan(self):
-        """None and NaN inputs return 0 gracefully."""
-        oracle = OracleTrainer_v3.create_default()
-        oracle._encoders = oracle._deterministic_encoders()
+        """None and NaN inputs produce safe defaults."""
+        b = _to_binary_features(None, None, None)
+        assert b["is_trending"] == 0
+        assert b["is_bullish"] == 0
+        assert b["is_div_neutral"] == 1  # None defaults to neutral
 
-        assert oracle._safe_encode("regime", None) == 0
-        assert oracle._safe_encode("direction", float("nan")) == 0
+    def test_binary_features_are_deterministic(self):
+        """_to_binary_features returns identical results across calls."""
+        args = [("TREND", "bullish", "NEUTRAL"),
+                ("LATERAL", "bearish", "BULLISH"),
+                ("HIGH_VOL", "bullish", "BEARISH")]
+        for a in args:
+            assert _to_binary_features(*a) == _to_binary_features(*a)
+
+    def test_binary_features_one_hot_property(self):
+        """Each category group sums to exactly 1 (one-hot)."""
+        for regime in ["TREND", "LATERAL", "HIGH_VOL"]:
+            b = _to_binary_features(regime, "bullish", "NEUTRAL")
+            assert b["is_trending"] + b["is_lateral"] + b["is_high_vol"] == 1
+
+        for div in ["BULLISH", "BEARISH", "NEUTRAL"]:
+            b = _to_binary_features("LATERAL", "bullish", div)
+            assert b["is_div_bullish"] + b["is_div_bearish"] + b["is_div_neutral"] == 1
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -265,19 +278,24 @@ class TestOracleTrainingRegression:
         assert metrics is not None
         assert metrics["is_calibrated"] is True
 
-    def test_classifier_feature_count_is_seven(self):
-        """Current Oracle uses exactly 7 features (pre one-hot migration)."""
+    def test_classifier_feature_count_is_eleven(self):
+        """Current Oracle uses exactly 11 features (post one-hot migration)."""
         oracle = OracleTrainer_v3.create_default()
-        assert len(oracle._feature_cols) == 7
-        assert "regime" in oracle._feature_cols
-        assert "direction" in oracle._feature_cols
-        assert "delta_divergence" in oracle._feature_cols
+        assert len(oracle._feature_cols) == 11
+        assert "is_trending" in oracle._feature_cols
+        assert "is_bullish" in oracle._feature_cols
+        assert "is_div_neutral" in oracle._feature_cols
+        # Old categorical columns must NOT be in feature_cols
+        assert "regime" not in oracle._feature_cols
+        assert "direction" not in oracle._feature_cols
+        assert "delta_divergence" not in oracle._feature_cols
 
-    def test_regressor_feature_count_is_eight(self):
-        """MAE Regressor uses 8 features (7 + zone_width_atr)."""
+    def test_regressor_feature_count_is_twelve(self):
+        """MAE Regressor uses 12 features (11 + zone_width_atr)."""
         regressor = OracleRegressor_MAE.create_default()
-        assert len(regressor._feature_cols) == 8
+        assert len(regressor._feature_cols) == 12
         assert "zone_width_atr" in regressor._feature_cols
+        assert "is_trending" in regressor._feature_cols
 
     def test_classifier_quality_gate_rejects_small_dataset(self):
         """Quality gate blocks training with <50 samples."""

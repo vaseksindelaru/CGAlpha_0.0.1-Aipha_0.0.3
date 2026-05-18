@@ -14,6 +14,28 @@ from sklearn.metrics import brier_score_loss
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.records import MicrostructureRecord
 
+
+def _to_binary_features(regime, direction, delta_div) -> dict:
+    """Convert categorical values to deterministic binary columns (one-hot).
+
+    Phase Bridge [F3] — replaces LabelEncoder ordinal encoding.
+    Each categorical becomes N binary columns. Mapping is fixed and
+    identical across retraining cycles.
+    """
+    r = str(regime or "").strip().upper()
+    d = str(direction or "").strip().lower()
+    dd = str(delta_div or "").strip().upper()
+    return {
+        "is_trending": int(r == "TREND"),
+        "is_lateral": int(r == "LATERAL"),
+        "is_high_vol": int(r == "HIGH_VOL"),
+        "is_bullish": int("bull" in d),
+        "is_div_bullish": int(dd in ("BULLISH", "BULLISH_ABSORPTION")),
+        "is_div_bearish": int(dd in ("BEARISH", "BEARISH_EXHAUSTION")),
+        "is_div_neutral": int(dd not in ("BULLISH", "BULLISH_ABSORPTION", "BEARISH", "BEARISH_EXHAUSTION")),
+    }
+
+
 @dataclass
 class OraclePrediction:
     trade_id: str
@@ -49,10 +71,15 @@ class OracleTrainer_v3(BaseComponentV3):
             "vwap_at_retest",
             "obi_10_at_retest",
             "cumulative_delta_at_retest",
-            "delta_divergence",
             "atr_14",
-            "regime",
-            "direction",
+            # Binary columns (one-hot) — Phase Bridge [F3]
+            "is_trending",
+            "is_lateral",
+            "is_high_vol",
+            "is_bullish",
+            "is_div_bullish",
+            "is_div_bearish",
+            "is_div_neutral",
         ]
 
     @staticmethod
@@ -105,18 +132,14 @@ class OracleTrainer_v3(BaseComponentV3):
         if "outcome" not in df.columns:
             raise ValueError("Training dataset must include 'outcome'.")
 
-        cat_defaults = {
-            "delta_divergence": "NEUTRAL",
-            "regime": "LATERAL",
-            "direction": "bullish",
-        }
+        # Binary columns are produced by _normalize_sample → _to_binary_features
+        # Fill any missing binary cols with 0 (default = unknown/neutral)
+        for col in self._feature_cols:
+            if col not in df.columns:
+                df[col] = 0
 
-        for col, default in cat_defaults.items():
-            df[col] = df[col].fillna(default).astype(str)
-
+        # Preserve deterministic encoders for backward compat (save_to_disk)
         self._encoders = self._deterministic_encoders()
-        for col in ("delta_divergence", "regime", "direction"):
-            df[col] = df[col].apply(lambda v: self._safe_encode(col, v)).astype(int)
 
         X = (
             df[self._feature_cols]
@@ -323,26 +346,22 @@ class OracleTrainer_v3(BaseComponentV3):
                 is_placeholder=True,
             )
 
+        # Numerical features
         row = {
             "vwap_at_retest": float(self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))),
             "obi_10_at_retest": float(self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))),
             "cumulative_delta_at_retest": float(
                 self._pick(micro, "cumulative_delta", signal_data.get("cumulative_delta_at_retest", 0.0))
             ),
-            "delta_divergence": float(
-                self._safe_encode(
-                    "delta_divergence",
-                    self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")),
-                )
-            ),
             "atr_14": float(self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))),
-            "regime": float(
-                self._safe_encode("regime", self._pick(micro, "regime", signal_data.get("regime", "LATERAL")))
-            ),
-            "direction": float(
-                self._safe_encode("direction", signal_data.get("direction", self._pick(micro, "direction", "bullish")))
-            ),
         }
+        # Binary features (one-hot) — Phase Bridge [F3]
+        binary = _to_binary_features(
+            self._pick(micro, "regime", signal_data.get("regime", "LATERAL")),
+            signal_data.get("direction", self._pick(micro, "direction", "bullish")),
+            self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")),
+        )
+        row.update(binary)
 
         features = pd.DataFrame([row], columns=self._feature_cols).fillna(0.0)
         proba = self.model.predict_proba(features)[0]
@@ -436,11 +455,12 @@ class OracleTrainer_v3(BaseComponentV3):
             normalized["vwap_at_retest"] = l2.get("vwap_at_retest")
             normalized["obi_10_at_retest"] = l2.get("obi_10")
             normalized["cumulative_delta_at_retest"] = l2.get("cumulative_delta")
-            normalized["delta_divergence"] = l2.get("delta_divergence")
             normalized["atr_14"] = cl.get("atr_at_detection")
-            normalized["regime"] = cl.get("regime")
-            normalized["direction"] = zg.get("direction")
             normalized["outcome"] = out.get("label")
+            # Binary columns — Phase Bridge [F3]
+            normalized.update(_to_binary_features(
+                cl.get("regime"), zg.get("direction"), l2.get("delta_divergence")
+            ))
             return normalized
 
         # Legacy support
@@ -450,6 +470,11 @@ class OracleTrainer_v3(BaseComponentV3):
         for col in self._feature_cols:
             if col in sample:
                 normalized[col] = sample[col]
+        # Derive binary columns from raw categoricals
+        normalized.update(_to_binary_features(
+            normalized.get("regime"), normalized.get("direction"),
+            normalized.get("delta_divergence")
+        ))
         normalized["outcome"] = sample.get("outcome")
         return normalized
 
@@ -514,11 +539,16 @@ class OracleRegressor_MAE(BaseComponentV3):
             "vwap_at_retest",
             "obi_10_at_retest",
             "cumulative_delta_at_retest",
-            "delta_divergence",
             "atr_14",
-            "regime",
-            "direction",
-            "zone_width_atr" # Extra feature available in v2.0
+            # Binary columns (one-hot) — Phase Bridge [F3]
+            "is_trending",
+            "is_lateral",
+            "is_high_vol",
+            "is_bullish",
+            "is_div_bullish",
+            "is_div_bearish",
+            "is_div_neutral",
+            "zone_width_atr",  # Extra feature available in v2.0
         ]
         self.max_allowable_mae_ratio = 0.90 # 90% of zone width
 
@@ -556,17 +586,12 @@ class OracleRegressor_MAE(BaseComponentV3):
             if col not in df.columns:
                 df[col] = np.nan
 
-        cat_defaults = {
-            "delta_divergence": "NEUTRAL",
-            "regime": "LATERAL",
-            "direction": "bullish",
-        }
-        for col, default in cat_defaults.items():
-            df[col] = df[col].fillna(default).astype(str)
+        # Binary columns are produced by _normalize_sample → _to_binary_features
+        for col in self._feature_cols:
+            if col not in df.columns:
+                df[col] = 0
 
         self._encoders = self._deterministic_encoders()
-        for col in ("delta_divergence", "regime", "direction"):
-            df[col] = df[col].apply(lambda v: self._safe_encode(col, v)).astype(int)
 
         X = df[self._feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
         y = df["mae_atr"].apply(pd.to_numeric, errors="coerce")
@@ -618,12 +643,13 @@ class OracleRegressor_MAE(BaseComponentV3):
             normalized["vwap_at_retest"] = l2.get("vwap_at_retest")
             normalized["obi_10_at_retest"] = l2.get("obi_10")
             normalized["cumulative_delta_at_retest"] = l2.get("cumulative_delta")
-            normalized["delta_divergence"] = l2.get("delta_divergence")
             normalized["atr_14"] = cl.get("atr_at_detection")
-            normalized["regime"] = cl.get("regime")
-            normalized["direction"] = zg.get("direction")
             normalized["zone_width_atr"] = zg.get("zone_width_atr", 0.5)
             normalized["mae_atr"] = out.get("mae_atr")
+            # Binary columns — Phase Bridge [F3]
+            normalized.update(_to_binary_features(
+                cl.get("regime"), zg.get("direction"), l2.get("delta_divergence")
+            ))
         return normalized
 
     def predict_mae(self, micro: MicrostructureRecord, signal_data: Dict) -> MAEPrediction:
@@ -631,16 +657,21 @@ class OracleRegressor_MAE(BaseComponentV3):
             # Fallback a penetración moderada (e.g. 0.2 ATR)
             return MAEPrediction(str(signal_data.get("index", "unknown")), 0.2, 0.0, True, "Placeholder model")
 
+        # Numerical features
         row = {
             "vwap_at_retest": float(self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))),
             "obi_10_at_retest": float(self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))),
             "cumulative_delta_at_retest": float(self._pick(micro, "cumulative_delta", signal_data.get("cumulative_delta_at_retest", 0.0))),
-            "delta_divergence": float(self._safe_encode("delta_divergence", self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")))),
             "atr_14": float(self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))),
-            "regime": float(self._safe_encode("regime", self._pick(micro, "regime", signal_data.get("regime", "LATERAL")))),
-            "direction": float(self._safe_encode("direction", signal_data.get("direction", self._pick(micro, "direction", "bullish")))),
-            "zone_width_atr": float(signal_data.get("zone_width_atr", 0.5))
+            "zone_width_atr": float(signal_data.get("zone_width_atr", 0.5)),
         }
+        # Binary features (one-hot) — Phase Bridge [F3]
+        binary = _to_binary_features(
+            self._pick(micro, "regime", signal_data.get("regime", "LATERAL")),
+            signal_data.get("direction", self._pick(micro, "direction", "bullish")),
+            self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")),
+        )
+        row.update(binary)
 
         features = pd.DataFrame([row], columns=self._feature_cols).fillna(0.0)
         predicted_mae_atr = float(self.model.predict(features)[0])
