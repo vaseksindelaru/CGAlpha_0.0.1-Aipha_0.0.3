@@ -1311,7 +1311,9 @@ async function fetchForensicsStatus() {
         const data = await apiFetch("/api/l2-forensics/status");
         setText("forensics-pending", data.pending_count || 0);
         setText("forensics-resolved", data.resolved_count || 0);
-        setText("forensics-dataset", data.dataset_total || 0);
+        const fullCount = data.full_samples || 0;
+        const totalCount = data.dataset_total || 0;
+        setText("forensics-dataset", `${fullCount} FULL / ${totalCount}`);
         const source = data.pending_source || "in_memory";
         const sourceLabel = source === "disk_fallback" ? "disco (collector externo)" : "memoria local";
         setText("forensics-pending-note", `Retests esperando resolución · fuente: ${sourceLabel}`);
