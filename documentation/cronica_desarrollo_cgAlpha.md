@@ -1445,6 +1445,14 @@ El sistema ahora opera en modo *Cosecha Autónoma de Alta Precisión*. Para forz
 2. ≥ 2 clases demostradas como desenlace (`BOUNCE_STRONG`, `BREAKOUT`, etc.), previniendo sesgos de mercado de un solo flujo.
 3. Pre-procesado logístico (pendiente): A los 239 `EMPTY` samples base, se les forzarán las métricas L2 nulas de `0.0` a `NaN` inmediatamente antes del `fit()`, integrando el pasado geométrico sano pero descartando sus nulos espurios que pudieran emborronar el peso del bosque aleatorio.
 
-### 11.5 Parche Cosmético GUI: Transparencia de Muestras (18 mayo 2026)
-A petición operativa para evaluar en tiempo real el llenado del *Quality Gate*, se actualizó la REST API (`/api/l2-forensics/status`) y el script `app.js` de la sala de control para penetrar el objeto L2 y contar activamente `l2_data_quality == 'FULL'`. 
-El panel forense ahora reporta activamente **"X FULL / Y totales"**, resolviendo la ceguera visual sobre la calidad del dataset.
+### 11.5 Parche GUI: Visibilidad del Quality Gate (18 mayo 2026)
+
+A petición operativa para evaluar en tiempo real el llenado del *Quality Gate*, se implementaron tres cambios:
+
+1. **Backend** (`server.py`): El endpoint `/api/l2-forensics/status` ahora itera las líneas del dataset buscando `l2_temporal_profile.l2_data_quality == "FULL"` y devuelve el campo `full_samples` en la respuesta JSON.
+2. **Frontend** (`app.js`): La función `fetchForensicsStatus()` ahora renderiza `"X FULL / Y"` en vez del conteo total plano.
+3. **HTML** (`index.html`): Se redujo el `font-size` de la tarjeta "Dataset v2" de `2.5rem` a `1.6rem` para acomodar el texto más largo, y se cambió el subtítulo a **"Quality Gate: 50 FULL requeridas"**.
+
+**Bug detectado durante implementación:** La primera edición a `app.js` no se aplicó correctamente (falló el multi-replace). El navegador además cacheaba el archivo viejo (HTTP 304 Not Modified). Se corrigió con una segunda edición precisa y un reinicio del servidor Flask.
+
+**Verificación visual:** Se confirmó por inspección directa del navegador que la tarjeta muestra **"2 FULL / 241"** con subtítulo del Quality Gate.
