@@ -2901,6 +2901,7 @@ def api_l2_forensics_status():
     # Leer contadores del dataset de entrenamiento v2
     training_path = project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
     dataset_lines = 0
+    full_samples = 0
     outcome_distribution = {"BOUNCE_STRONG": 0, "BOUNCE_WEAK": 0, "BREAKOUT": 0, "INCONCLUSIVE": 0}
     if training_path.exists():
         try:
@@ -2915,6 +2916,10 @@ def api_l2_forensics_status():
                         label = row.get("outcome", {}).get("label", "UNKNOWN")
                         if label in outcome_distribution:
                             outcome_distribution[label] += 1
+                        
+                        # Phase Bridge F3/L2 Check
+                        if row.get("l2_temporal_profile", {}).get("l2_data_quality") == "FULL":
+                            full_samples += 1
                     except json.JSONDecodeError:
                         pass
         except OSError:
@@ -2934,6 +2939,7 @@ def api_l2_forensics_status():
         "pending_count": pending_count,
         "resolved_count": resolved_count,
         "dataset_total": dataset_lines,
+        "full_samples": full_samples,
         "outcome_distribution": outcome_distribution,
         "active_monitors": pending_summary,
         "active_zones": active_zones_disk,

@@ -1444,3 +1444,7 @@ El sistema ahora opera en modo *Cosecha Autónoma de Alta Precisión*. Para forz
 1. ≥ 50 muestras de calidad `FULL`.
 2. ≥ 2 clases demostradas como desenlace (`BOUNCE_STRONG`, `BREAKOUT`, etc.), previniendo sesgos de mercado de un solo flujo.
 3. Pre-procesado logístico (pendiente): A los 239 `EMPTY` samples base, se les forzarán las métricas L2 nulas de `0.0` a `NaN` inmediatamente antes del `fit()`, integrando el pasado geométrico sano pero descartando sus nulos espurios que pudieran emborronar el peso del bosque aleatorio.
+
+### 11.5 Parche Cosmético GUI: Transparencia de Muestras (18 mayo 2026)
+A petición operativa para evaluar en tiempo real el llenado del *Quality Gate*, se actualizó la REST API (`/api/l2-forensics/status`) y el script `app.js` de la sala de control para penetrar el objeto L2 y contar activamente `l2_data_quality == 'FULL'`. 
+El panel forense ahora reporta activamente **"X FULL / Y totales"**, resolviendo la ceguera visual sobre la calidad del dataset.
