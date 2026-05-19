@@ -86,13 +86,15 @@ class TestIntraCandleRetest:
         assert len(hits) == 1
 
     def test_already_retested_zone_skipped(self):
-        """Zone already retested is not checked again."""
+        """Zone already retested (within debounce window) is not checked again."""
         det = TripleCoincidenceDetector()
         zone = make_zone()
         zone.retest_detected = True
+        zone.last_retest_ts_ms = 2000000  # Simulate production: both fields set together
         det.active_zones = [zone]
 
-        hits = det.check_intra_candle_retest(99.5, 2000000)
+        # 1s later = within debounce window (5s default)
+        hits = det.check_intra_candle_retest(99.5, 2001000)
         assert len(hits) == 0
 
     def test_clearance_calculated_bullish(self):

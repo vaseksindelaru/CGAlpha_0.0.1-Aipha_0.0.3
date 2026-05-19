@@ -292,6 +292,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         """
         zone = hit["zone"]
         clearance_atr = hit["clearance_atr"]
+        retest_type = hit.get("retest_type", "ZONE_INTERIOR")
 
         # ── 1. SYNTHESIZE L2 PROFILE (the whole point of this refactor) ──
         sym_lower = self.symbol.lower()
@@ -389,6 +390,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 "ask_wall_depth_10_btc": ask_depth_10,
                 "spread_bps": round(spread_bps, 2),
                 "vwap_session": self.current_kline.get("close", price),
+                "retest_type": retest_type,
             },
             "l2_temporal_profile": l2_profile,
             "market_context": {

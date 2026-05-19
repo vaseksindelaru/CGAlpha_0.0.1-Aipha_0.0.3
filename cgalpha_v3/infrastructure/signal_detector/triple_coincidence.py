@@ -976,6 +976,7 @@ class TripleCoincidenceDetector:
                         clearance = (zone.zone_bottom - zone.min_price_since_detection) / zone.atr_at_detection
 
                     # Guardar en buffer de pendientes para etiquetado diferido
+                    is_interior = zone.zone_bottom <= retest.retest_price <= zone.zone_top
                     self._pending_live_retests.append({
                         'retest': retest,
                         'zone': zone,
@@ -988,7 +989,8 @@ class TripleCoincidenceDetector:
                             'atr_14': retest.atr_14,
                             'regime': retest.regime,
                             'direction': zone.direction,
-                            'max_clearance_atr': round(float(clearance), 4)
+                            'max_clearance_atr': round(float(clearance), 4),
+                            'retest_type': 'ZONE_INTERIOR' if is_interior else 'PROXIMITY_BUFFER',
                         },
                         'zone_id': f"{zone.candle_index}_{zone.direction}",
                     })
@@ -1352,11 +1354,16 @@ class TripleCoincidenceDetector:
                 zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
                 zone.last_retest_ts_ms = timestamp_ms
 
+                # Classify touch type for future calibration
+                is_interior = zone.zone_bottom <= price <= zone.zone_top
+                retest_type = "ZONE_INTERIOR" if is_interior else "PROXIMITY_BUFFER"
+
                 hits.append({
                     "zone": zone,
                     "price": price,
                     "timestamp_ms": timestamp_ms,
                     "clearance_atr": round(float(clearance), 4),
+                    "retest_type": retest_type,
                 })
 
         return hits
