@@ -1479,3 +1479,37 @@ Nuevo parámetro `retest_proximity_pct = 0.001` (0.1% del precio actual). A `$77
 **Justificación estadística:** El flujo institucional no se concentra en un precio exacto — la absorción y la acumulación que forman una zona se dispersan en un rango fuzzy alrededor de los niveles detectados. Un buffer de 0.1% es conservador y coherente con la teoría de microestructura del proyecto.
 
 **Verificación:** 24/24 tests pasados (oracle encoding + signal detector integration). El proceso `launch_shadow_live.py` fue reiniciado con las variables de entorno correctas (`CGALPHA_BINANCE_MARKET=spot`, `ORACLE_MODE=observe`). Bootstrap de 499 velas cargado correctamente.
+
+### 11.7 Instrumentación del Proximity Buffer: `retest_type` y Observabilidad (19 mayo 2026)
+
+Tras revisión operativa del §11.6, se identificó que el parámetro `retest_proximity_pct = 0.001` no está calibrado empíricamente (paralelo directo con el ZigZag `threshold` pre-calibración P75). Para habilitar la validación estadística futura del buffer, se implementaron tres mejoras:
+
+**1. Campo `retest_type` en cada muestra:**
+
+Cada retest ahora se etiqueta como `ZONE_INTERIOR` (precio dentro de `zone_bottom..zone_top`) o `PROXIMITY_BUFFER` (precio fuera de la zona pero dentro del buffer de 0.1%). El campo se inyecta en tres puntos:
+- `check_intra_candle_retest()` → hit dict (tick-level)
+- `process_live_tick()` → features dict (candle-level, etiquetado diferido)
+- `_on_retest_detected()` → `l2_snapshot_at_touch.retest_type` (persistido en `training_dataset_v2.jsonl`)
+
+**Protocolo de validación futura (con N ≥ 50 muestras):**
+```python
+interior = [s for s in samples if s.get("retest_type") == "ZONE_INTERIOR"]
+buffer   = [s for s in samples if s.get("retest_type") == "PROXIMITY_BUFFER"]
+# Si outcomes divergen → ajustar o excluir buffer samples del training
+```
+
+**2. Observabilidad de debounce inconsistente:**
+
+Se añadió un `logger.warning()` en `check_intra_candle_retest()` que se dispara si una zona tiene `retest_detected=True` pero `last_retest_ts_ms=None`. Este estado inconsistente haría que el debounce falle silenciosamente, permitiendo hits duplicados. El warning proporciona trazabilidad si esto ocurre en producción a largo plazo.
+
+**3. Fix de test pre-existente:**
+
+`test_already_retested_zone_skipped` no ponía `last_retest_ts_ms` junto a `retest_detected=True`, simulando exactamente el estado inconsistente descrito arriba. Corregido para reflejar el comportamiento real de producción donde ambos campos se setean juntos (líneas 1352-1353 de `triple_coincidence.py`).
+
+**Visibilidad del parámetro:** Confirmado que `retest_proximity_pct` ya reside en el dict `defaults` del constructor de `TripleCoincidenceDetector` (línea 696), por lo tanto es indexable por el Parameter Landscape Map y proponible por el AutoProposer.
+
+**Estado del sistema post-cambios:**
+- Proceso `launch_shadow_live.py` operando con 36 zonas persistentes + 46 zonas GUI
+- 499 velas de bootstrap (Spot BTCUSDT 5m)
+- Quality Gate: **2 FULL / 241 totales** — sistema en espera de actividad del mercado
+- Próximo hito: cuando `Samples FULL ≥ 50` con `≥ 2 clases de outcome` → Oracle v5

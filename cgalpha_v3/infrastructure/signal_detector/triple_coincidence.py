@@ -1302,6 +1302,12 @@ class TripleCoincidenceDetector:
             if zone.last_retest_ts_ms is not None:
                 if (timestamp_ms - zone.last_retest_ts_ms) < debounce_ms:
                     continue
+            elif zone.retest_detected:
+                # Inconsistent state: retested but no timestamp for debounce
+                logger.warning(
+                    f"⚠️ Zone {zone.zone_id or zone.candle_index}: "
+                    f"retest_detected=True but last_retest_ts_ms=None — debounce inconsistente"
+                )
 
             # Update price extremes (clearance tracking)
             zone.max_price_since_detection = max(zone.max_price_since_detection, price)
