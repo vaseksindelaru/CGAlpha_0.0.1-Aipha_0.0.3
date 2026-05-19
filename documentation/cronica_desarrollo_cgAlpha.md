@@ -1456,3 +1456,26 @@ A petición operativa para evaluar en tiempo real el llenado del *Quality Gate*,
 **Bug detectado durante implementación:** La primera edición a `app.js` no se aplicó correctamente (falló el multi-replace). El navegador además cacheaba el archivo viejo (HTTP 304 Not Modified). Se corrigió con una segunda edición precisa y un reinicio del servidor Flask.
 
 **Verificación visual:** Se confirmó por inspección directa del navegador que la tarjeta muestra **"2 FULL / 241"** con subtítulo del Quality Gate.
+
+### 11.6 Aceleración de Cosecha: Proximity Buffer para Detección de Retests (19 mayo 2026)
+
+**Problema identificado:** Después de 48 horas de ejecución continua, el sistema solo había capturado 2 muestras FULL de las 50 requeridas por el Quality Gate. A ese ritmo, la acumulación tardaría más de un mes.
+
+**Análisis de causa raíz:** Se investigó el detector `check_intra_candle_retest()` en `triple_coincidence.py` y se confirmó que la condición de toque (línea 1323) exigía que el precio estuviese *exactamente* dentro de los límites `zone_bottom ≤ price ≤ zone_top`. La zona activa más cercana era `199_bearish` con `zone_top = $76,967.80`, mientras que el precio rondaba `$76,978` — una diferencia de tan solo **$11.14**, pero suficiente para que el sistema ignorara por completo la cercanía del precio a la zona.
+
+**Decisión tomada (Opción A — Proximity Buffer):**
+
+Se evaluaron tres opciones:
+- **Opción A (elegida):** Expandir el perímetro de toque añadiendo un buffer porcentual (`retest_proximity_pct`). No degrada la calidad de las zonas, solo amplía la ventana de captura.
+- **Opción B (descartada):** Bajar los umbrales de detección (R², Z-Score) para generar más zonas. Rechazada porque envenenería al Oracle con zonas de baja calidad.
+- **Opción C (descartada):** Descargar datos históricos L2 de Binance Vision y simular retests offline. Rechazada por complejidad de infraestructura y porque los snapshots L2 históricos no están disponibles con la granularidad requerida.
+
+**Implementación:**
+
+Nuevo parámetro `retest_proximity_pct = 0.001` (0.1% del precio actual). A `$77,000`, esto añade un buffer de **$77** a cada lado de la zona. Modificaciones en dos puntos:
+1. `check_intra_candle_retest()` (tick-level, línea 1323): la condición de toque se expandió de `zone_bottom ≤ price ≤ zone_top` a `(zone_bottom - proximity) ≤ price ≤ (zone_top + proximity)`.
+2. `_check_retest()` (candle-level, línea 1162): misma expansión por consistencia.
+
+**Justificación estadística:** El flujo institucional no se concentra en un precio exacto — la absorción y la acumulación que forman una zona se dispersan en un rango fuzzy alrededor de los niveles detectados. Un buffer de 0.1% es conservador y coherente con la teoría de microestructura del proyecto.
+
+**Verificación:** 24/24 tests pasados (oracle encoding + signal detector integration). El proceso `launch_shadow_live.py` fue reiniciado con las variables de entorno correctas (`CGALPHA_BINANCE_MARKET=spot`, `ORACLE_MODE=observe`). Bootstrap de 499 velas cargado correctamente.

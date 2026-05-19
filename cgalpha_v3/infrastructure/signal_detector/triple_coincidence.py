@@ -693,6 +693,7 @@ class TripleCoincidenceDetector:
             'breakout_confirm_atr_buffer': 0.03,
             'volume_z_threshold': 0.5,
             'min_clearance_atr': 1.0,
+            'retest_proximity_pct': 0.001,  # 0.1% of price — proximity buffer for zone touch
             'state_path': "aipha_memory/operational/detector_state.json"
         }
         self.config = {**defaults, **(config or {})}
@@ -1158,8 +1159,9 @@ class TripleCoincidenceDetector:
         """Verifica si el precio retestea la zona activa."""
         current_price = df.iloc[idx]['close']
 
-        # Verificar si el precio está en la zona
-        if zone.zone_bottom <= current_price <= zone.zone_top:
+        # Verificar si el precio está en la zona (con proximity buffer)
+        proximity = current_price * self.config.get('retest_proximity_pct', 0.001)
+        if (zone.zone_bottom - proximity) <= current_price <= (zone.zone_top + proximity):
             # Capturar features del retest
             vwap = micro_features.iloc[idx]['vwap'] if micro_features is not None else zone.vwap_at_detection
             obi_10 = micro_features.iloc[idx]['obi_10'] if micro_features is not None else 0.0
@@ -1319,8 +1321,9 @@ class TripleCoincidenceDetector:
             zone.max_price_since_last_touch = max(zone.max_price_since_last_touch, price)
             zone.min_price_since_last_touch = min(zone.min_price_since_last_touch, price)
 
-            # Check if price is inside the zone
-            if zone.zone_bottom <= price <= zone.zone_top:
+            # Check if price is inside the zone (with proximity buffer)
+            proximity = price * self.config.get('retest_proximity_pct', 0.001)
+            if (zone.zone_bottom - proximity) <= price <= (zone.zone_top + proximity):
                 # Calculate clearance at this moment
                 atr = zone.atr_at_detection
                 if atr <= 0:
