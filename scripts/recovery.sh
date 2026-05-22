@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# ==============================================================================
+# CGAlpha v3 — RECOVERY SCRIPT (Auto-Start)
+# Uso: ./scripts/recovery.sh
+# ==============================================================================
+
+PROJECT_ROOT="/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3"
+cd "$PROJECT_ROOT" || exit 1
+
+echo "🌌 Iniciando Restauración de Sistemas CGAlpha..."
+
+# 1. Limpieza de procesos zombies (opcional)
+pkill -f "cgalpha_v3/gui/server.py"
+pkill -f "cgalpha_v3/scripts/launch_shadow_live.py"
+sleep 2
+
+# 2. Iniciar Dashboard (GUI)
+echo "🖥️ Levantando Control Room (GUI)..."
+nohup python3 -u cgalpha_v3/gui/server.py >> gui_server.log 2>&1 &
+echo "   [OK] Lobby disponible en http://127.0.0.1:8080"
+
+# 3. Iniciar Pipeline de Cosecha L2 (Shadow Trader)
+echo "📡 Levantando Cosecha de Microestructura L2..."
+export PYTHONPATH="."
+export CGALPHA_BINANCE_MARKET="spot"
+export ORACLE_MODE="observe"
+
+nohup python3 -u cgalpha_v3/scripts/launch_shadow_live.py >> shadow_trader.log 2>&1 &
+echo "   [OK] Cosechadora activa (Modo Observe/Spot)"
+
+echo "------------------------------------------------------------------------------"
+echo "✅ Sistema Restablecido."
+echo "   - Para ver logs de la GUI: tail -f gui_server.log"
+echo "   - Para ver logs de Cosecha: tail -f shadow_trader.log"
+echo "------------------------------------------------------------------------------"

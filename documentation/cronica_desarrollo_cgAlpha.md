@@ -1513,3 +1513,23 @@ Se añadió un `logger.warning()` en `check_intra_candle_retest()` que se dispar
 - 499 velas de bootstrap (Spot BTCUSDT 5m)
 - Quality Gate: **2 FULL / 241 totales** — sistema en espera de actividad del mercado
 - Próximo hito: cuando `Samples FULL ≥ 50` con `≥ 2 clases de outcome` → Oracle v5
+
+### 11.8 Hito de Cosecha Alcanzado y Preparación para Set A (22 mayo 2026)
+
+Tras la implementación del `retest_proximity_pct` (0.1%), el sistema ha superado el *Quality Gate* operativo, acumulando **68 muestras FULL**. Una auditoría reveló:
+- Total dataset: 336 muestras.
+- Muestras FULL: 68 (44 BREAKOUT, 24 INCONCLUSIVE, 0 BOUNCE_STRONG).
+- Impacto del buffer: El buffer de 0.1% capturó 33 de las 68 muestras (58%), confirmando la hipótesis de dispersión institucional fuera de la zona estricta.
+- 100 muestras Legacy sin quality tag: Verificadas como *Synth-Bridge* preexistentes (rango 50k-70k), destinadas al Set B.
+
+**Evaluación Arquitectónica y Guardrails Implementados:**
+
+Se decidió **no iniciar el entrenamiento aún** para el Set A (muestras estrictas FULL), debido al desbalance de clases (0 `BOUNCE_STRONG`). Entrenar ahora produciría un clasificador de una sola clase inútil. Se estableció el script \`cgalpha_v3/scripts/monitor_set_a_readiness.py\` para auditar la preparación (mínimo 8 BOUNCE_STRONG para posibilitar `stratify=y`). 
+
+Para preparar el sistema para esta fase de espera segura y aplicar controles provisorios revisados, se aplicaron tres medidas en \`live_adapter.py\`:
+
+1.  **Auto-apagado del Bypass de NexusGate:** El bypass de cosecha (\`CGALPHA_DISABLE_NEXUS_GATE=1\`) ya no es indefinido. Se desactiva automáticamente cuando \`_count_full_samples() >= CGALPHA_BYPASS_DISABLE_AT_FULL\` (target 50), previniendo que el sistema quede permanentemente en modo inseguro post-cosecha. Se optimizó el log de advertencia para emitirse cada 5 minutos en lugar de por cada vela. *(Nota técnica: \`_count_full_samples()\` parsea el archivo JSONL sincrónicamente cada minuto, lo cual es deuda técnica identificada para cuando el dataset exceda ~5000 filas).*
+2.  **Trazabilidad y Penalidad por \`retest_type\`:** Se aplica una reducción heurística provisional a la confianza del Oracle (\`confidence *= 0.85\`, configurable mediante \`CGALPHA_PROXIMITY_PENALTY\`) si el toque viene del \`PROXIMITY_BUFFER\`, como medida de control de riesgo. El coeficiente aplicado se registra en \`retest_type_penalty_applied\` dentro de \`l2_snapshot_at_touch\` para su futura calibración basada en evidencia (tras comparar OOS de ZONE_INTERIOR vs PROXIMITY_BUFFER).
+3.  **Recuperación Automatizada:** Se creó \`scripts/recovery.sh\` para levantar consistentemente el Dashboard y la Cosechadora tras fallas del sistema base.
+
+**Resumen de la estrategia:** Mantener Cosecha y el monitoreo diario de \`BOUNCE_STRONG\` usando \`monitor_set_a_readiness.py\`. Luego, proceder con el Set A/B Retraining, comparativas de Brier Score, y solo en última instancia, calibración probabilística en el Codex (Evolución Categoría 3).

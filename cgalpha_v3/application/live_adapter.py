@@ -13,10 +13,12 @@ exacto del retest, no 45 segundos después al cierre de la vela.
 """
 
 import asyncio
+import json
 import logging
 import os
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
@@ -27,6 +29,8 @@ from cgalpha_v3.data_quality.nexus_gate import NexusGate
 from cgalpha_v3.risk.order_manager import DryRunOrderManager
 
 logger = logging.getLogger("live_adapter")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_TRAINING_DATASET_V2 = _PROJECT_ROOT / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
 
 
 class LiveDataFeedAdapter(BaseComponentV3):
@@ -66,6 +70,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.delta_causal = 0.0
         self._is_causally_safe = True
         self._disable_nexus_gate = os.environ.get("CGALPHA_DISABLE_NEXUS_GATE", "0").lower() in {"1", "true", "yes"}
+        self._last_bypass_warn_ts = 0.0
+        self._bypass_disable_full_target = int(os.environ.get("CGALPHA_BYPASS_DISABLE_AT_FULL", "50"))
+        self._proximity_penalty = float(os.environ.get("CGALPHA_PROXIMITY_PENALTY", "0.85"))
 
         # Deferred Labeling (Semana 3)
         self.deferred_monitor = DeferredOutcomeMonitor()
@@ -177,6 +184,13 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self._is_causally_safe = self.nexus.is_safe(self.delta_causal)
         if self._disable_nexus_gate:
             self._is_causally_safe = True
+            full_samples = self._count_full_samples()
+            if full_samples >= self._bypass_disable_full_target:
+                self._disable_nexus_gate = False
+                logger.warning(
+                    f"🛑 NEXUSGATE BYPASS AUTO-DISABLED: FULL={full_samples} "
+                    f">= target {self._bypass_disable_full_target}. Gate reactivated."
+                )
 
         logger.info(
             f"🕯️ Vela Live Cerrada: {self.symbol} "
@@ -194,7 +208,13 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 f"Threshold ({self.nexus.threshold}). Señales suspendidas."
             )
         elif self._disable_nexus_gate:
-            logger.info("🟡 NEXUSGATE BYPASS activo por entorno (modo cosecha).")
+            now = time.time()
+            if now - self._last_bypass_warn_ts >= 300:
+                self._last_bypass_warn_ts = now
+                logger.warning(
+                    "⚠️ NEXUSGATE BYPASSED (harvest mode). "
+                    f"Auto-disable target FULL={self._bypass_disable_full_target}."
+                )
 
         # 2. Feed closed candle to detector for ZONE DETECTION (Speed 1)
         self.detector.feed_kline_for_zone_detection(kline, micro_data)
@@ -293,6 +313,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         zone = hit["zone"]
         clearance_atr = hit["clearance_atr"]
         retest_type = hit.get("retest_type", "ZONE_INTERIOR")
+        retest_penalty = self._proximity_penalty if retest_type == "PROXIMITY_BUFFER" else 1.0
 
         # ── 1. SYNTHESIZE L2 PROFILE (the whole point of this refactor) ──
         sym_lower = self.symbol.lower()
@@ -391,6 +412,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 "spread_bps": round(spread_bps, 2),
                 "vwap_session": self.current_kline.get("close", price),
                 "retest_type": retest_type,
+                "retest_type_penalty_applied": retest_penalty,
             },
             "l2_temporal_profile": l2_profile,
             "market_context": {
@@ -428,6 +450,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 }
                 oracle_result = self._oracle.predict(micro=None, signal_data=signal_data)
                 confidence = oracle_result.confidence
+                confidence *= retest_penalty
                 prediction = oracle_result.suggested_action
             except Exception as e:
                 logger.warning(f"⚠️ Oracle prediction failed: {e}")
@@ -509,6 +532,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
             f"@ {price:.2f} | Zone [{zone.zone_bottom:.2f}-{zone.zone_top:.2f}] "
             f"| Clearance {clearance_atr:.2f} ATR "
             f"| OBI={obi_10:.4f} | CumΔ={cum_delta:.1f} "
+            f"| RetestType={retest_type} Penalty={retest_penalty:.2f} "
             f"| L2 snaps={l2_profile.get('n_snapshots', 0)} "
             f"| Oracle conf={confidence:.2f} ({prediction}) "
             f"| Sample={sample_id}"
@@ -533,6 +557,28 @@ class LiveDataFeedAdapter(BaseComponentV3):
             return "US"
         else:
             return "LATE_US"
+
+    def _count_full_samples(self) -> int:
+        """Count FULL-quality entries in training_dataset_v2.jsonl."""
+        if not _TRAINING_DATASET_V2.exists():
+            return 0
+        total = 0
+        try:
+            with open(_TRAINING_DATASET_V2, "r") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    quality = (row.get("l2_temporal_profile") or {}).get("l2_data_quality")
+                    if quality == "FULL":
+                        total += 1
+        except OSError:
+            return 0
+        return total
 
     @classmethod
     def create_default(cls, ws_manager, detector, order_mgr=None):
