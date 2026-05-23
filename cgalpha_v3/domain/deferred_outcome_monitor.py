@@ -83,7 +83,28 @@ class DeferredOutcomeMonitor:
 
     def __init__(self):
         self.pending: List[PendingLabel] = []
+        self._seen_ids: set = set()
         self._load_pending()
+        self._sync_seen_ids()
+
+    def _sync_seen_ids(self):
+        """Pre-puebla los IDs ya existentes en el dataset persistido."""
+        path = Path(COMPLETED_SAMPLES_PATH)
+        if not path.exists():
+            return
+        try:
+            with open(path, 'r') as f:
+                for line in f:
+                    if not line.strip(): continue
+                    try:
+                        data = json.loads(line)
+                        if '_meta' in data and 'sample_id' in data['_meta']:
+                            self._seen_ids.add(data['_meta']['sample_id'])
+                    except json.JSONDecodeError:
+                        continue
+            logger.info(f"📊 Dataset sync: {len(self._seen_ids)} IDs únicos cargados para deduplicación.")
+        except Exception as e:
+            logger.error(f"⚠️ Error sincronizando IDs del dataset: {e}")
 
     # ── Public API ──────────────────────────────────────────────
 
@@ -109,10 +130,24 @@ class DeferredOutcomeMonitor:
             sample_id para tracking
         """
         meta = snapshot.get("_meta", {})
-        sample_id = meta.get("sample_id", f"re_{int(time.time())}")
         zg = snapshot.get("zone_geometry", {})
         cl = snapshot.get("clearance", {})
         l2 = snapshot.get("l2_snapshot_at_touch", {})
+
+        sample_id = meta.get("sample_id", f"re_{int(time.time())}")
+
+        # --- DEDUPLICACIÓN DE SEGURIDAD ---
+        # 1. Chequeo contra dataset persistido
+        if sample_id in self._seen_ids:
+            logger.warning(f"⚠️ Intento de registrar ID ya persistido ignorado: {sample_id}")
+            return sample_id
+        
+        # 2. Chequeo contra cola actual de pending
+        if any(p.sample_id == sample_id for p in self.pending):
+            logger.warning(f"⚠️ Intento de registrar ID ya en cola pending ignorado: {sample_id}")
+            return sample_id
+            
+        # ----------------------------------
 
         zone_width_atr = zg.get("zone_width_atr", 1.0)
         lookahead = adaptive_lookahead(zone_width_atr)
@@ -153,6 +188,8 @@ class DeferredOutcomeMonitor:
         )
 
         self.pending.append(label)
+        # Solo marcamos como visto tras persistir y encolar correctamente.
+        self._seen_ids.add(sample_id)
         self._persist_pending()
 
         logger.info(
@@ -217,7 +254,12 @@ class DeferredOutcomeMonitor:
                 )
 
         if newly_resolved:
-            self._flush_resolved(newly_resolved)
+            flushed_ids = self._flush_resolved(newly_resolved)
+            # Actualizar conjunto de IDs vistos para evitar re-registro tras flush satisfactorio
+            for sid in flushed_ids:
+                self._seen_ids.add(sid)
+            # Liberar memoria: remover resueltos de la cola pending
+            self.pending = [p for p in self.pending if not p.resolved]
             self._persist_pending()
 
         return [
@@ -298,10 +340,11 @@ class DeferredOutcomeMonitor:
 
         return None  # Aún no resuelto
 
-    def _flush_resolved(self, resolved: List[PendingLabel]):
+    def _flush_resolved(self, resolved: List[PendingLabel]) -> List[str]:
         """Escribe samples resueltos en el dataset de entrenamiento v2."""
         path = Path(COMPLETED_SAMPLES_PATH)
         path.parent.mkdir(parents=True, exist_ok=True)
+        flushed_ids: List[str] = []
 
         with open(path, "a") as f:
             for label in resolved:
@@ -341,8 +384,10 @@ class DeferredOutcomeMonitor:
                 }
 
                 f.write(json.dumps(snapshot, default=str) + "\n")
+                flushed_ids.append(label.sample_id)
 
-        logger.info(f"💾 Flushed {len(resolved)} resolved samples to {COMPLETED_SAMPLES_PATH}")
+        logger.info(f"💾 Flushed {len(flushed_ids)} resolved samples to {COMPLETED_SAMPLES_PATH}")
+        return flushed_ids
 
     def _persist_pending(self):
         """Guarda estado de pending labels para sobrevivir reinicios."""

@@ -1568,3 +1568,38 @@ Para reducir riesgo operativo en fase de harvest, se parcheó `scripts/recovery.
 - `CGALPHA_PROXIMITY_PENALTY=0.85` (coherente con trazabilidad de `retest_type`)
 
 Con este ajuste, el arranque estándar queda alineado con la estrategia actual: **cosecha priorizada + bypass temporal controlado**, evitando bloqueos silenciosos por configuración incompleta al reiniciar.
+
+### 11.11 Blindaje de Integridad del Dataset + Prioridades Paralelas (24 mayo 2026)
+
+Se completó el cierre técnico del **Paso #1 (deduplicación y blindaje de `sample_id`)** y se avanzó con las siguientes dos prioridades del roadmap operativo.
+
+**A. Correcciones finales de deduplicación (producción):**
+- `DeferredOutcomeMonitor.register_retest()` ya no “quema” IDs antes de persistir.  
+  El `sample_id` se añade a `_seen_ids` solo tras encolar/persistir exitosamente.
+- `tick()` ahora elimina resueltos de `pending` después de flush, evitando crecimiento silencioso de memoria.
+- `_flush_resolved()` devuelve los IDs realmente escritos para sincronizar `_seen_ids` con exactitud.
+- `scripts/clean_dataset_duplicates.py` fue endurecido a escritura atómica (`.tmp` + `replace`) manteniendo backup previo.
+- `tests/test_dataset_deduplication.py` quedó aislado (sin contaminar rutas reales) y con restauración correcta de constantes del módulo.
+
+**Validación:** `pytest -q tests/test_dataset_deduplication.py` → **PASS**.
+
+**B. Prioridad #2 completada: reporte diario automático de cosecha**
+- Nuevo script: `cgalpha_v3/scripts/generate_harvest_report.py`.
+- Genera:
+  - `aipha_memory/reports/harvest_report_latest.json`
+  - snapshot con timestamp.
+- Incluye: distribución por `l2_data_quality`, outcomes, `retest_type`, readiness Set A y flag de drift por `INCONCLUSIVE` en FULL.
+
+**C. Prioridad #3 completada: preparación A/B lista para ejecución**
+- Nuevo script: `cgalpha_v3/scripts/prepare_oracle_ab_sets.py`.
+- Produce:
+  - `set_a_full_only.jsonl` (FULL + outcomes válidos),
+  - `set_b_bridge.jsonl` (FULL + legacy synth con L2 forzado a `None` y tag `LEGACY_NAN_BRIDGE`),
+  - `set_prep_summary.json`.
+
+**Estado al momento de correr scripts:**
+- Set A: 26 filas.
+- Set B: 101 filas.
+- `Set A ready`: **False** (aún faltan `BOUNCE_STRONG`).
+
+Con esto, el sistema queda listo para operar en modo cosecha sin degradar calidad y para disparar retraining A/B en cuanto aparezca el umbral mínimo de rebotes fuertes.
