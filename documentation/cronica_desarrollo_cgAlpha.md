@@ -1533,3 +1533,25 @@ Para preparar el sistema para esta fase de espera segura y aplicar controles pro
 3.  **Recuperación Automatizada:** Se creó \`scripts/recovery.sh\` para levantar consistentemente el Dashboard y la Cosechadora tras fallas del sistema base.
 
 **Resumen de la estrategia:** Mantener Cosecha y el monitoreo diario de \`BOUNCE_STRONG\` usando \`monitor_set_a_readiness.py\`. Luego, proceder con el Set A/B Retraining, comparativas de Brier Score, y solo en última instancia, calibración probabilística en el Codex (Evolución Categoría 3).
+
+### 11.9 Construcción del Codex Kernel y Siembra de Invariantes (23 mayo 2026)
+
+Se ha iniciado formalmente la construcción del **Codex (Cat.3 Evolution)**, priorizando la seguridad ante la futura automejora recursiva. Siguiendo la filosofía de "Leyes antes que Datos", se implementó una arquitectura de tres capas:
+
+**1. El Kernel Legal (`codex_kernel.py`):**
+Se definió el tribunal constitucional de la memoria. Este componente actúa como un filtro inmutable que valida cualquier propuesta de evolución (CEP) antes de que sea procesada por el Master Harness. Los invariantes clave implementados son:
+- **Invariante de Inmutabilidad:** Prohíbe modificar el `statement` de entradas históricas ya firmadas.
+- **Blindaje Canónico:** Protege IDs críticos (como D-001, D-008, B-002, L-003) contra cualquier intento de eliminación o inaccesibilidad.
+- **Validación de Esquema:** Garantiza que el AutoProposer no degrade la estructura de datos para conveniencia propia.
+
+**2. Tests de Integridad Epistémica (`test_codex_integrity.py`):**
+Se implementó una suite de tests (5/5 PASSED) que simulan ataques de "amnesia corporativa" y "alucinación arquitectónica". Estos tests garantizan que el Kernel rechaza propuestas malformadas o maliciosas que intenten sobreescribir la historia del proyecto.
+
+**3. Siembra de Verdades Fundacionales (`seed_codex_foundations.py`):**
+Se inyectaron las primeras tres memorias críticas en el Codex para que sirvan de anclaje contextual a futuros agentes:
+- **L-003 (Lesson):** El peligro de los thresholds arbitrarios (ZigZag 0.1%) y la necesidad de calibración por percentiles.
+- **B-002 (Bug):** El fallo de persistencia del Oracle que requirió integración en server.py.
+- **D-008 (Decision):** La justificación técnica del Proximity Buffer para acelerar la cosecha L2.
+
+**Estado de la Misión:**
+El sistema ya posee un "ADN corporativo" persistente. Cualquier agente que intente modificar el código de los thresholds recibirá automáticamente la lección L-003 en su contexto, evitando regresiones. La infraestructura está lista para escalar hacia la autonomía total, protegiendo la integridad del sistema contra su propio crecimiento.
