@@ -1555,3 +1555,16 @@ Se inyectaron las primeras tres memorias críticas en el Codex para que sirvan d
 
 **Estado de la Misión:**
 El sistema ya posee un "ADN corporativo" persistente. Cualquier agente que intente modificar el código de los thresholds recibirá automáticamente la lección L-003 en su contexto, evitando regresiones. La infraestructura está lista para escalar hacia la autonomía total, protegiendo la integridad del sistema contra su propio crecimiento.
+
+### 11.10 Hardening de Arranque de Cosecha: bypass explícito de NexusGate (24 mayo 2026)
+
+Durante validación operativa se observó un rebote de precio no reflejado como nueva muestra en `training_dataset_v2.jsonl`. La inspección mostró dos causas combinadas:
+- procesos previos con PID stale (pipeline no vivo en ese instante),
+- y ventanas donde `NexusGate` quedaba cerrado (`ΔCausal > threshold`), suspendiendo señales de cosecha.
+
+Para reducir riesgo operativo en fase de harvest, se parcheó `scripts/recovery.sh` para exportar explícitamente:
+- `CGALPHA_DISABLE_NEXUS_GATE=1`
+- `CGALPHA_BYPASS_DISABLE_AT_FULL=50` (auto-reactivación del gate al alcanzar el objetivo FULL)
+- `CGALPHA_PROXIMITY_PENALTY=0.85` (coherente con trazabilidad de `retest_type`)
+
+Con este ajuste, el arranque estándar queda alineado con la estrategia actual: **cosecha priorizada + bypass temporal controlado**, evitando bloqueos silenciosos por configuración incompleta al reiniciar.

@@ -25,9 +25,13 @@ echo "📡 Levantando Cosecha de Microestructura L2..."
 export PYTHONPATH="."
 export CGALPHA_BINANCE_MARKET="spot"
 export ORACLE_MODE="observe"
+export CGALPHA_DISABLE_NEXUS_GATE="1"
+export CGALPHA_BYPASS_DISABLE_AT_FULL="${CGALPHA_BYPASS_DISABLE_AT_FULL:-50}"
+export CGALPHA_PROXIMITY_PENALTY="${CGALPHA_PROXIMITY_PENALTY:-0.85}"
 
 nohup python3 -u cgalpha_v3/scripts/launch_shadow_live.py >> shadow_trader.log 2>&1 &
 echo "   [OK] Cosechadora activa (Modo Observe/Spot)"
+echo "   [OK] NexusGate bypass habilitado (auto-disable en FULL>=${CGALPHA_BYPASS_DISABLE_AT_FULL})"
 
 echo "------------------------------------------------------------------------------"
 echo "✅ Sistema Restablecido."
