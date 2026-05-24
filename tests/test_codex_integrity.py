@@ -1,63 +1,110 @@
-import pytest
 from cgalpha_v3.learning.codex_kernel import CodexKernel
 
-def test_kernel_accepts_valid_proposal():
-    proposal = {
-        "codex_id": "L-003",
-        "type": "LESSON",
-        "status": "APPROVED",
-        "statement": "Calibration using real data percentiles is better than arbitrary thresholds.",
-        "schema_version": "1.0.0"
-    }
-    # Estado actual vacío
-    assert CodexKernel.validate_proposal(proposal, {}) is True
 
-def test_kernel_rejects_missing_required_fields():
-    proposal = {
-        "codex_id": "L-003",
-        "type": "LESSON",
-        # Falta 'status' y 'statement'
-    }
-    assert CodexKernel.validate_proposal(proposal, {}) is False
-
-def test_kernel_protects_immutability():
-    current_state = {
+def _base_state():
+    # Minimal accessible canonical state.
+    return {
+        "D-001": {
+            "codex_id": "D-001",
+            "type": "DECISION",
+            "status": "ACTIVE",
+            "statement": "Shadow/Main separation",
+            "rationale": "Safety architecture",
+            "schema_version": "4.0.0",
+            "harness_inject_when": ["feature_proposal"],
+        },
         "D-008": {
-            "statement": "Original decision about proximity buffer."
-        }
+            "codex_id": "D-008",
+            "type": "DECISION",
+            "status": "ACTIVE",
+            "statement": "Use proximity buffer",
+            "rationale": "Capture near-zone institutional flow",
+            "schema_version": "4.0.0",
+            "harness_inject_when": ["signal_detector"],
+        },
+        "B-002": {
+            "codex_id": "B-002",
+            "type": "BUG",
+            "status": "RESOLVED",
+            "statement": "Persistence hook missing",
+            "rationale": "Model state was not loaded on restart",
+            "schema_version": "4.0.0",
+            "harness_inject_when": ["model_training"],
+        },
+        "L-003": {
+            "codex_id": "L-003",
+            "type": "LESSON",
+            "status": "ACTIVE",
+            "statement": "No arbitrary thresholds",
+            "rationale": "Calibrate by percentiles",
+            "schema_version": "4.0.0",
+            "harness_inject_when": ["optimizer"],
+        },
     }
-    
-    # Intento de cambiar el pasado (mismo ID, distinto statement)
-    malicious_proposal = {
+
+
+def test_kernel_accepts_valid_v4_entry():
+    proposal = {
+        "codex_id": "D-010",
+        "type": "DECISION",
+        "status": "PROPOSED",
+        "statement": "Introduce rolling confidence window.",
+        "rationale": "Stabilize confidence output under volatility spikes.",
+        "schema_version": "4.0.0",
+        "harness_inject_when": ["oracle_modification"],
+    }
+    assert CodexKernel.validate_proposal(proposal, _base_state()) is True
+
+
+def test_kernel_rejects_missing_harness_inject_when():
+    proposal = {
+        "codex_id": "D-011",
+        "type": "DECISION",
+        "status": "PROPOSED",
+        "statement": "Invalid schema sample",
+        "rationale": "Missing mandatory field",
+        "schema_version": "4.0.0",
+    }
+    assert CodexKernel.validate_proposal(proposal, _base_state()) is False
+
+
+def test_kernel_rejects_wrong_schema_version():
+    proposal = {
+        "codex_id": "D-012",
+        "type": "DECISION",
+        "status": "PROPOSED",
+        "statement": "Wrong schema version",
+        "rationale": "Must fail if not v4",
+        "schema_version": "1.0.0",
+        "harness_inject_when": ["feature_proposal"],
+    }
+    assert CodexKernel.validate_proposal(proposal, _base_state()) is False
+
+
+def test_kernel_protects_immutability_in_place_mutation():
+    state = _base_state()
+    malicious = {
         "codex_id": "D-008",
         "type": "DECISION",
-        "status": "APPROVED",
-        "statement": "I have hijacked this decision and changed its meaning.",
-        "schema_version": "1.0.0"
+        "status": "ACTIVE",
+        "statement": "Hijacked historical meaning",
+        "rationale": "Trying to rewrite history",
+        "schema_version": "4.0.0",
+        "harness_inject_when": ["signal_detector"],
     }
-    
-    assert CodexKernel.validate_proposal(malicious_proposal, current_state) is False
+    assert CodexKernel.validate_proposal(malicious, state) is False
 
-def test_kernel_protects_canonical_ids():
-    # Intento de eliminación de un ID protegido
+
+def test_kernel_protects_canonical_ids_from_delete():
     delete_proposal = {
-        "codex_id": "CEP-001",
-        "type": "DELETE", # Aunque no es un tipo de contenido, simulamos la acción
+        "action": "DELETE",
         "target_id": "D-001",
+        "codex_id": "CEP-001",
+        "type": "EVOLUTION_PROPOSAL",
         "status": "PROPOSED",
-        "statement": "Deleting build foundations",
-        "schema_version": "1.0.0"
+        "statement": "Delete canonical foundation",
+        "rationale": "Should be blocked",
+        "schema_version": "4.0.0",
+        "harness_inject_when": ["memory_governance"],
     }
-    
-    # El kernel debe detectar que target_id es canónico
-    assert CodexKernel.validate_proposal(delete_proposal, {}) is False
-
-def test_kernel_rejects_invalid_types():
-    proposal = {
-        "codex_id": "X-001",
-        "type": "MAGIC_GOSSIP", # Tipo no permitido
-        "status": "APPROVED",
-        "statement": "Invalid type test",
-        "schema_version": "1.0.0"
-    }
-    assert CodexKernel.validate_proposal(proposal, {}) is False
+    assert CodexKernel.validate_proposal(delete_proposal, _base_state()) is False

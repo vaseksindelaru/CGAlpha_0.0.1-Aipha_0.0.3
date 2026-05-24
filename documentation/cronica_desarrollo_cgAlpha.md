@@ -1603,3 +1603,55 @@ Se completó el cierre técnico del **Paso #1 (deduplicación y blindaje de `sam
 - `Set A ready`: **False** (aún faltan `BOUNCE_STRONG`).
 
 Con esto, el sistema queda listo para operar en modo cosecha sin degradar calidad y para disparar retraining A/B en cuanto aparezca el umbral mínimo de rebotes fuertes.
+
+### 11.12 Codex Governance Pack: Executive Brief + Runbook (24 mayo 2026)
+
+Para adelantar la Fase de consolidación del Codex (Cat.3), se formalizó el marco narrativo y operativo en dos documentos nuevos:
+
+- `documentation/CODEX_EXECUTIVE_BRIEF.md`
+  - Versión ejecutiva (dirección/arquitectura) con tesis, invariantes, método de despliegue, integración Harness y KPIs de aceptación.
+- `documentation/CODEX_RUNBOOK.md`
+  - Checklist técnico de implementación: estructura mínima del Kernel, orden de tests/seeding, sincronización regla-código, gates CI/CD y rutina operativa diaria.
+
+**Objetivo del paquete:** separar claramente visión estratégica vs ejecución técnica, para que cualquier agente/equipo pueda avanzar en Codex sin ambigüedad entre “principio”, “mecanismo” y “criterio de aceptación”.
+
+**Resultado esperado:** acelerar la transición de memoria documental a memoria ejecutable auditada, manteniendo trazabilidad y disciplina de cambio antes de activar autonomía más profunda.
+
+### 11.13 Paso 1 Ejecutado Completo: Kernel v4 + Migración Canónica (24 mayo 2026)
+
+Se ejecutó el **Principio Rector “Leyes antes que Datos”** a nivel de implementación real, cerrando el circuito entre norma y estado persistido.
+
+**1) Refuerzo del Kernel legal (`codex_kernel.py`)**
+- Se reescribió el kernel para validación determinista con contrato v4:
+  - Inmutabilidad histórica (sin mutación in-place de `statement`/`rationale`).
+  - Blindaje canónico (`D-001`, `D-008`, `B-002`, `L-003`).
+  - Esquema obligatorio v4 con `harness_inject_when` como lista no vacía.
+- Tests de integridad (`tests/test_codex_integrity.py`) actualizados a v4.
+- Resultado: `5/5 PASS`.
+
+**2) Migración v1→v4 de entradas canónicas**
+- Script nuevo: `cgalpha_v3/scripts/migrate_codex_to_v4.py`.
+- Capacidades:
+  - `dry-run` y `--apply`,
+  - backups automáticos,
+  - reporte JSON (latest + timestamp),
+  - escritura atómica.
+
+**3) Hallazgo y corrección estructural**
+- Durante dry-run se detectó ausencia de `D-001` en `cgalpha_v3/memory/codex/`.
+- Se materializó `D-001` desde evidencia existente en `memory_entries`, creando:
+  - `cgalpha_v3/memory/codex/decisions/D-001.json`
+  - `cgalpha_v3/memory/memory_entries/D-001.json`
+
+**4) Estado final canónico**
+- `D-001`, `D-008`, `B-002`, `L-003` presentes en `memory/codex` con `schema_version: 4.0.0`.
+- Re-ejecución de migración post-fix: `changes_planned_or_applied = 0` (idempotencia lograda).
+
+**5) Retroanálisis completo**
+- Documento técnico generado: `documentation/CODEX_MIGRATION_V4_RETROANALYSIS.md`
+- Incluye:
+  - comandos ejecutados,
+  - artefactos de reporte,
+  - backups,
+  - riesgos residuales,
+  - recomendaciones de CI preflight.
