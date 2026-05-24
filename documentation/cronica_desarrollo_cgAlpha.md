@@ -1655,3 +1655,33 @@ Se ejecutó el **Principio Rector “Leyes antes que Datos”** a nivel de imple
   - backups,
   - riesgos residuales,
   - recomendaciones de CI preflight.
+
+### 11.14 Hotfix de Cosecha: Auto-disable del bypass ligado a Set A Ready (24 mayo 2026)
+
+Tras observar rebotes recientes no reflejados como `BOUNCE_STRONG` y ventanas de `NEXUSGATE CLOSED` con `ΔCausal` elevado, se corrigió un riesgo de lógica operativa:
+
+- **Antes:** el bypass de NexusGate se auto-desactivaba al llegar a `FULL >= 50`.
+- **Problema:** ese criterio puede cerrar la cosecha demasiado pronto, antes de alcanzar diversidad de clases (`BOUNCE_STRONG`), bloqueando justamente la fase de adquisición crítica.
+- **Ahora (default):** el auto-disable se activa solo cuando **Set A está realmente listo**:
+  - `FULL >= 24`
+  - `BOUNCE_STRONG >= 8`
+  - `BREAKOUT >= 16`
+
+Implementación en `live_adapter.py`:
+- Nuevo modo configurable: `CGALPHA_BYPASS_DISABLE_MODE`:
+  - `set_a_ready` (default recomendado)
+  - `full_count` (legacy)
+- Nuevos umbrales configurables:
+  - `CGALPHA_SET_A_MIN_BOUNCE` (default `8`)
+  - `CGALPHA_SET_A_MIN_BREAKOUT` (default `16`)
+  - `CGALPHA_SET_A_MIN_FULL` (default `24`)
+- Se añadió cálculo de readiness con caché por `mtime` de dataset para evitar parseo innecesario.
+- Se invalidan cachés al resolver nuevas muestras en `DeferredOutcomeMonitor` para consistencia.
+
+Hardening adicional:
+- Se retiró lógica incremental incorrecta que intentaba leer `l2_temporal_profile` desde el payload `resolved` (no disponible en ese objeto).
+- `scripts/recovery.sh` exporta explícitamente el nuevo modo y umbrales, mostrando en consola el criterio activo.
+
+Resultado esperado:
+- Evitar esperar “en vano” por un criterio de desactivación prematuro.
+- Mantener bypass activo durante harvest hasta lograr readiness estadístico real para entrenamiento Set A.

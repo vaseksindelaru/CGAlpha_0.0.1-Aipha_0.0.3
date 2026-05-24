@@ -71,8 +71,18 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self._is_causally_safe = True
         self._disable_nexus_gate = os.environ.get("CGALPHA_DISABLE_NEXUS_GATE", "0").lower() in {"1", "true", "yes"}
         self._last_bypass_warn_ts = 0.0
+        self._bypass_disable_mode = os.environ.get("CGALPHA_BYPASS_DISABLE_MODE", "set_a_ready").strip().lower()
         self._bypass_disable_full_target = int(os.environ.get("CGALPHA_BYPASS_DISABLE_AT_FULL", "50"))
+        self._set_a_min_bounce = int(os.environ.get("CGALPHA_SET_A_MIN_BOUNCE", "8"))
+        self._set_a_min_breakout = int(os.environ.get("CGALPHA_SET_A_MIN_BREAKOUT", "16"))
+        self._set_a_min_full = int(os.environ.get("CGALPHA_SET_A_MIN_FULL", "24"))
         self._proximity_penalty = float(os.environ.get("CGALPHA_PROXIMITY_PENALTY", "0.85"))
+        
+        # Incremental Counter Patch (Feature Flagged)
+        self._use_incremental_counter = os.environ.get("CGALPHA_USE_INCREMENTAL_COUNTER", "0") == "1"
+        self._cached_full_count = -1  # -1 means not yet initialized
+        self._set_a_cache_mtime = None
+        self._set_a_cache_stats = None
 
         # Deferred Labeling (Semana 3)
         self.deferred_monitor = DeferredOutcomeMonitor()
@@ -184,13 +194,26 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self._is_causally_safe = self.nexus.is_safe(self.delta_causal)
         if self._disable_nexus_gate:
             self._is_causally_safe = True
-            full_samples = self._count_full_samples()
-            if full_samples >= self._bypass_disable_full_target:
-                self._disable_nexus_gate = False
-                logger.warning(
-                    f"🛑 NEXUSGATE BYPASS AUTO-DISABLED: FULL={full_samples} "
-                    f">= target {self._bypass_disable_full_target}. Gate reactivated."
+            should_disable = False
+            reason = ""
+            if self._bypass_disable_mode == "full_count":
+                full_samples = self._count_full_samples()
+                should_disable = full_samples >= self._bypass_disable_full_target
+                reason = f"FULL={full_samples} >= target {self._bypass_disable_full_target}"
+            else:
+                # Default hardened mode: disable bypass only when Set A is truly ready.
+                stats = self._compute_set_a_readiness()
+                should_disable = bool(stats.get("ready"))
+                reason = (
+                    f"SetAReady={stats.get('ready')} "
+                    f"(BOUNCE_STRONG={stats.get('bounce_strong')}/{self._set_a_min_bounce}, "
+                    f"BREAKOUT={stats.get('breakout')}/{self._set_a_min_breakout}, "
+                    f"FULL={stats.get('full_total')}/{self._set_a_min_full})"
                 )
+
+            if should_disable:
+                self._disable_nexus_gate = False
+                logger.warning(f"🛑 NEXUSGATE BYPASS AUTO-DISABLED: {reason}. Gate reactivated.")
 
         logger.info(
             f"🕯️ Vela Live Cerrada: {self.symbol} "
@@ -211,16 +234,28 @@ class LiveDataFeedAdapter(BaseComponentV3):
             now = time.time()
             if now - self._last_bypass_warn_ts >= 300:
                 self._last_bypass_warn_ts = now
-                logger.warning(
-                    "⚠️ NEXUSGATE BYPASSED (harvest mode). "
-                    f"Auto-disable target FULL={self._bypass_disable_full_target}."
-                )
+                if self._bypass_disable_mode == "full_count":
+                    detail = f"Auto-disable mode=full_count target FULL={self._bypass_disable_full_target}."
+                else:
+                    stats = self._compute_set_a_readiness()
+                    detail = (
+                        "Auto-disable mode=set_a_ready "
+                        f"(BOUNCE_STRONG={stats.get('bounce_strong')}/{self._set_a_min_bounce}, "
+                        f"BREAKOUT={stats.get('breakout')}/{self._set_a_min_breakout}, "
+                        f"FULL={stats.get('full_total')}/{self._set_a_min_full})."
+                    )
+                logger.warning(f"⚠️ NEXUSGATE BYPASSED (harvest mode). {detail}")
 
         # 2. Feed closed candle to detector for ZONE DETECTION (Speed 1)
         self.detector.feed_kline_for_zone_detection(kline, micro_data)
 
         # 3. Deferred labeling: mark bar as closed (increment bars_elapsed)
         resolved = self.deferred_monitor.tick(kline["close"], bar_closed=True)
+        if resolved:
+            # Dataset may have changed; invalidate cached stats/counters.
+            self._cached_full_count = -1
+            self._set_a_cache_mtime = None
+            self._set_a_cache_stats = None
         for r in resolved:
             logger.info(
                 f"🏷️ Outcome resolved via candle close: "
@@ -560,8 +595,14 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
     def _count_full_samples(self) -> int:
         """Count FULL-quality entries in training_dataset_v2.jsonl."""
+        # Incremental path
+        if self._use_incremental_counter and self._cached_full_count != -1:
+            return self._cached_full_count
+
         if not _TRAINING_DATASET_V2.exists():
+            if self._use_incremental_counter: self._cached_full_count = 0
             return 0
+        
         total = 0
         try:
             with open(_TRAINING_DATASET_V2, "r") as handle:
@@ -578,7 +619,69 @@ class LiveDataFeedAdapter(BaseComponentV3):
                         total += 1
         except OSError:
             return 0
+        
+        if self._use_incremental_counter:
+            self._cached_full_count = total
+            
         return total
+
+    def _compute_set_a_readiness(self) -> Dict[str, Any]:
+        """
+        Compute Set A readiness from dataset v2:
+        - full_total >= min_full
+        - bounce_strong >= min_bounce
+        - breakout >= min_breakout
+        """
+        if not _TRAINING_DATASET_V2.exists():
+            return {"full_total": 0, "bounce_strong": 0, "breakout": 0, "ready": False}
+
+        try:
+            mtime = _TRAINING_DATASET_V2.stat().st_mtime
+        except OSError:
+            return {"full_total": 0, "bounce_strong": 0, "breakout": 0, "ready": False}
+
+        if self._set_a_cache_mtime == mtime and self._set_a_cache_stats is not None:
+            return self._set_a_cache_stats
+
+        full_total = 0
+        bounce_strong = 0
+        breakout = 0
+        try:
+            with open(_TRAINING_DATASET_V2, "r") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    quality = (row.get("l2_temporal_profile") or {}).get("l2_data_quality")
+                    if quality != "FULL":
+                        continue
+                    full_total += 1
+                    label = ((row.get("outcome") or {}).get("label") or "").upper()
+                    if label == "BOUNCE_STRONG":
+                        bounce_strong += 1
+                    elif label == "BREAKOUT":
+                        breakout += 1
+        except OSError:
+            return {"full_total": 0, "bounce_strong": 0, "breakout": 0, "ready": False}
+
+        ready = (
+            full_total >= self._set_a_min_full
+            and bounce_strong >= self._set_a_min_bounce
+            and breakout >= self._set_a_min_breakout
+        )
+        stats = {
+            "full_total": full_total,
+            "bounce_strong": bounce_strong,
+            "breakout": breakout,
+            "ready": ready,
+        }
+        self._set_a_cache_mtime = mtime
+        self._set_a_cache_stats = stats
+        return stats
 
     @classmethod
     def create_default(cls, ws_manager, detector, order_mgr=None):

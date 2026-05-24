@@ -27,11 +27,16 @@ export CGALPHA_BINANCE_MARKET="spot"
 export ORACLE_MODE="observe"
 export CGALPHA_DISABLE_NEXUS_GATE="1"
 export CGALPHA_BYPASS_DISABLE_AT_FULL="${CGALPHA_BYPASS_DISABLE_AT_FULL:-50}"
+export CGALPHA_BYPASS_DISABLE_MODE="${CGALPHA_BYPASS_DISABLE_MODE:-set_a_ready}"
+export CGALPHA_SET_A_MIN_BOUNCE="${CGALPHA_SET_A_MIN_BOUNCE:-8}"
+export CGALPHA_SET_A_MIN_BREAKOUT="${CGALPHA_SET_A_MIN_BREAKOUT:-16}"
+export CGALPHA_SET_A_MIN_FULL="${CGALPHA_SET_A_MIN_FULL:-24}"
 export CGALPHA_PROXIMITY_PENALTY="${CGALPHA_PROXIMITY_PENALTY:-0.85}"
 
 nohup python3 -u cgalpha_v3/scripts/launch_shadow_live.py >> shadow_trader.log 2>&1 &
 echo "   [OK] Cosechadora activa (Modo Observe/Spot)"
-echo "   [OK] NexusGate bypass habilitado (auto-disable en FULL>=${CGALPHA_BYPASS_DISABLE_AT_FULL})"
+echo "   [OK] NexusGate bypass habilitado (mode=${CGALPHA_BYPASS_DISABLE_MODE})"
+echo "   [OK] Auto-disable Set A: BOUNCE_STRONG>=${CGALPHA_SET_A_MIN_BOUNCE}, BREAKOUT>=${CGALPHA_SET_A_MIN_BREAKOUT}, FULL>=${CGALPHA_SET_A_MIN_FULL}"
 
 echo "------------------------------------------------------------------------------"
 echo "✅ Sistema Restablecido."
