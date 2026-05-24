@@ -1,0 +1,16 @@
+{
+  "codex_id": "D-003",
+  "type": "DECISION",
+  "status": "ACTIVE",
+  "statement": "Determinismo sobre LLM en modificaciones de código extenso.",
+  "rationale": "Archivos >300 líneas (como triple_coincidence.py) sufren truncamiento y pérdida de indentación si son editados directamente por LLMs pequeños. Se exige el uso de scripts Python de búsqueda y reemplazo para cambios estructurales.",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "file_modification",
+    "structural_change",
+    "bug_fixing"
+  ],
+  "evidence_ids": [
+    "BUG-5_resolution_commit"
+  ]
+}

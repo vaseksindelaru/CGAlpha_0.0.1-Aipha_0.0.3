@@ -1,0 +1,16 @@
+{
+  "codex_id": "D-005",
+  "type": "DECISION",
+  "status": "ACTIVE",
+  "statement": "Safety Envelope: Umbral mínimo de validación OOS.",
+  "rationale": "Ninguna propuesta de evolución (CEP) será promovida a MAIN si su precisión Out-of-Sample cae por debajo del 52% o su Brier Score empeora respecto al baseline. Previene el overfitting agresivo.",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "evolution_proposal",
+    "model_promotion",
+    "backtest_validation"
+  ],
+  "evidence_ids": [
+    "V3_overfit_incident_report"
+  ]
+}

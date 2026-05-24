@@ -1,0 +1,15 @@
+{
+  "codex_id": "B-006",
+  "type": "BUG",
+  "status": "RESOLVED",
+  "statement": "Zero-Crossing Contamination en Cumulative Delta.",
+  "rationale": "El cálculo del delta de volumen no reiniciaba tras periodos de inactividad, acumulando sesgos de tendencias muertas. Se resolvió implementando el 'Rolling Window' (D-009) y reinicio de buffers en cada nueva detección de zona.",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "feature_proposal",
+    "data_normalization"
+  ],
+  "evidence_ids": [
+    "B-006_fix_commit"
+  ]
+}

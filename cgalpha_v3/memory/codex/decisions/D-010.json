@@ -1,0 +1,16 @@
+{
+  "codex_id": "D-010",
+  "type": "DECISION",
+  "status": "ACTIVE",
+  "statement": "Timestamping Canónico (Exchange-driven).",
+  "rationale": "Prohibido el uso de time.time() local para el alineamiento de Order Book y Ticks. Se exige el uso del campo 'T' (Event Time) de Binance para garantizar causalidad y sincronización multisímbolo.",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "feature_proposal",
+    "data_ingestion",
+    "latency_audit"
+  ],
+  "evidence_ids": [
+    "B-001_clock_drift_fix"
+  ]
+}

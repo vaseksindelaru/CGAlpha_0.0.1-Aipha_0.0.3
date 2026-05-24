@@ -1,0 +1,16 @@
+{
+  "codex_id": "B-003",
+  "type": "BUG",
+  "status": "PARTIAL",
+  "statement": "Desbalance de Clases Extremo (94/6).",
+  "rationale": "El entrenamiento inicial ignoraba la rareza estadística de los rebotes reales. El modelo aprendió que 'siempre es breakout'. Se mitigó con pesos de clase balanceados y oversampling de BOUNCE_STRONG, pero la causa raíz (distribución de mercado) sigue siendo un reto operativo.",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "model_training",
+    "dataset_audit",
+    "optimizer"
+  ],
+  "evidence_ids": [
+    "B-003_distribution_report"
+  ]
+}

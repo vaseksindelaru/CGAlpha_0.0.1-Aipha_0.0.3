@@ -1,0 +1,16 @@
+{
+  "codex_id": "B-001",
+  "type": "BUG",
+  "status": "RESOLVED",
+  "statement": "Clock Drift: Desincronización entre Tick y Order Book.",
+  "rationale": "El uso de time.time() local causaba un desfase de hasta 1200ms respecto a los datos de Binance, resultando en features del pasado emparejadas con precios del futuro (lookahead accidental). Se resolvió forzando el uso exclusivo de 'T' (Event Time).",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "data_ingestion",
+    "latency_audit",
+    "feature_proposal"
+  ],
+  "evidence_ids": [
+    "B-001_fix_commit"
+  ]
+}

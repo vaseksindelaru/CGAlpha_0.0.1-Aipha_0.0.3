@@ -1,0 +1,15 @@
+{
+  "codex_id": "D-009",
+  "type": "DECISION",
+  "status": "PARTIAL",
+  "statement": "Rolling Window para Cumulative Delta.",
+  "rationale": "El Delta acumulado globalmente sufre de drift de escala a lo largo del día, saturando los inputs del modelo. Se debe transicionar a una ventana deslizante de 30-300 segundos para normalizar la presión de compra/venta.",
+  "schema_version": "4.0.0",
+  "harness_inject_when": [
+    "feature_proposal",
+    "data_normalization"
+  ],
+  "evidence_ids": [
+    "D-009_implementation_draft"
+  ]
+}
