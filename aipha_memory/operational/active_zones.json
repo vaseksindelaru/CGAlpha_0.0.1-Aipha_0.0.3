@@ -277,5 +277,32 @@
     "zone_bottom": 76716.02,
     "touches": 2,
     "created_at": 1779606299999
+  },
+  {
+    "zone_id": "64_bearish",
+    "direction": "bearish",
+    "state": "active",
+    "zone_top": 77197.6,
+    "zone_bottom": 76968.4,
+    "touches": 0,
+    "created_at": 1779671999999
+  },
+  {
+    "zone_id": "162_bullish",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 77472.7,
+    "zone_bottom": 77391.1,
+    "touches": 0,
+    "created_at": 1779701399999
+  },
+  {
+    "zone_id": "164_bullish",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 77472.7,
+    "zone_bottom": 77391.1,
+    "touches": 0,
+    "created_at": 1779701999999
   }
 ]
