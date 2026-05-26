@@ -1,0 +1,78 @@
+{
+  "generated_at_utc": "2026-05-24T00:37:28.683426+00:00",
+  "mode": "apply",
+  "target_schema": "4.0.0",
+  "canonical_ids": [
+    "D-001",
+    "D-008",
+    "B-002",
+    "L-003"
+  ],
+  "missing_canonical_in_codex_dir": [],
+  "codex_backup_items": [
+    {
+      "codex_id": "D-001",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/decisions/D-001.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/decisions/D-001.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "D-008",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/decisions/D-008.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/decisions/D-008.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "B-002",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/bugs/B-002.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/bugs/B-002.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "L-003",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/lessons/L-003.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/lessons/L-003.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    }
+  ],
+  "memory_entry_items": [
+    {
+      "codex_id": "D-001",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/D-001.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/D-001.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "D-008",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/D-008.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/D-008.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "B-002",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/B-002.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/B-002.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "L-003",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/L-003.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/L-003.json",
+      "changed": false,
+      "notes": "No structural changes needed"
+    }
+  ],
+  "backup_root": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/reports/codex_migration_backups/20260524_003728",
+  "summary": {
+    "codex_files_seen": 4,
+    "memory_entry_files_seen": 4,
+    "changes_planned_or_applied": 0
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "generated_at_utc": "2026-05-24T00:36:36.306038+00:00",
+  "mode": "apply",
+  "target_schema": "4.0.0",
+  "canonical_ids": [
+    "D-001",
+    "D-008",
+    "B-002",
+    "L-003"
+  ],
+  "missing_canonical_in_codex_dir": [
+    "D-001"
+  ],
+  "codex_backup_items": [
+    {
+      "codex_id": "D-008",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/decisions/D-008.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/decisions/D-008.json",
+      "changed": true,
+      "notes": "Normalized harness_inject_when"
+    },
+    {
+      "codex_id": "B-002",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/bugs/B-002.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/bugs/B-002.json",
+      "changed": true,
+      "notes": "Normalized harness_inject_when"
+    },
+    {
+      "codex_id": "L-003",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/lessons/L-003.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/codex/lessons/L-003.json",
+      "changed": true,
+      "notes": "Normalized harness_inject_when"
+    }
+  ],
+  "memory_entry_items": [
+    {
+      "codex_id": "D-008",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/D-008.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/D-008.json",
+      "changed": true,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "B-002",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/B-002.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/B-002.json",
+      "changed": true,
+      "notes": "No structural changes needed"
+    },
+    {
+      "codex_id": "L-003",
+      "source_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/L-003.json",
+      "destination_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/memory/memory_entries/L-003.json",
+      "changed": true,
+      "notes": "No structural changes needed"
+    }
+  ],
+  "backup_root": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/reports/codex_migration_backups/20260524_003636",
+  "summary": {
+    "codex_files_seen": 3,
+    "memory_entry_files_seen": 3,
+    "changes_planned_or_applied": 6
+  }
+}

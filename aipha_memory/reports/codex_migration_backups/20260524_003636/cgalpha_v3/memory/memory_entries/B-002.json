@@ -1,0 +1,17 @@
+{
+  "entry_id": "B-002",
+  "level": "4",
+  "content": "{\"codex_id\": \"B-002\", \"type\": \"BUG\", \"status\": \"RESOLVED\", \"title\": \"P\\u00e9rdida de Entrenamiento por Falta de Serializaci\\u00f3n\", \"statement\": \"El Oracle v3 perd\\u00eda su progreso tras reinicios porque save_to_disk() no se llamaba en el ciclo principal del servidor.\", \"rationale\": \"Error de integraci\\u00f3n entre la capa de aplicaci\\u00f3n (server.py) y el dominio (oracle.py). Requiere llamada expl\\u00edcita en startup y shutdown.\", \"schema_version\": \"1.0.0\", \"harness_inject_when\": [\"server_setup\", \"model_training\"], \"affects_files\": [\"cgalpha_v3/gui/server.py\", \"cgalpha_v3/lila/llm/oracle.py\"]}",
+  "source_id": "foundation_seed_v1",
+  "source_type": "primary",
+  "created_at": "2026-05-23T20:31:22.236024+00:00",
+  "expires_at": null,
+  "approved_by": "human",
+  "field": "architect",
+  "tags": [
+    "codex",
+    "foundation",
+    "bug"
+  ],
+  "stale": false
+}

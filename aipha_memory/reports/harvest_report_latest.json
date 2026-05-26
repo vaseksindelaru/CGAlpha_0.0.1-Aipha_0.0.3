@@ -1,0 +1,45 @@
+{
+  "generated_at_utc": "2026-05-24T07:46:15.419465+00:00",
+  "dataset_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/operational/training_dataset_v2.jsonl",
+  "dataset_total": 293,
+  "quality_distribution": {
+    "MISSING": 101,
+    "EMPTY": 142,
+    "FULL": 50
+  },
+  "outcome_distribution": {
+    "BOUNCE_STRONG": 51,
+    "BOUNCE_WEAK": 32,
+    "BREAKOUT": 123,
+    "INCONCLUSIVE": 87
+  },
+  "retest_type_distribution": {
+    "MISSING": 225,
+    "PROXIMITY_BUFFER": 39,
+    "ZONE_INTERIOR": 29
+  },
+  "full_total": 50,
+  "full_outcome_distribution": {
+    "INCONCLUSIVE": 23,
+    "BREAKOUT": 27
+  },
+  "full_retest_type_distribution": {
+    "MISSING": 8,
+    "PROXIMITY_BUFFER": 26,
+    "ZONE_INTERIOR": 16
+  },
+  "set_a_readiness": {
+    "min_bounce_strong": 8,
+    "min_breakout": 16,
+    "min_full_total": 24,
+    "bounce_strong": 0,
+    "breakout": 27,
+    "full_total": 50,
+    "ready": false
+  },
+  "drift_watch": {
+    "inconclusive_ratio_full_pct": 46.0,
+    "flag_high_inconclusive": true,
+    "rule": "flag when INCONCLUSIVE in FULL > 45%"
+  }
+}

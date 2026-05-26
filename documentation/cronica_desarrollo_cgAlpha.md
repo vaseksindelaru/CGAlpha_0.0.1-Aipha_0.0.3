@@ -1685,3 +1685,31 @@ Hardening adicional:
 Resultado esperado:
 - Evitar esperar “en vano” por un criterio de desactivación prematuro.
 - Mantener bypass activo durante harvest hasta lograr readiness estadístico real para entrenamiento Set A.
+
+### 11.10 Consolidación Epistémica: Codex Session 1 y Primer Rebote
+**Fecha:** 24 de Mayo, 2026
+
+En esta sesión se ha completado el blindaje del sistema de memoria y se ha registrado el hito operativo más importante de la fase de cosecha.
+
+#### 1. Session 1 de Siembra del Codex
+Se han inyectado y validado mediante el `CodexKernel` 8 nuevas entradas fundamentales:
+- **Decisiones (D-XXX):**
+  - **D-003:** Determinismo > LLM en archivos extensos.
+  - **D-005:** Safety Envelope (Mínimo 52% OOS).
+  - **D-009:** Rolling Window para Cumulative Delta.
+  - **D-010:** Timestamping canónico vía Binance Event Time.
+- **Bugs Históricos (B-XXX):**
+  - **B-001:** Clock Drift (Latencia local vs server).
+  - **B-003:** Desbalance de Clases (94/6).
+  - **B-006:** Zero-Crossing Contamination (Delta drift).
+
+#### 2. Hito de Cosecha: BOUNCE_STRONG #1
+Tras 48 horas de "limpieza" y régimen lateral/breakout, el sistema ha capturado y validado la primera muestra de **REBOTE FUERTE (BOUNCE_STRONG)** con calidad `FULL`.
+- **Análisis:** La captura fue posible gracias al `PROXIMITY_BUFFER` (0.1% ATR). Sin esta red de "pesca extendida", el evento hubiera sido descartado como ruido.
+- **Dataset Stat:** 1/8 Rebotes conseguidos para el Set A.
+
+#### 3. Hardening de Infraestructura
+- **Deduplicación:** Implementado set de `_seen_ids` en `DeferredOutcomeMonitor` para evitar duplicidad de muestras en reinicios.
+- **NexusGate Dynamic Bypass:** Modificado `live_adapter.py` para que el bypass de cosecha no se cierre en 50 muestras, sino solo cuando el **Set A esté listo** (diversidad de clases completa).
+
+**Estado:** Cosecha Activa Inteligente. Sistema Epistémico Session 1 cerrada.

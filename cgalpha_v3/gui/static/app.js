@@ -4,7 +4,17 @@
 "use strict";
 
 const API_BASE = window.location.origin;
-const POLL_MS = 5000;
+const UI_MODE_QUERY = new URLSearchParams(window.location.search).get("mode");
+const ULTRA_LIGHT_MODE =
+    UI_MODE_QUERY === "normal" ? false : true; // Ultraligero por defecto.
+
+try {
+    localStorage.setItem("cgalpha_ui_mode", ULTRA_LIGHT_MODE ? "ultralight" : "normal");
+} catch (e) {
+    // Ignorar storage bloqueado (modo incógnito/políticas).
+}
+const POLL_MS = ULTRA_LIGHT_MODE ? 12000 : 5000;
+const MARKET_POLL_MS = ULTRA_LIGHT_MODE ? 5000 : 2000;
 const EVENTS_N = 30;
 const RISK_INPUT_IDS = [
     "risk-max-dd",
@@ -17,6 +27,7 @@ let authToken = "";
 let pnlChart = null;
 const MAX_CHART_POINTS = 50;
 let pollTimer = null;
+let marketPulseTimer = null;
 let libraryItems = [];
 let isMuted = false;
 let lastSignalId = null;
@@ -25,6 +36,8 @@ let theorySnapshot = null;
 const expandedProposals = new Set();
 const knownProposalIds = new Set();
 let experimentSnapshot = null;
+let activeSection = "dashboard";
+let pollTick = 0;
 
 // ── LOGIN ─────────────────────────────────────────────
 function doLogin() {
@@ -70,8 +83,18 @@ async function apiFetch(path, opts = {}) {
 
 // ── POLLING ───────────────────────────────────────────
 function startPolling() {
+    // Blindaje: evita intervalos duplicados si startPolling se llama más de una vez.
+    if (pollTimer) clearInterval(pollTimer);
+    if (marketPulseTimer) clearInterval(marketPulseTimer);
+    pollTick = 0;
+
+    // Primer render rápido.
     fetchStatus();
     fetchEvents();
+    fetchMarketPulse();
+    fetchEvolutionHeartbeat();
+
+    // Cargas no críticas: una sola vez al arrancar.
     fetchAutoProposals();
     fetchRollbacks();
     fetchLibraryStatus();
@@ -82,27 +105,71 @@ function startPolling() {
     fetchLearningMemoryStatus();
     fetchLiveSignals();
     fetchLivePortfolio();
-    fetchMarketPulse();
-    fetchEvolutionHeartbeat(); // Novedad v4
+
     pollTimer = setInterval(() => {
+        pollTick += 1;
+
         fetchStatus();
         fetchEvents();
-        fetchAutoProposals();
-        fetchRollbacks();
-        fetchLibraryStatus();
-        fetchLibrarySources();
-        fetchTheoryLive();
-        fetchAdaptiveBacklog();
-        fetchExperimentStatus();
-        fetchLearningMemoryStatus();
-        fetchLiveSignals();
-        fetchLivePortfolio();
         fetchEvolutionHeartbeat(); // Novedad v4
+        pollActiveSectionData();
+
+        if (!ULTRA_LIGHT_MODE || pollTick % 2 === 0) {
+            fetchLiveSignals();
+            fetchLivePortfolio();
+        }
+
+        if (!ULTRA_LIGHT_MODE || pollTick % 5 === 0) {
+            fetchAutoProposals();
+            fetchRollbacks();
+            fetchLibraryStatus();
+            fetchLearningMemoryStatus();
+        }
+
+        if (!ULTRA_LIGHT_MODE || pollTick % 8 === 0) {
+            fetchLibrarySources();
+            fetchTheoryLive();
+            fetchAdaptiveBacklog();
+            fetchExperimentStatus();
+        }
+
         renderFooterTs();
     }, POLL_MS);
 
-    // Poll de mercado cada 2 segundos
-    setInterval(fetchMarketPulse, 2000);
+    // Poll de mercado desacoplado para suavizar CPU.
+    marketPulseTimer = setInterval(fetchMarketPulse, MARKET_POLL_MS);
+
+    console.info(
+        `[CGAlpha UI] Polling mode: ${ULTRA_LIGHT_MODE ? "ULTRALIGHT" : "NORMAL"} ` +
+        `(core=${POLL_MS}ms, market=${MARKET_POLL_MS}ms)`
+    );
+}
+
+function pollActiveSectionData() {
+    switch (activeSection) {
+        case "library":
+            fetchLibrarySources();
+            break;
+        case "theory":
+            fetchTheoryLive();
+            break;
+        case "experiment":
+            fetchExperimentStatus();
+            fetchAutoProposals();
+            break;
+        case "training":
+            if (!ULTRA_LIGHT_MODE || pollTick % 3 === 0) fetchTrainingReviewData();
+            break;
+        case "learning":
+            fetchLearningMemoryStatus();
+            break;
+        case "forensics":
+            fetchForensicsStatus();
+            if (!ULTRA_LIGHT_MODE || pollTick % 3 === 0) fetchForensicsHistory();
+            break;
+        default:
+            break;
+    }
 }
 
 async function fetchStatus() {
@@ -1560,6 +1627,7 @@ function saveRiskParams() {
 
 // ── NAV ────────────────────────────────────────────────
 function showSection(name) {
+    activeSection = name;
     document.querySelectorAll(".section").forEach(s => {
         s.classList.remove("active");
     });

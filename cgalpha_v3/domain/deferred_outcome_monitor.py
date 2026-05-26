@@ -84,11 +84,25 @@ class DeferredOutcomeMonitor:
     def __init__(self):
         self.pending: List[PendingLabel] = []
         self._seen_ids: set = set()
+        self._seen_fingerprints: set = set()  # Causal dedup: {ts}_{price}_{direction}
         self._load_pending()
         self._sync_seen_ids()
 
+    @staticmethod
+    def _causal_fingerprint(meta: dict, l2: dict, zg: dict) -> str:
+        """Genera huella causal espacio-temporal de un evento físico.
+
+        Dos snapshots con el mismo timestamp, precio de contacto y dirección
+        representan el mismo evento en el mercado, aunque provengan de
+        zonas distintas superpuestas.
+        """
+        ts = meta.get("capture_ts_unix_ms", 0)
+        price = l2.get("retest_price", 0)
+        direction = zg.get("direction", "unknown")
+        return f"{ts}_{price}_{direction}"
+
     def _sync_seen_ids(self):
-        """Pre-puebla los IDs ya existentes en el dataset persistido."""
+        """Pre-puebla IDs y huellas causales del dataset persistido."""
         path = Path(COMPLETED_SAMPLES_PATH)
         if not path.exists():
             return
@@ -98,11 +112,22 @@ class DeferredOutcomeMonitor:
                     if not line.strip(): continue
                     try:
                         data = json.loads(line)
-                        if '_meta' in data and 'sample_id' in data['_meta']:
-                            self._seen_ids.add(data['_meta']['sample_id'])
+                        meta = data.get('_meta', {})
+                        if 'sample_id' in meta:
+                            self._seen_ids.add(meta['sample_id'])
+                        # Reconstruir huella causal para proteger contra reinicios
+                        fp = self._causal_fingerprint(
+                            meta,
+                            data.get('l2_snapshot_at_touch', {}),
+                            data.get('zone_geometry', {}),
+                        )
+                        self._seen_fingerprints.add(fp)
                     except json.JSONDecodeError:
                         continue
-            logger.info(f"📊 Dataset sync: {len(self._seen_ids)} IDs únicos cargados para deduplicación.")
+            logger.info(
+                f"📊 Dataset sync: {len(self._seen_ids)} IDs, "
+                f"{len(self._seen_fingerprints)} huellas causales cargadas."
+            )
         except Exception as e:
             logger.error(f"⚠️ Error sincronizando IDs del dataset: {e}")
 
@@ -136,13 +161,23 @@ class DeferredOutcomeMonitor:
 
         sample_id = meta.get("sample_id", f"re_{int(time.time())}")
 
-        # --- DEDUPLICACIÓN DE SEGURIDAD ---
-        # 1. Chequeo contra dataset persistido
+        # --- DEDUPLICACIÓN DE SEGURIDAD (Triple Barrera) ---
+        # 1. Huella causal espacio-temporal (Anti Spatial Multi-Touch)
+        #    Mismo instante + mismo precio + misma dirección = mismo evento físico
+        fingerprint = self._causal_fingerprint(meta, l2, zg)
+        if fingerprint in self._seen_fingerprints:
+            logger.warning(
+                f"🛡️ Spatial Multi-Touch bloqueado: {sample_id} "
+                f"(fingerprint={fingerprint} ya registrado)"
+            )
+            return sample_id
+
+        # 2. Chequeo contra dataset persistido (por sample_id)
         if sample_id in self._seen_ids:
             logger.warning(f"⚠️ Intento de registrar ID ya persistido ignorado: {sample_id}")
             return sample_id
         
-        # 2. Chequeo contra cola actual de pending
+        # 3. Chequeo contra cola actual de pending (por sample_id)
         if any(p.sample_id == sample_id for p in self.pending):
             logger.warning(f"⚠️ Intento de registrar ID ya en cola pending ignorado: {sample_id}")
             return sample_id
@@ -190,6 +225,7 @@ class DeferredOutcomeMonitor:
         self.pending.append(label)
         # Solo marcamos como visto tras persistir y encolar correctamente.
         self._seen_ids.add(sample_id)
+        self._seen_fingerprints.add(fingerprint)
         self._persist_pending()
 
         logger.info(

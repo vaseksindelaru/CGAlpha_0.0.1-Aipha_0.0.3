@@ -618,6 +618,48 @@ def _read_last_non_empty_line(path: Path) -> str | None:
         return None
 
 
+def _read_last_lines(path: Path, limit: int, *, max_scan_bytes: int = 2 * 1024 * 1024, chunk_size: int = 8192) -> list[str]:
+    """
+    Lee las últimas N líneas de forma eficiente sin cargar archivos gigantes completos.
+    Escanea desde el final con un límite de bytes para evitar picos de RAM/CPU.
+    """
+    if limit <= 0:
+        return []
+
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            file_size = handle.tell()
+            if file_size <= 0:
+                return []
+
+            cursor = file_size
+            scanned = 0
+            buffer = b""
+
+            while cursor > 0 and scanned < max_scan_bytes:
+                step = min(chunk_size, cursor, max_scan_bytes - scanned)
+                cursor -= step
+                handle.seek(cursor)
+                chunk = handle.read(step)
+                if not chunk:
+                    break
+                buffer = chunk + buffer
+                scanned += len(chunk)
+
+                if buffer.count(b"\n") >= (limit + 1):
+                    break
+
+            lines = buffer.splitlines()
+            if cursor > 0 and lines:
+                # Si no empezamos en byte 0, la primera línea puede estar truncada.
+                lines = lines[1:]
+
+            return [line.decode("utf-8", errors="ignore") for line in lines[-limit:]]
+    except OSError:
+        return []
+
+
 def _read_last_bridge_entry(bridge_path: Path) -> dict[str, Any] | None:
     line = _read_last_non_empty_line(bridge_path)
     if not line:
@@ -1222,8 +1264,7 @@ def api_events() -> ResponseReturnValue:
     try:
         log_path = project_root / "shadow_trader.log"
         if log_path.exists():
-            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-                lines = f.readlines()[-limit:]
+            lines = _read_last_lines(log_path, limit)
             for line in lines:
                 if " [INFO] " in line or " [WARNING] " in line or " [ERROR] " in line:
                     parts = line.strip().split(" ", 2)
@@ -2960,10 +3001,7 @@ def api_l2_forensics_history():
     entries = []
     if training_path.exists():
         try:
-            with open(training_path) as f:
-                all_lines = f.readlines()
-            # Leer las últimas N líneas (más recientes al final)
-            for line in all_lines[-limit:]:
+            for line in _read_last_lines(training_path, limit, max_scan_bytes=8 * 1024 * 1024):
                 line = line.strip()
                 if not line:
                     continue

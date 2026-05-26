@@ -1,0 +1,82 @@
+{
+  "_meta": {
+    "schema_version": "2.0.0",
+    "capture_ts_utc": "2026-05-25T02:07:33.562468+00:00",
+    "capture_ts_unix_ms": 1779674834708,
+    "symbol": "BTCUSDT",
+    "sample_id": "re_20260525_020733_BTCUSDT_bullish_346",
+    "pipeline_version": "v4.2-tick-level"
+  },
+  "zone_geometry": {
+    "zone_id": "z_346_bullish",
+    "direction": "bullish",
+    "zone_top": 77683.5,
+    "zone_bottom": 77557.0,
+    "zone_width_abs": 126.5,
+    "zone_width_atr": 0.5483,
+    "detection_candle_index": 346,
+    "detection_ts_utc": "2026-05-22T03:09:59.999000+00:00",
+    "key_candle_volume_ratio": 0,
+    "key_candle_body_pct": 39.91712707183847,
+    "key_candle_upper_wick_pct": 51.519337016562645,
+    "key_candle_lower_wick_pct": 8.563535911598878,
+    "key_candle_rejection": "UP",
+    "accumulation_bar_count": 5,
+    "mini_trend_r2": 0.6458933762501109,
+    "coincidence_score": 0.9088334554434123
+  },
+  "clearance": {
+    "atr_at_detection": 230.6999999999971,
+    "max_clearance_price": 78098.16,
+    "max_clearance_atr": 1.7974,
+    "seconds_since_detection": 255434.709
+  },
+  "l2_snapshot_at_touch": {
+    "retest_price": 77479.67,
+    "obi_1": 0.7597379727215972,
+    "obi_5": 0.7797610121237696,
+    "obi_10": 0.9177341143067641,
+    "obi_20": 0.9307168835183941,
+    "cumulative_delta": 42.50866000000008,
+    "best_bid_size_btc": 6.92002,
+    "best_ask_size_btc": 0.94481,
+    "bid_wall_depth_10_btc": 22.25564,
+    "ask_wall_depth_10_btc": 0.95471,
+    "spread_bps": 0.0,
+    "vwap_session": 77479.67,
+    "retest_type": "PROXIMITY_BUFFER",
+    "retest_type_penalty_applied": 0.85
+  },
+  "l2_temporal_profile": {
+    "window_seconds": 30,
+    "n_snapshots": 121,
+    "l2_data_quality": "FULL",
+    "obi_10_gradient_5s": -0.6166355727419114,
+    "obi_10_gradient_15s": 0.19367073767521029,
+    "obi_10_gradient_30s": -0.30418777820375503,
+    "obi_10_min_30s": -0.9996888822431351,
+    "obi_10_max_30s": 0.9996442458518053,
+    "obi_10_std_30s": 0.5487119084313294,
+    "obi_10_at_minus_5s": 0.9636298550205834,
+    "obi_10_at_minus_15s": -0.5147074877120933,
+    "obi_10_at_minus_30s": 0.6860689003473966,
+    "delta_rate_5s": 0.3238016902042011,
+    "delta_rate_15s": 0.4478076565073896,
+    "delta_rate_30s": 0.6128702170431648,
+    "delta_acceleration_5s": -0.1240059663031885,
+    "delta_acceleration_15s": -0.16506256053577523,
+    "depth_ratio_1_10": 0.8278410499052727,
+    "depth_ratio_1_10_gradient_5s": -0.1394402756698947,
+    "trade_intensity_5s": 0,
+    "trade_intensity_15s": 0,
+    "aggressive_buy_pct_5s": 0.5,
+    "aggressive_buy_pct_15s": 0.5
+  },
+  "market_context": {
+    "atr_14_current": 230.6999999999971,
+    "regime": "LATERAL",
+    "session": "ASIA",
+    "hour_utc": 2
+  },
+  "outcome": null
+}

@@ -7,6 +7,29 @@
 
 PROJECT_ROOT="/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3"
 cd "$PROJECT_ROOT" || exit 1
+LOG_DIR="$PROJECT_ROOT/logs/archive"
+mkdir -p "$LOG_DIR"
+
+rotate_if_large() {
+  local log_file="$1"
+  local threshold_mb="${2:-200}"
+  local threshold_bytes=$((threshold_mb * 1024 * 1024))
+
+  if [[ ! -f "$log_file" ]]; then
+    return 0
+  fi
+
+  local size_bytes
+  size_bytes=$(stat -c%s "$log_file" 2>/dev/null || echo 0)
+  if (( size_bytes >= threshold_bytes )); then
+    local base_name
+    base_name="$(basename "$log_file" .log)"
+    local stamp
+    stamp="$(date +%Y%m%d_%H%M%S)"
+    mv "$log_file" "$LOG_DIR/${base_name}_${stamp}.log"
+    echo "🧹 Log rotado: $log_file (${threshold_mb}MB+) → $LOG_DIR/${base_name}_${stamp}.log"
+  fi
+}
 
 echo "🌌 Iniciando Restauración de Sistemas CGAlpha..."
 
@@ -15,9 +38,13 @@ pkill -f "cgalpha_v3/gui/server.py"
 pkill -f "cgalpha_v3/scripts/launch_shadow_live.py"
 sleep 2
 
+# 1.5 Rotación preventiva de logs grandes
+rotate_if_large "$PROJECT_ROOT/gui_server.log" 200
+rotate_if_large "$PROJECT_ROOT/shadow_trader.log" 200
+
 # 2. Iniciar Dashboard (GUI)
 echo "🖥️ Levantando Control Room (GUI)..."
-nohup python3 -u cgalpha_v3/gui/server.py >> gui_server.log 2>&1 &
+nohup python3 -u cgalpha_v3/gui/server.py > gui_server.log 2>&1 &
 echo "   [OK] Lobby disponible en http://127.0.0.1:8080"
 
 # 3. Iniciar Pipeline de Cosecha L2 (Shadow Trader)
@@ -33,7 +60,7 @@ export CGALPHA_SET_A_MIN_BREAKOUT="${CGALPHA_SET_A_MIN_BREAKOUT:-16}"
 export CGALPHA_SET_A_MIN_FULL="${CGALPHA_SET_A_MIN_FULL:-24}"
 export CGALPHA_PROXIMITY_PENALTY="${CGALPHA_PROXIMITY_PENALTY:-0.85}"
 
-nohup python3 -u cgalpha_v3/scripts/launch_shadow_live.py >> shadow_trader.log 2>&1 &
+nohup python3 -u cgalpha_v3/scripts/launch_shadow_live.py > shadow_trader.log 2>&1 &
 echo "   [OK] Cosechadora activa (Modo Observe/Spot)"
 echo "   [OK] NexusGate bypass habilitado (mode=${CGALPHA_BYPASS_DISABLE_MODE})"
 echo "   [OK] Auto-disable Set A: BOUNCE_STRONG>=${CGALPHA_SET_A_MIN_BOUNCE}, BREAKOUT>=${CGALPHA_SET_A_MIN_BREAKOUT}, FULL>=${CGALPHA_SET_A_MIN_FULL}"

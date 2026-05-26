@@ -1,0 +1,17 @@
+{
+  "entry_id": "L-003",
+  "level": "4",
+  "content": "{\"codex_id\": \"L-003\", \"type\": \"LESSON\", \"status\": \"APPROVED\", \"title\": \"Thresholds Artificiales vs Percentiles Reales\", \"statement\": \"Los thresholds arbitrarios (ej. 0.1%) pueden producir distribuciones de datos balanceadas artificialmente (55/45). Se debe calibrar usando percentiles reales (P75=0.18%) para mantener la integridad del mercado.\", \"rationale\": \"La observaci\\u00f3n de 288 velas BTCUSDT mostr\\u00f3 que la mediana de volatilidad es mayor a 0.1%, haciendo que el threshold original fuera demasiado ruidoso.\", \"schema_version\": \"1.0.0\", \"harness_inject_when\": [\"optimizer\", \"backtest_config\"]}",
+  "source_id": "foundation_seed_v1",
+  "source_type": "primary",
+  "created_at": "2026-05-23T20:31:22.231074+00:00",
+  "expires_at": null,
+  "approved_by": "human",
+  "field": "architect",
+  "tags": [
+    "codex",
+    "foundation",
+    "lesson"
+  ],
+  "stale": false
+}

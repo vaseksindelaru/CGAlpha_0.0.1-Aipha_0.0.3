@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "sample_id": "test_unique_id_123"
+  },
+  "zone_geometry": {
+    "direction": "bullish",
+    "zone_top": 100,
+    "zone_bottom": 90
+  },
+  "clearance": {
+    "atr_at_detection": 1.0
+  },
+  "l2_snapshot_at_touch": {
+    "retest_price": 95
+  }
+}

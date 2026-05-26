@@ -23,9 +23,18 @@ def clean_duplicates():
             total_rows += 1
             try:
                 data = json.loads(line)
-                sid = data["_meta"]["sample_id"]
-                # Conservamos la última aparición de cada sample_id.
-                unique_entries[sid] = line.strip()
+                meta = data["_meta"]
+                l2 = data.get("l2_snapshot_at_touch", {})
+                zg = data.get("zone_geometry", {})
+                
+                # Causal Deduplication Key: Mismo momento temporal + mismo precio de contacto + misma dirección de zona = Mismo evento físico
+                ts = meta.get("capture_ts_unix_ms", 0)
+                price = l2.get("retest_price", 0)
+                direction = zg.get("direction", "unknown")
+                
+                causal_key = f"{ts}_{price}_{direction}"
+                # Conservamos la última aparición de cada evento físico.
+                unique_entries[causal_key] = line.strip()
             except Exception as e:
                 print(f"Error parseando línea: {e}")
 

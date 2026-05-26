@@ -41,150 +41,9 @@
       "r2": 0.765790098171516
     },
     "atr_at_detection": 255.3000000000029,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
-    "zone_id": ""
-  },
-  {
-    "candle_index": 100,
-    "zone_top": 80405.0,
-    "zone_bottom": 80280.0,
-    "vwap_at_detection": 80348.65962670062,
-    "detection_timestamp": 1778292899999,
-    "direction": "bullish",
-    "key_candle": {
-      "index": 100,
-      "open": 80419.9,
-      "high": 80432.1,
-      "low": 80368.1,
-      "close": 80400.0,
-      "volume": 191.724,
-      "vol_z_score": 0.8268409448843185,
-      "body_percentage": 31.093749999990905,
-      "upper_wick_pct": 19.06250000001819,
-      "lower_wick_pct": 49.843749999990905,
-      "rejection_direction": "DOWN",
-      "timestamp": 1778292600000
-    },
-    "accumulation_zone": {
-      "start_idx": 94,
-      "end_idx": 99,
-      "high": 80405.0,
-      "low": 80280.0,
-      "volume_avg": 204.87219999999996,
-      "vwap": 80348.65962670062,
-      "mfi": 50,
-      "quality_score": 0.9838492243949342
-    },
-    "mini_trend": {
-      "start_idx": 88,
-      "end_idx": 113,
-      "direction": "bullish",
-      "start_price": 80287.3,
-      "end_price": 80445.1,
-      "slope": 5.52854700854566,
-      "slope_normalized": 0.006880543012742217,
-      "r2": 0.5400600786828382
-    },
-    "atr_at_detection": 254.70000000001164,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
-    "zone_id": ""
-  },
-  {
-    "candle_index": 102,
-    "zone_top": 80405.0,
-    "zone_bottom": 80280.0,
-    "vwap_at_detection": 80348.65962670062,
-    "detection_timestamp": 1778293499999,
-    "direction": "bullish",
-    "key_candle": {
-      "index": 102,
-      "open": 80369.0,
-      "high": 80392.5,
-      "low": 80348.6,
-      "close": 80360.5,
-      "volume": 188.315,
-      "vol_z_score": 0.8264824875409557,
-      "body_percentage": 19.362186788157466,
-      "upper_wick_pct": 53.530751708435346,
-      "lower_wick_pct": 27.10706150340719,
-      "rejection_direction": "UP",
-      "timestamp": 1778293200000
-    },
-    "accumulation_zone": {
-      "start_idx": 94,
-      "end_idx": 99,
-      "high": 80405.0,
-      "low": 80280.0,
-      "volume_avg": 204.87219999999996,
-      "vwap": 80348.65962670062,
-      "mfi": 50,
-      "quality_score": 0.9705158910616009
-    },
-    "mini_trend": {
-      "start_idx": 88,
-      "end_idx": 113,
-      "direction": "bullish",
-      "start_price": 80287.3,
-      "end_price": 80445.1,
-      "slope": 5.52854700854566,
-      "slope_normalized": 0.006880543012742217,
-      "r2": 0.5400600786828382
-    },
-    "atr_at_detection": 233.90000000000873,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
-    "zone_id": ""
-  },
-  {
-    "candle_index": 104,
-    "zone_top": 80432.1,
-    "zone_bottom": 80340.4,
-    "vwap_at_detection": 80385.26445450817,
-    "detection_timestamp": 1778294099999,
-    "direction": "bullish",
-    "key_candle": {
-      "index": 104,
-      "open": 80387.6,
-      "high": 80448.2,
-      "low": 80384.1,
-      "close": 80385.7,
-      "volume": 217.95,
-      "vol_z_score": 1.209525514868704,
-      "body_percentage": 2.9641185647566144,
-      "upper_wick_pct": 94.53978159126291,
-      "lower_wick_pct": 2.4960998439804785,
-      "rejection_direction": "UP",
-      "timestamp": 1778293800000
-    },
-    "accumulation_zone": {
-      "start_idx": 99,
-      "end_idx": 104,
-      "high": 80432.1,
-      "low": 80340.4,
-      "volume_avg": 178.7274,
-      "vwap": 80385.26445450817,
-      "mfi": 50,
-      "quality_score": 1.0840123056216275
-    },
-    "mini_trend": {
-      "start_idx": 88,
-      "end_idx": 113,
-      "direction": "bullish",
-      "start_price": 80287.3,
-      "end_price": 80445.1,
-      "slope": 5.52854700854566,
-      "slope_normalized": 0.006880543012742217,
-      "r2": 0.5400600786828382
-    },
-    "atr_at_detection": 250.0,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -229,9 +88,9 @@
       "r2": 0.5552896950206794
     },
     "atr_at_detection": 273.40000000000873,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -276,9 +135,9 @@
       "r2": 0.5552896950206794
     },
     "atr_at_detection": 295.40000000000873,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -464,9 +323,9 @@
       "r2": 0.7517690763480274
     },
     "atr_at_detection": 400.8999999999942,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -511,150 +370,9 @@
       "r2": 0.765790098171516
     },
     "atr_at_detection": 255.3000000000029,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
-    "zone_id": ""
-  },
-  {
-    "candle_index": 96,
-    "zone_top": 80405.0,
-    "zone_bottom": 80280.0,
-    "vwap_at_detection": 80348.65962670062,
-    "detection_timestamp": 1778292899999,
-    "direction": "bullish",
-    "key_candle": {
-      "index": 96,
-      "open": 80419.9,
-      "high": 80432.1,
-      "low": 80368.1,
-      "close": 80400.0,
-      "volume": 191.724,
-      "vol_z_score": 0.8268409448843185,
-      "body_percentage": 31.093749999990905,
-      "upper_wick_pct": 19.06250000001819,
-      "lower_wick_pct": 49.843749999990905,
-      "rejection_direction": "DOWN",
-      "timestamp": 1778292600000
-    },
-    "accumulation_zone": {
-      "start_idx": 90,
-      "end_idx": 95,
-      "high": 80405.0,
-      "low": 80280.0,
-      "volume_avg": 204.87219999999996,
-      "vwap": 80348.65962670062,
-      "mfi": 50,
-      "quality_score": 0.9838492243949342
-    },
-    "mini_trend": {
-      "start_idx": 84,
-      "end_idx": 109,
-      "direction": "bullish",
-      "start_price": 80287.3,
-      "end_price": 80445.1,
-      "slope": 5.52854700854566,
-      "slope_normalized": 0.006880543012742217,
-      "r2": 0.5400600786828382
-    },
-    "atr_at_detection": 254.70000000001164,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
-    "zone_id": ""
-  },
-  {
-    "candle_index": 98,
-    "zone_top": 80405.0,
-    "zone_bottom": 80280.0,
-    "vwap_at_detection": 80348.65962670062,
-    "detection_timestamp": 1778293499999,
-    "direction": "bullish",
-    "key_candle": {
-      "index": 98,
-      "open": 80369.0,
-      "high": 80392.5,
-      "low": 80348.6,
-      "close": 80360.5,
-      "volume": 188.315,
-      "vol_z_score": 0.8264824875409557,
-      "body_percentage": 19.362186788157466,
-      "upper_wick_pct": 53.530751708435346,
-      "lower_wick_pct": 27.10706150340719,
-      "rejection_direction": "UP",
-      "timestamp": 1778293200000
-    },
-    "accumulation_zone": {
-      "start_idx": 90,
-      "end_idx": 95,
-      "high": 80405.0,
-      "low": 80280.0,
-      "volume_avg": 204.87219999999996,
-      "vwap": 80348.65962670062,
-      "mfi": 50,
-      "quality_score": 0.9705158910616009
-    },
-    "mini_trend": {
-      "start_idx": 84,
-      "end_idx": 109,
-      "direction": "bullish",
-      "start_price": 80287.3,
-      "end_price": 80445.1,
-      "slope": 5.52854700854566,
-      "slope_normalized": 0.006880543012742217,
-      "r2": 0.5400600786828382
-    },
-    "atr_at_detection": 233.90000000000873,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
-    "zone_id": ""
-  },
-  {
-    "candle_index": 100,
-    "zone_top": 80432.1,
-    "zone_bottom": 80340.4,
-    "vwap_at_detection": 80385.26445450817,
-    "detection_timestamp": 1778294099999,
-    "direction": "bullish",
-    "key_candle": {
-      "index": 100,
-      "open": 80387.6,
-      "high": 80448.2,
-      "low": 80384.1,
-      "close": 80385.7,
-      "volume": 217.95,
-      "vol_z_score": 1.209525514868704,
-      "body_percentage": 2.9641185647566144,
-      "upper_wick_pct": 94.53978159126291,
-      "lower_wick_pct": 2.4960998439804785,
-      "rejection_direction": "UP",
-      "timestamp": 1778293800000
-    },
-    "accumulation_zone": {
-      "start_idx": 95,
-      "end_idx": 100,
-      "high": 80432.1,
-      "low": 80340.4,
-      "volume_avg": 178.7274,
-      "vwap": 80385.26445450817,
-      "mfi": 50,
-      "quality_score": 1.0840123056216275
-    },
-    "mini_trend": {
-      "start_idx": 84,
-      "end_idx": 109,
-      "direction": "bullish",
-      "start_price": 80287.3,
-      "end_price": 80445.1,
-      "slope": 5.52854700854566,
-      "slope_normalized": 0.006880543012742217,
-      "r2": 0.5400600786828382
-    },
-    "atr_at_detection": 250.0,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -699,9 +417,9 @@
       "r2": 0.5552896950206794
     },
     "atr_at_detection": 273.40000000000873,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -746,9 +464,9 @@
       "r2": 0.5552896950206794
     },
     "atr_at_detection": 295.40000000000873,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -934,9 +652,9 @@
       "r2": 0.7517690763480274
     },
     "atr_at_detection": 400.8999999999942,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -981,9 +699,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 312.6000000000058,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1028,9 +746,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1075,9 +793,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1122,9 +840,9 @@
       "r2": 0.5522720013617414
     },
     "atr_at_detection": 164.8000000000029,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1169,9 +887,9 @@
       "r2": 0.5522720013617414
     },
     "atr_at_detection": 145.0,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1216,9 +934,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 312.6000000000058,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1263,9 +981,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1310,9 +1028,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1358,7 +1076,7 @@
     },
     "atr_at_detection": 859.1999999999971,
     "lifecycle_state": "active",
-    "touch_count": 0,
+    "touch_count": 1,
     "polarity_flipped": false,
     "zone_id": ""
   },
@@ -1405,7 +1123,7 @@
     },
     "atr_at_detection": 969.6999999999971,
     "lifecycle_state": "active",
-    "touch_count": 0,
+    "touch_count": 1,
     "polarity_flipped": false,
     "zone_id": ""
   },
@@ -1451,9 +1169,9 @@
       "r2": 0.5703885374021955
     },
     "atr_at_detection": 711.5,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1545,9 +1263,9 @@
       "r2": 0.5522720013617414
     },
     "atr_at_detection": 164.8000000000029,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1592,9 +1310,9 @@
       "r2": 0.5522720013617414
     },
     "atr_at_detection": 145.0,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1639,9 +1357,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 312.6000000000058,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1686,9 +1404,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1733,9 +1451,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1781,7 +1499,7 @@
     },
     "atr_at_detection": 859.1999999999971,
     "lifecycle_state": "active",
-    "touch_count": 0,
+    "touch_count": 1,
     "polarity_flipped": false,
     "zone_id": ""
   },
@@ -1828,7 +1546,7 @@
     },
     "atr_at_detection": 969.6999999999971,
     "lifecycle_state": "active",
-    "touch_count": 0,
+    "touch_count": 1,
     "polarity_flipped": false,
     "zone_id": ""
   },
@@ -1874,9 +1592,9 @@
       "r2": 0.5703885374021955
     },
     "atr_at_detection": 711.5,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -1968,9 +1686,9 @@
       "r2": 0.5522720013617414
     },
     "atr_at_detection": 164.8000000000029,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -2015,9 +1733,9 @@
       "r2": 0.5522720013617414
     },
     "atr_at_detection": 145.0,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -2062,9 +1780,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 312.6000000000058,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -2109,9 +1827,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -2156,9 +1874,9 @@
       "r2": 0.9548753491075234
     },
     "atr_at_detection": 358.1999999999971,
-    "lifecycle_state": "active",
-    "touch_count": 0,
-    "polarity_flipped": false,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -2204,7 +1922,7 @@
     },
     "atr_at_detection": 859.1999999999971,
     "lifecycle_state": "active",
-    "touch_count": 0,
+    "touch_count": 1,
     "polarity_flipped": false,
     "zone_id": ""
   },
@@ -2251,7 +1969,7 @@
     },
     "atr_at_detection": 969.6999999999971,
     "lifecycle_state": "active",
-    "touch_count": 0,
+    "touch_count": 1,
     "polarity_flipped": false,
     "zone_id": ""
   },
@@ -2297,9 +2015,9 @@
       "r2": 0.5703885374021955
     },
     "atr_at_detection": 711.5,
-    "lifecycle_state": "active",
+    "lifecycle_state": "harvesting",
     "touch_count": 0,
-    "polarity_flipped": false,
+    "polarity_flipped": true,
     "zone_id": ""
   },
   {
@@ -2344,6 +2062,993 @@
       "r2": 0.726580582383318
     },
     "atr_at_detection": 399.1999999999971,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 122,
+    "zone_top": 81137.4,
+    "zone_bottom": 81056.1,
+    "vwap_at_detection": 81096.23548634615,
+    "detection_timestamp": 1778500799999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 122,
+      "open": 81138.7,
+      "high": 81172.6,
+      "low": 81100.0,
+      "close": 81167.1,
+      "volume": 315.673,
+      "vol_z_score": 0.8087489864203525,
+      "body_percentage": 39.11845730028437,
+      "upper_wick_pct": 7.575757575756969,
+      "lower_wick_pct": 53.30578512395866,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778500500000
+    },
+    "accumulation_zone": {
+      "start_idx": 115,
+      "end_idx": 120,
+      "high": 81137.4,
+      "low": 81056.1,
+      "volume_avg": 225.8974,
+      "vwap": 81096.23548634615,
+      "mfi": 50,
+      "quality_score": 1.1265967513485995
+    },
+    "mini_trend": {
+      "start_idx": 127,
+      "end_idx": 132,
+      "direction": "bearish",
+      "start_price": 81271.2,
+      "end_price": 81110.9,
+      "slope": -35.051428571432545,
+      "slope_normalized": 0.043169601675272576,
+      "r2": 0.9548753491075234
+    },
+    "atr_at_detection": 312.6000000000058,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 123,
+    "zone_top": 81137.4,
+    "zone_bottom": 81056.1,
+    "vwap_at_detection": 81096.23548634615,
+    "detection_timestamp": 1778501099999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 123,
+      "open": 81167.1,
+      "high": 81218.2,
+      "low": 81108.0,
+      "close": 81130.4,
+      "volume": 584.857,
+      "vol_z_score": 3.2016682823888205,
+      "body_percentage": 33.30308529946698,
+      "upper_wick_pct": 46.37023593465755,
+      "lower_wick_pct": 20.32667876587547,
+      "rejection_direction": "UP",
+      "timestamp": 1778500800000
+    },
+    "accumulation_zone": {
+      "start_idx": 115,
+      "end_idx": 120,
+      "high": 81137.4,
+      "low": 81056.1,
+      "volume_avg": 225.8974,
+      "vwap": 81096.23548634615,
+      "mfi": 50,
+      "quality_score": 1.119930084681933
+    },
+    "mini_trend": {
+      "start_idx": 127,
+      "end_idx": 132,
+      "direction": "bearish",
+      "start_price": 81271.2,
+      "end_price": 81110.9,
+      "slope": -35.051428571432545,
+      "slope_normalized": 0.043169601675272576,
+      "r2": 0.9548753491075234
+    },
+    "atr_at_detection": 358.1999999999971,
+    "lifecycle_state": "harvesting",
+    "touch_count": 1,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 153,
+    "zone_top": 81221.0,
+    "zone_bottom": 80900.0,
+    "vwap_at_detection": 81111.21520693158,
+    "detection_timestamp": 1778510099999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 153,
+      "open": 80709.7,
+      "high": 80791.3,
+      "low": 80394.0,
+      "close": 80569.1,
+      "volume": 3260.806,
+      "vol_z_score": 8.236320845032473,
+      "body_percentage": 35.38887490561043,
+      "upper_wick_pct": 20.53863579159457,
+      "lower_wick_pct": 44.072489302795,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778509800000
+    },
+    "accumulation_zone": {
+      "start_idx": 146,
+      "end_idx": 151,
+      "high": 81221.0,
+      "low": 80900.0,
+      "volume_avg": 437.68899999999996,
+      "vwap": 81111.21520693158,
+      "mfi": 50,
+      "quality_score": 0.9734226523875645
+    },
+    "mini_trend": {
+      "start_idx": 157,
+      "end_idx": 163,
+      "direction": "bullish",
+      "start_price": 80859.9,
+      "end_price": 81019.8,
+      "slope": 20.671428571431008,
+      "slope_normalized": 0.025545110953524148,
+      "r2": 0.5846596064579886
+    },
+    "atr_at_detection": 859.1999999999971,
+    "lifecycle_state": "active",
+    "touch_count": 1,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 174,
+    "zone_top": 81399.0,
+    "zone_bottom": 81160.8,
+    "vwap_at_detection": 81237.41072771828,
+    "detection_timestamp": 1778516399999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 174,
+      "open": 81751.6,
+      "high": 81792.5,
+      "low": 81629.3,
+      "close": 81787.2,
+      "volume": 1126.165,
+      "vol_z_score": 0.5753007750488944,
+      "body_percentage": 21.813725490191118,
+      "upper_wick_pct": 3.2475490196096843,
+      "lower_wick_pct": 74.9387254901992,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778516100000
+    },
+    "accumulation_zone": {
+      "start_idx": 165,
+      "end_idx": 170,
+      "high": 81399.0,
+      "low": 81160.8,
+      "volume_avg": 465.1103999999999,
+      "vwap": 81237.41072771828,
+      "mfi": 50,
+      "quality_score": 1.0327384320455177
+    },
+    "mini_trend": {
+      "start_idx": 164,
+      "end_idx": 172,
+      "direction": "bullish",
+      "start_price": 81302.0,
+      "end_price": 81533.0,
+      "slope": 29.840000000000714,
+      "slope_normalized": 0.03670532780785389,
+      "r2": 0.4945223669968041
+    },
+    "atr_at_detection": 969.6999999999971,
+    "lifecycle_state": "active",
+    "touch_count": 1,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 192,
+    "zone_top": 81635.9,
+    "zone_bottom": 81322.3,
+    "vwap_at_detection": 81487.42769553846,
+    "detection_timestamp": 1778521799999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 192,
+      "open": 81936.4,
+      "high": 82033.8,
+      "low": 81874.1,
+      "close": 81909.9,
+      "volume": 1084.385,
+      "vol_z_score": 0.7464335971177528,
+      "body_percentage": 16.593613024421092,
+      "upper_wick_pct": 60.98935504070789,
+      "lower_wick_pct": 22.417031934871016,
+      "rejection_direction": "UP",
+      "timestamp": 1778521500000
+    },
+    "accumulation_zone": {
+      "start_idx": 182,
+      "end_idx": 187,
+      "high": 81635.9,
+      "low": 81322.3,
+      "volume_avg": 502.0308,
+      "vwap": 81487.42769553846,
+      "mfi": 50,
+      "quality_score": 0.969356531665537
+    },
+    "mini_trend": {
+      "start_idx": 190,
+      "end_idx": 196,
+      "direction": "bullish",
+      "start_price": 81821.6,
+      "end_price": 82005.0,
+      "slope": 20.19642857142768,
+      "slope_normalized": 0.02465539991189346,
+      "r2": 0.5703885374021955
+    },
+    "atr_at_detection": 711.5,
+    "lifecycle_state": "harvesting",
+    "touch_count": 0,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 280,
+    "zone_top": 81641.5,
+    "zone_bottom": 81480.0,
+    "vwap_at_detection": 81544.63919485731,
+    "detection_timestamp": 1778548199999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 280,
+      "open": 81428.9,
+      "high": 81489.7,
+      "low": 81358.1,
+      "close": 81396.7,
+      "volume": 412.973,
+      "vol_z_score": 1.832587821387303,
+      "body_percentage": 24.46808510638239,
+      "upper_wick_pct": 46.20060790274084,
+      "lower_wick_pct": 29.33130699087677,
+      "rejection_direction": "UP",
+      "timestamp": 1778547900000
+    },
+    "accumulation_zone": {
+      "start_idx": 270,
+      "end_idx": 275,
+      "high": 81641.5,
+      "low": 81480.0,
+      "volume_avg": 337.9724,
+      "vwap": 81544.63919485731,
+      "mfi": 50,
+      "quality_score": 0.9340790043238785
+    },
+    "mini_trend": {
+      "start_idx": 275,
+      "end_idx": 285,
+      "direction": "bearish",
+      "start_price": 81451.3,
+      "end_price": 81107.9,
+      "slope": -30.50727272727175,
+      "slope_normalized": 0.03748139082117946,
+      "r2": 0.726580582383318
+    },
+    "atr_at_detection": 399.1999999999971,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 360,
+    "zone_top": 81101.9,
+    "zone_bottom": 80900.4,
+    "vwap_at_detection": 80996.26661435001,
+    "detection_timestamp": 1778572199999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 360,
+      "open": 80902.7,
+      "high": 80938.0,
+      "low": 80756.0,
+      "close": 80835.5,
+      "volume": 1445.448,
+      "vol_z_score": 5.892751414116984,
+      "body_percentage": 36.92307692307532,
+      "upper_wick_pct": 19.395604395605996,
+      "lower_wick_pct": 43.68131868131868,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778571900000
+    },
+    "accumulation_zone": {
+      "start_idx": 355,
+      "end_idx": 360,
+      "high": 81101.9,
+      "low": 80900.4,
+      "volume_avg": 333.482,
+      "vwap": 80996.26661435001,
+      "mfi": 50,
+      "quality_score": 0.9700584795321638
+    },
+    "mini_trend": {
+      "start_idx": 353,
+      "end_idx": 360,
+      "direction": "bearish",
+      "start_price": 81037.0,
+      "end_price": 80835.5,
+      "slope": -28.16785714286286,
+      "slope_normalized": 0.03478410206442169,
+      "r2": 0.730224326614848
+    },
+    "atr_at_detection": 415.1000000000058,
+    "lifecycle_state": "harvesting",
+    "touch_count": 0,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 363,
+    "zone_top": 81101.9,
+    "zone_bottom": 80900.4,
+    "vwap_at_detection": 80996.26661435001,
+    "detection_timestamp": 1778573099999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 363,
+      "open": 80809.2,
+      "high": 80888.0,
+      "low": 80753.4,
+      "close": 80816.6,
+      "volume": 502.982,
+      "vol_z_score": 0.5687626473879949,
+      "body_percentage": 5.497771173854689,
+      "upper_wick_pct": 53.046062407125625,
+      "lower_wick_pct": 41.45616641901969,
+      "rejection_direction": "BOTH",
+      "timestamp": 1778572800000
+    },
+    "accumulation_zone": {
+      "start_idx": 355,
+      "end_idx": 360,
+      "high": 81101.9,
+      "low": 80900.4,
+      "volume_avg": 333.482,
+      "vwap": 80996.26661435001,
+      "mfi": 50,
+      "quality_score": 0.9500584795321638
+    },
+    "mini_trend": {
+      "start_idx": 353,
+      "end_idx": 360,
+      "direction": "bearish",
+      "start_price": 81037.0,
+      "end_price": 80835.5,
+      "slope": -28.16785714286286,
+      "slope_normalized": 0.03478410206442169,
+      "r2": 0.730224326614848
+    },
+    "atr_at_detection": 348.5,
+    "lifecycle_state": "harvesting",
+    "touch_count": 0,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 400,
+    "zone_top": 80708.8,
+    "zone_bottom": 80560.0,
+    "vwap_at_detection": 80633.27044806977,
+    "detection_timestamp": 1778584199999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 400,
+      "open": 80619.3,
+      "high": 80619.3,
+      "low": 80484.0,
+      "close": 80582.4,
+      "volume": 928.205,
+      "vol_z_score": 3.489061498606545,
+      "body_percentage": 27.27272727273314,
+      "upper_wick_pct": 0.0,
+      "lower_wick_pct": 72.72727272726686,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778583900000
+    },
+    "accumulation_zone": {
+      "start_idx": 393,
+      "end_idx": 398,
+      "high": 80708.8,
+      "low": 80560.0,
+      "volume_avg": 298.22439999999995,
+      "vwap": 80633.27044806977,
+      "mfi": 50,
+      "quality_score": 1.0082942473441496
+    },
+    "mini_trend": {
+      "start_idx": 392,
+      "end_idx": 402,
+      "direction": "bearish",
+      "start_price": 80685.1,
+      "end_price": 80500.0,
+      "slope": -13.324545454547236,
+      "slope_normalized": 0.016529453146552835,
+      "r2": 0.6998718858488165
+    },
+    "atr_at_detection": 323.3000000000029,
+    "lifecycle_state": "harvesting",
+    "touch_count": 0,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 416,
+    "zone_top": 80764.7,
+    "zone_bottom": 80659.2,
+    "vwap_at_detection": 80722.35554889469,
+    "detection_timestamp": 1778588999999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 416,
+      "open": 80786.1,
+      "high": 80795.0,
+      "low": 80706.7,
+      "close": 80786.1,
+      "volume": 537.268,
+      "vol_z_score": 0.9793452747554043,
+      "body_percentage": 0.0,
+      "upper_wick_pct": 10.07927519818107,
+      "lower_wick_pct": 89.92072480181893,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778588700000
+    },
+    "accumulation_zone": {
+      "start_idx": 408,
+      "end_idx": 413,
+      "high": 80764.7,
+      "low": 80659.2,
+      "volume_avg": 333.2898,
+      "vwap": 80722.35554889469,
+      "mfi": 50,
+      "quality_score": 1.063331237688083
+    },
+    "mini_trend": {
+      "start_idx": 406,
+      "end_idx": 413,
+      "direction": "bullish",
+      "start_price": 80650.9,
+      "end_price": 80796.4,
+      "slope": 16.322619047619227,
+      "slope_normalized": 0.020220070492702108,
+      "r2": 0.8394376532139896
+    },
+    "atr_at_detection": 390.8999999999942,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 417,
+    "zone_top": 80764.7,
+    "zone_bottom": 80659.2,
+    "vwap_at_detection": 80722.35554889469,
+    "detection_timestamp": 1778589299999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 417,
+      "open": 80786.2,
+      "high": 80880.0,
+      "low": 80577.8,
+      "close": 80732.9,
+      "volume": 2001.691,
+      "vol_z_score": 8.672167821317784,
+      "body_percentage": 17.637326273991867,
+      "upper_wick_pct": 31.039046988750435,
+      "lower_wick_pct": 51.3236267372577,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778589000000
+    },
+    "accumulation_zone": {
+      "start_idx": 408,
+      "end_idx": 413,
+      "high": 80764.7,
+      "low": 80659.2,
+      "volume_avg": 333.2898,
+      "vwap": 80722.35554889469,
+      "mfi": 50,
+      "quality_score": 1.0566645710214164
+    },
+    "mini_trend": {
+      "start_idx": 406,
+      "end_idx": 413,
+      "direction": "bullish",
+      "start_price": 80650.9,
+      "end_price": 80796.4,
+      "slope": 16.322619047619227,
+      "slope_normalized": 0.020220070492702108,
+      "r2": 0.8394376532139896
+    },
+    "atr_at_detection": 404.1999999999971,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 469,
+    "zone_top": 80400.0,
+    "zone_bottom": 80132.3,
+    "vwap_at_detection": 80288.16854351619,
+    "detection_timestamp": 1778604899999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 469,
+      "open": 79944.3,
+      "high": 79950.6,
+      "low": 79801.0,
+      "close": 79941.8,
+      "volume": 1300.394,
+      "vol_z_score": 0.5024893769178871,
+      "body_percentage": 1.6711229946523414,
+      "upper_wick_pct": 4.211229946525846,
+      "lower_wick_pct": 94.11764705882182,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778604600000
+    },
+    "accumulation_zone": {
+      "start_idx": 459,
+      "end_idx": 465,
+      "high": 80400.0,
+      "low": 80132.3,
+      "volume_avg": 666.803,
+      "vwap": 80288.16854351619,
+      "mfi": 50,
+      "quality_score": 1.0057466481031034
+    },
+    "mini_trend": {
+      "start_idx": 468,
+      "end_idx": 473,
+      "direction": "bullish",
+      "start_price": 79944.3,
+      "end_price": 80178.9,
+      "slope": 44.69428571428066,
+      "slope_normalized": 0.055850787745845995,
+      "r2": 0.802006978607807
+    },
+    "atr_at_detection": 619.0,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 79,
+    "zone_top": 79408.5,
+    "zone_bottom": 79228.35,
+    "vwap_at_detection": 79299.65516802698,
+    "detection_timestamp": 1778688299999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 79,
+      "open": 78827.21,
+      "high": 79020.92,
+      "low": 78811.99,
+      "close": 78906.76,
+      "volume": 361.18318,
+      "vol_z_score": 2.90949242187649,
+      "body_percentage": 38.07495333364812,
+      "upper_wick_pct": 54.640310151728954,
+      "lower_wick_pct": 7.284736514622923,
+      "rejection_direction": "UP",
+      "timestamp": 1778688000000
+    },
+    "accumulation_zone": {
+      "start_idx": 71,
+      "end_idx": 76,
+      "high": 79408.5,
+      "low": 79228.35,
+      "volume_avg": 114.795314,
+      "vwap": 79299.65516802698,
+      "mfi": 50,
+      "quality_score": 1.0360991783490345
+    },
+    "mini_trend": {
+      "start_idx": 72,
+      "end_idx": 77,
+      "direction": "bearish",
+      "start_price": 79283.08,
+      "end_price": 79097.81,
+      "slope": -37.55399999999976,
+      "slope_normalized": 0.047399818385261784,
+      "r2": 0.8265586202432125
+    },
+    "atr_at_detection": 1048.8600000000006,
+    "lifecycle_state": "harvesting",
+    "touch_count": 0,
+    "polarity_flipped": true,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 202,
+    "zone_top": 79676.11,
+    "zone_bottom": 79552.0,
+    "vwap_at_detection": 79622.65429216939,
+    "detection_timestamp": 1778725199999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 202,
+      "open": 79581.0,
+      "high": 79600.0,
+      "low": 79562.0,
+      "close": 79593.27,
+      "volume": 59.97716,
+      "vol_z_score": 1.7025599102023505,
+      "body_percentage": 32.28947368422125,
+      "upper_wick_pct": 17.71052631577875,
+      "lower_wick_pct": 50.0,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778724900000
+    },
+    "accumulation_zone": {
+      "start_idx": 197,
+      "end_idx": 202,
+      "high": 79676.11,
+      "low": 79552.0,
+      "volume_avg": 39.33878,
+      "vwap": 79622.65429216939,
+      "mfi": 50,
+      "quality_score": 1.0417325374206616
+    },
+    "mini_trend": {
+      "start_idx": 193,
+      "end_idx": 200,
+      "direction": "bullish",
+      "start_price": 79497.97,
+      "end_price": 79645.72,
+      "slope": 26.842023809522654,
+      "slope_normalized": 0.03373746006782165,
+      "r2": 0.8184492850263339
+    },
+    "atr_at_detection": 269.54000000000815,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 326,
+    "zone_top": 79404.62,
+    "zone_bottom": 79230.31,
+    "vwap_at_detection": 79338.43712348909,
+    "detection_timestamp": 1778762399999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 326,
+      "open": 79573.79,
+      "high": 79663.08,
+      "low": 79552.0,
+      "close": 79606.61,
+      "volume": 67.18683,
+      "vol_z_score": 1.574598693136413,
+      "body_percentage": 29.546272956433622,
+      "upper_wick_pct": 50.83723442563943,
+      "lower_wick_pct": 19.616492617926948,
+      "rejection_direction": "UP",
+      "timestamp": 1778762100000
+    },
+    "accumulation_zone": {
+      "start_idx": 319,
+      "end_idx": 324,
+      "high": 79404.62,
+      "low": 79230.31,
+      "volume_avg": 36.188956000000005,
+      "vwap": 79338.43712348909,
+      "mfi": 50,
+      "quality_score": 0.9997236122239567
+    },
+    "mini_trend": {
+      "start_idx": 318,
+      "end_idx": 324,
+      "direction": "bullish",
+      "start_price": 79258.27,
+      "end_price": 79423.19,
+      "slope": 17.26535714285398,
+      "slope_normalized": 0.021759129305711493,
+      "r2": 0.48690102345660147
+    },
+    "atr_at_detection": 432.7700000000041,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 329,
+    "zone_top": 79404.62,
+    "zone_bottom": 79230.31,
+    "vwap_at_detection": 79338.43712348909,
+    "detection_timestamp": 1778763299999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 329,
+      "open": 79741.72,
+      "high": 79744.01,
+      "low": 79692.18,
+      "close": 79725.72,
+      "volume": 49.60977,
+      "vol_z_score": 0.7020978036685753,
+      "body_percentage": 30.87015242137654,
+      "upper_wick_pct": 4.418290565297164,
+      "lower_wick_pct": 64.7115570133263,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778763000000
+    },
+    "accumulation_zone": {
+      "start_idx": 319,
+      "end_idx": 324,
+      "high": 79404.62,
+      "low": 79230.31,
+      "volume_avg": 36.188956000000005,
+      "vwap": 79338.43712348909,
+      "mfi": 50,
+      "quality_score": 0.9797236122239568
+    },
+    "mini_trend": {
+      "start_idx": 318,
+      "end_idx": 324,
+      "direction": "bullish",
+      "start_price": 79258.27,
+      "end_price": 79423.19,
+      "slope": 17.26535714285398,
+      "slope_normalized": 0.021759129305711493,
+      "r2": 0.48690102345660147
+    },
+    "atr_at_detection": 513.6999999999971,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 337,
+    "zone_top": 79883.9,
+    "zone_bottom": 79692.18,
+    "vwap_at_detection": 79794.3521834518,
+    "detection_timestamp": 1778765699999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 337,
+      "open": 79946.01,
+      "high": 79978.0,
+      "low": 79836.28,
+      "close": 79903.95,
+      "volume": 87.79833,
+      "vol_z_score": 1.2609398794596653,
+      "body_percentage": 29.67823878069244,
+      "upper_wick_pct": 22.572678521030888,
+      "lower_wick_pct": 47.74908269827667,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778765400000
+    },
+    "accumulation_zone": {
+      "start_idx": 329,
+      "end_idx": 334,
+      "high": 79883.9,
+      "low": 79692.18,
+      "volume_avg": 59.34854199999999,
+      "vwap": 79794.3521834518,
+      "mfi": 50,
+      "quality_score": 0.9542423690757944
+    },
+    "mini_trend": {
+      "start_idx": 328,
+      "end_idx": 335,
+      "direction": "bullish",
+      "start_price": 79741.72,
+      "end_price": 80019.61,
+      "slope": 30.855714285710732,
+      "slope_normalized": 0.03865514078070644,
+      "r2": 0.630619612444199
+    },
+    "atr_at_detection": 752.5900000000111,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 338,
+    "zone_top": 79883.9,
+    "zone_bottom": 79692.18,
+    "vwap_at_detection": 79794.3521834518,
+    "detection_timestamp": 1778765999999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 338,
+      "open": 79903.95,
+      "high": 79903.96,
+      "low": 79693.59,
+      "close": 79859.95,
+      "volume": 84.98322,
+      "vol_z_score": 1.0908319901353358,
+      "body_percentage": 20.915529780861306,
+      "upper_wick_pct": 0.004753529500077366,
+      "lower_wick_pct": 79.07971668963862,
+      "rejection_direction": "DOWN",
+      "timestamp": 1778765700000
+    },
+    "accumulation_zone": {
+      "start_idx": 329,
+      "end_idx": 334,
+      "high": 79883.9,
+      "low": 79692.18,
+      "volume_avg": 59.34854199999999,
+      "vwap": 79794.3521834518,
+      "mfi": 50,
+      "quality_score": 0.9475757024091277
+    },
+    "mini_trend": {
+      "start_idx": 328,
+      "end_idx": 335,
+      "direction": "bullish",
+      "start_price": 79741.72,
+      "end_price": 80019.61,
+      "slope": 30.855714285710732,
+      "slope_normalized": 0.03865514078070644,
+      "r2": 0.630619612444199
+    },
+    "atr_at_detection": 679.8100000000122,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 355,
+    "zone_top": 80377.13,
+    "zone_bottom": 80085.44,
+    "vwap_at_detection": 80231.58471571868,
+    "detection_timestamp": 1778771099999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 355,
+      "open": 80964.84,
+      "high": 81155.0,
+      "low": 80964.84,
+      "close": 81027.19,
+      "volume": 332.24866,
+      "vol_z_score": 2.720936833983611,
+      "body_percentage": 32.78817837610679,
+      "upper_wick_pct": 67.21182162389321,
+      "lower_wick_pct": 0.0,
+      "rejection_direction": "UP",
+      "timestamp": 1778770800000
+    },
+    "accumulation_zone": {
+      "start_idx": 347,
+      "end_idx": 352,
+      "high": 80377.13,
+      "low": 80085.44,
+      "volume_avg": 106.553372,
+      "vwap": 80231.58471571868,
+      "mfi": 50,
+      "quality_score": 1.0379149549164992
+    },
+    "mini_trend": {
+      "start_idx": 346,
+      "end_idx": 352,
+      "direction": "bullish",
+      "start_price": 80228.01,
+      "end_price": 80689.36,
+      "slope": 62.93107142856741,
+      "slope_normalized": 0.07838532502798126,
+      "r2": 0.5045273537749723
+    },
+    "atr_at_detection": 1593.479999999996,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 477,
+    "zone_top": 81612.73,
+    "zone_bottom": 81341.91,
+    "vwap_at_detection": 81535.00109281544,
+    "detection_timestamp": 1778807699999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 477,
+      "open": 81532.29,
+      "high": 81563.26,
+      "low": 81516.0,
+      "close": 81522.0,
+      "volume": 81.73488,
+      "vol_z_score": 1.5137290779557142,
+      "body_percentage": 21.773169699523354,
+      "upper_wick_pct": 65.53110452815191,
+      "lower_wick_pct": 12.695725772324725,
+      "rejection_direction": "UP",
+      "timestamp": 1778807400000
+    },
+    "accumulation_zone": {
+      "start_idx": 472,
+      "end_idx": 477,
+      "high": 81612.73,
+      "low": 81341.91,
+      "volume_avg": 43.291586,
+      "vwap": 81535.00109281544,
+      "mfi": 50,
+      "quality_score": 0.8598808980202763
+    },
+    "mini_trend": {
+      "start_idx": 481,
+      "end_idx": 486,
+      "direction": "bearish",
+      "start_price": 81280.0,
+      "end_price": 81131.01,
+      "slope": -36.51228571428002,
+      "slope_normalized": 0.044913561216744696,
+      "r2": 0.46907628162185033
+    },
+    "atr_at_detection": 595.929999999993,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": ""
+  },
+  {
+    "candle_index": 478,
+    "zone_top": 81612.73,
+    "zone_bottom": 81458.93,
+    "vwap_at_detection": 81541.581075054,
+    "detection_timestamp": 1778807999999,
+    "direction": "bearish",
+    "key_candle": {
+      "index": 478,
+      "open": 81521.99,
+      "high": 81589.69,
+      "low": 81483.63,
+      "close": 81547.32,
+      "volume": 67.3588,
+      "vol_z_score": 0.830758043143346,
+      "body_percentage": 23.882707901190177,
+      "upper_wick_pct": 39.949085423341764,
+      "lower_wick_pct": 36.168206675468056,
+      "rejection_direction": "NONE",
+      "timestamp": 1778807700000
+    },
+    "accumulation_zone": {
+      "start_idx": 473,
+      "end_idx": 478,
+      "high": 81612.73,
+      "low": 81458.93,
+      "volume_avg": 50.942366,
+      "vwap": 81541.581075054,
+      "mfi": 50,
+      "quality_score": 1.0265165412029487
+    },
+    "mini_trend": {
+      "start_idx": 481,
+      "end_idx": 486,
+      "direction": "bearish",
+      "start_price": 81280.0,
+      "end_price": 81131.01,
+      "slope": -36.51228571428002,
+      "slope_normalized": 0.044913561216744696,
+      "r2": 0.46907628162185033
+    },
+    "atr_at_detection": 518.3199999999924,
     "lifecycle_state": "active",
     "touch_count": 0,
     "polarity_flipped": false,

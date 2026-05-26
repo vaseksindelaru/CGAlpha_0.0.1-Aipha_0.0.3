@@ -1,0 +1,17 @@
+{
+  "entry_id": "D-008",
+  "level": "4",
+  "content": "{\"codex_id\": \"D-008\", \"type\": \"DECISION\", \"status\": \"APPROVED\", \"title\": \"Ampliaci\\u00f3n de Per\\u00edmetro de Retest (Proximity Buffer)\", \"statement\": \"A\\u00f1adir un buffer de 0.1% (retest_proximity_pct) para capturar toques cercanos fuera de los l\\u00edmites estrictos de la zona.\", \"rationale\": \"La dispersi\\u00f3n institucional hace que muchos retests ocurran a pocos d\\u00f3lares de la zona exacta. Sin buffer, el tiempo de cosecha se duplicaba innecesariamente.\", \"schema_version\": \"1.0.0\", \"harness_inject_when\": [\"signal_detector\", \"live_pipeline\"], \"affects_files\": [\"cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py\"]}",
+  "source_id": "foundation_seed_v1",
+  "source_type": "primary",
+  "created_at": "2026-05-23T20:31:22.238356+00:00",
+  "expires_at": null,
+  "approved_by": "human",
+  "field": "architect",
+  "tags": [
+    "codex",
+    "foundation",
+    "decision"
+  ],
+  "stale": false
+}

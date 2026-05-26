@@ -1,0 +1,80 @@
+{
+  "_meta": {
+    "schema_version": "2.0.0",
+    "capture_ts_utc": "2026-05-15T08:30:08.125324+00:00",
+    "capture_ts_unix_ms": 1778833807284,
+    "symbol": "BTCUSDT",
+    "sample_id": "re_20260515_083008_BTCUSDT_bullish_213",
+    "pipeline_version": "v4.2-tick-level"
+  },
+  "zone_geometry": {
+    "zone_id": "z_213_bullish",
+    "direction": "bullish",
+    "zone_top": 80500.0,
+    "zone_bottom": 80365.0,
+    "zone_width_abs": 135.0,
+    "zone_width_atr": 0.3819,
+    "detection_candle_index": 213,
+    "detection_ts_utc": "2026-05-13T00:29:59.999000+00:00",
+    "key_candle_volume_ratio": 0,
+    "key_candle_body_pct": 39.99999999999748,
+    "key_candle_upper_wick_pct": 47.012987012989534,
+    "key_candle_lower_wick_pct": 12.987012987012987,
+    "key_candle_rejection": "UP",
+    "accumulation_bar_count": 5,
+    "mini_trend_r2": 0.469414595197594,
+    "coincidence_score": 0.9141518038265997
+  },
+  "clearance": {
+    "atr_at_detection": 353.5,
+    "max_clearance_price": 82048.13,
+    "max_clearance_atr": 4.3794,
+    "seconds_since_detection": 201607.285
+  },
+  "l2_snapshot_at_touch": {
+    "retest_price": 80500.0,
+    "obi_1": 0.0,
+    "obi_5": 0.0,
+    "obi_10": 0.0,
+    "obi_20": 0.0,
+    "cumulative_delta": -18.407419999999945,
+    "best_bid_size_btc": 0.0,
+    "best_ask_size_btc": 0.0,
+    "bid_wall_depth_10_btc": 0,
+    "ask_wall_depth_10_btc": 0,
+    "spread_bps": 0.0,
+    "vwap_session": 80500.0
+  },
+  "l2_temporal_profile": {
+    "window_seconds": 30,
+    "n_snapshots": 0,
+    "l2_data_quality": "EMPTY",
+    "obi_10_gradient_5s": 0.0,
+    "obi_10_gradient_15s": 0.0,
+    "obi_10_gradient_30s": 0.0,
+    "obi_10_min_30s": 0.0,
+    "obi_10_max_30s": 0.0,
+    "obi_10_std_30s": 0.0,
+    "obi_10_at_minus_5s": 0.0,
+    "obi_10_at_minus_15s": 0.0,
+    "obi_10_at_minus_30s": 0.0,
+    "delta_rate_5s": 0.0,
+    "delta_rate_15s": 0.0,
+    "delta_rate_30s": 0.0,
+    "delta_acceleration_5s": 0.0,
+    "delta_acceleration_15s": 0.0,
+    "depth_ratio_1_10": 0.0,
+    "depth_ratio_1_10_gradient_5s": 0.0,
+    "trade_intensity_5s": 0.0,
+    "trade_intensity_15s": 0.0,
+    "aggressive_buy_pct_5s": 0.0,
+    "aggressive_buy_pct_15s": 0.0
+  },
+  "market_context": {
+    "atr_14_current": 353.5,
+    "regime": "LATERAL",
+    "session": "EU",
+    "hour_utc": 8
+  },
+  "outcome": null
+}

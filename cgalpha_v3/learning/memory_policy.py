@@ -340,6 +340,8 @@ class MemoryPolicyEngine:
     # v4: SEARCH AND QUERY METHODS
     # ───────────────────────────────────────────────────────────
 
+    CODEX_DIR = _PROJECT_ROOT / "cgalpha_v3/memory/codex"
+
     def search(self, *, query: str, level: MemoryLevel | None = None,
                field: str | None = None, limit: int = 20) -> list[MemoryEntry]:
         """Búsqueda por substring en el contenido. v4.1: semántica."""
@@ -363,6 +365,175 @@ class MemoryPolicyEngine:
         """Atajo para el Orchestrator: propuestas pendientes."""
         entries = self.list_entries(level=MemoryLevel.RELATIONS, limit=200)
         return [e for e in entries if "pending" in e.tags]
+
+    def query_codex(
+        self,
+        *,
+        inject_when: str | None = None,
+        entry_type: str | None = None,
+        status: str | None = None,
+        status_in: list[str] | None = None,
+        affects_files: list[str] | None = None,
+        affects_components: list[str] | None = None,
+        categories_applicable: int | None = None,
+        max_entries: int = 20,
+    ) -> list[MemoryEntry]:
+        """
+        Query the Codex: returns MemoryEntries at level >= PLAYBOOKS
+        whose JSON content matches the specified filters.
+
+        This is the primary retrieval method used by the Harness during
+        world model packet assembly (assemble_world_model_packet).
+
+        Filters (all optional, combined with AND):
+          inject_when:           match entries where this task_type appears
+                                 in content.harness_inject_when[]
+          entry_type:            match content.type (DECISION, LESSON, etc.)
+          status:                match content.status exactly
+          status_in:             match content.status in list
+          affects_files:         match if ANY file overlaps with
+                                 content.affects_files[]
+          affects_components:    match if ANY component overlaps with
+                                 content.affects_components[]
+          categories_applicable: match if this category appears in
+                                 content.categories_applicable[]
+          max_entries:           cap on returned results (default 20)
+
+        Returns entries sorted by level descending (STRATEGY before
+        PLAYBOOKS), then by created_at descending within same level.
+        """
+        playbooks_idx = self.LEVEL_ORDER.index(MemoryLevel.PLAYBOOKS)
+        candidates: list[tuple[int, MemoryEntry, dict]] = []
+
+        for entry in self.entries.values():
+            # Gate 1: must be level >= PLAYBOOKS (3+)
+            entry_idx = self.LEVEL_ORDER.index(entry.level)
+            if entry_idx < playbooks_idx:
+                continue
+
+            # Gate 2: must have "codex" tag
+            if "codex" not in entry.tags:
+                continue
+
+            # Parse the structured JSON content
+            try:
+                content = json.loads(entry.content)
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            # Filter: inject_when
+            if inject_when is not None:
+                entry_inject = content.get("harness_inject_when", [])
+                if inject_when not in entry_inject:
+                    continue
+
+            # Filter: entry_type
+            if entry_type is not None:
+                if content.get("type", "").upper() != entry_type.upper():
+                    continue
+
+            # Filter: status (exact)
+            if status is not None:
+                if content.get("status", "").upper() != status.upper():
+                    continue
+
+            # Filter: status_in (any match)
+            if status_in is not None:
+                entry_status = content.get("status", "").upper()
+                if entry_status not in [s.upper() for s in status_in]:
+                    continue
+
+            # Filter: affects_files (intersection)
+            if affects_files is not None:
+                entry_files = set(content.get("affects_files", []))
+                if not entry_files.intersection(affects_files):
+                    continue
+
+            # Filter: affects_components (intersection)
+            if affects_components is not None:
+                entry_comps = set(content.get("affects_components", []))
+                if not entry_comps.intersection(affects_components):
+                    continue
+
+            # Filter: categories_applicable (contains)
+            if categories_applicable is not None:
+                entry_cats = content.get("categories_applicable", [])
+                if categories_applicable not in entry_cats:
+                    continue
+
+            candidates.append((entry_idx, entry, content))
+
+        # Sort: level descending (higher = more authoritative), then recency
+        candidates.sort(key=lambda t: (-t[0], t[1].created_at), reverse=False)
+        # The sort above puts highest level first; within same level,
+        # oldest first. We want newest first within same level:
+        candidates.sort(key=lambda t: (-t[0], -t[1].created_at.timestamp()))
+
+        return [entry for _, entry, _ in candidates[:max_entries]]
+
+    def get_codex_content(self, entry: MemoryEntry) -> dict:
+        """
+        Parse and return the structured JSON content of a Codex entry.
+        Raises ValueError if the entry is not a valid Codex entry.
+        """
+        if "codex" not in entry.tags:
+            raise ValueError(f"Entry {entry.entry_id} is not a Codex entry (missing 'codex' tag)")
+        try:
+            return json.loads(entry.content)
+        except (json.JSONDecodeError, TypeError) as e:
+            raise ValueError(f"Entry {entry.entry_id} has invalid JSON content: {e}")
+
+    def _persist_codex_entry(self, entry: MemoryEntry) -> None:
+        """
+        Persist a Codex entry: writes to memory_entries/ (source of truth)
+        and generates a human-readable backup in codex/<type_subdir>/.
+
+        The backup is a derived artifact — if divergence occurs,
+        memory_entries/ is always canonical.
+        """
+        # 1. Canonical write to memory_entries/
+        self._persist_memory_entry(entry)
+
+        # 2. Human-readable backup in codex/<subdir>/
+        try:
+            content = json.loads(entry.content)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(
+                f"Cannot generate Codex backup for {entry.entry_id}: "
+                f"content is not valid JSON"
+            )
+            return
+
+        codex_id = content.get("codex_id", entry.entry_id)
+        entry_type = content.get("type", "unknown").lower()
+
+        type_subdirs = {
+            "decision": "decisions",
+            "lesson": "lessons",
+            "feature": "features",
+            "bug": "bugs",
+            "rule": "rules",
+            "pattern": "patterns",
+        }
+        subdir_name = type_subdirs.get(entry_type, "other")
+        subdir = self.CODEX_DIR / subdir_name
+        subdir.mkdir(parents=True, exist_ok=True)
+
+        backup_path = subdir / f"{codex_id}.json"
+        with open(backup_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "codex_id": codex_id,
+                "entry_id": entry.entry_id,
+                "type": content.get("type"),
+                "status": content.get("status"),
+                "title": content.get("title", ""),
+                "statement": content.get("statement", ""),
+                "rationale": content.get("rationale", ""),
+                "schema_version": content.get("schema_version", 1),
+                "level": entry.level.value,
+                "created_at": entry.created_at.isoformat(),
+                "approved_by": entry.approved_by,
+            }, f, indent=2, ensure_ascii=False)
 
     # ───────────────────────────────────────────────────────────
     # v4: PERSISTENCE TO DISK
