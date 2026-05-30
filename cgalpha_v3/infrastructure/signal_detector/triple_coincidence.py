@@ -755,6 +755,7 @@ class TripleCoincidenceDetector:
                 'max_price_since_last_touch': z.max_price_since_last_touch,
                 'min_price_since_last_touch': z.min_price_since_last_touch,
                 'retest_detected': z.retest_detected,
+                'last_retest_ts_ms': z.last_retest_ts_ms,  # Debounce persistence
                 'lifecycle_state': z.lifecycle_state.value, # Enum a str
                 'touch_count': z.touch_count,
                 'polarity_flipped': z.polarity_flipped,
@@ -796,6 +797,7 @@ class TripleCoincidenceDetector:
                 d.setdefault('max_price_since_last_touch', -1.0)
                 d.setdefault('min_price_since_last_touch', 1e10)
                 d.setdefault('retest_detected', False)
+                d.setdefault('last_retest_ts_ms', None)  # Debounce restore
                 d.setdefault('touch_count', 0)
                 d.setdefault('polarity_flipped', False)
                 d.setdefault('zone_id', '')
@@ -967,6 +969,7 @@ class TripleCoincidenceDetector:
                 if retest:
                     retest_events.append(retest)
                     zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
+                    zone.last_retest_ts_ms = int(new_kline.get('close_time', 0))  # Debounce sync
                     zone.retest_index = current_idx
 
                     # Calcular clearance en el momento del retest
@@ -1067,6 +1070,7 @@ class TripleCoincidenceDetector:
                     if retest:
                         retest_events.append(retest)
                         zone.retest_detected = True  # Legado — touch registrado en Zone.register_touch()
+                        zone.last_retest_ts_ms = retest.retest_timestamp  # Debounce sync
                         zone.retest_index = retest.retest_index
 
                         # 3. Determinar outcome (si hay suficientes datos futuros)
@@ -1303,10 +1307,10 @@ class TripleCoincidenceDetector:
                 if (timestamp_ms - zone.last_retest_ts_ms) < debounce_ms:
                     continue
             elif zone.retest_detected:
-                # Inconsistent state: retested but no timestamp for debounce
-                logger.warning(
-                    f"⚠️ Zone {zone.zone_id or zone.candle_index}: "
-                    f"retest_detected=True but last_retest_ts_ms=None — debounce inconsistente"
+                # Historical zone loaded without debounce ts — skip silently
+                logger.debug(
+                    f"Zone {zone.zone_id or zone.candle_index}: "
+                    f"retest_detected=True but last_retest_ts_ms=None — legacy zone, skipping debounce"
                 )
 
             # Update price extremes (clearance tracking)
