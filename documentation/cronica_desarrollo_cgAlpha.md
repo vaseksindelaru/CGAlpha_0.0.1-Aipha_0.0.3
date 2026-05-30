@@ -1713,3 +1713,57 @@ Tras 48 horas de "limpieza" y régimen lateral/breakout, el sistema ha capturado
 - **NexusGate Dynamic Bypass:** Modificado `live_adapter.py` para que el bypass de cosecha no se cierre en 50 muestras, sino solo cuando el **Set A esté listo** (diversidad de clases completa).
 
 **Estado:** Cosecha Activa Inteligente. Sistema Epistémico Session 1 cerrada.
+
+### 11.11 Resolución B-008: Spatial Multi-Touch y Purga del Dataset
+**Fecha:** 26 de Mayo, 2026
+
+#### El Problema
+Se detectó visualmente que 3 muestras `BOUNCE_STRONG` de las 12:41 eran idénticas en timestamp, precio y dirección microestructural. Diagnóstico: el `DeferredOutcomeMonitor` deduplicaba por `sample_id`, pero el `sample_id` incluía el `zone_id` como sufijo. Zonas solapadas en el mismo nivel de precio producían IDs distintos para el mismo evento físico (**clones espaciales**).
+
+#### Impacto Medido
+- **47% del dataset era ruido clonado** (369 filas → 195 tras purga).
+- BOUNCE_STRONG real: 4 (reportado: 7). La proximidad al Set A era ilusoria.
+
+#### Fix Aplicado: Triple Barrera de Deduplicación
+En `deferred_outcome_monitor.py`, se inyectó una **Huella Causal Espacio-Temporal** como primera barrera:
+```
+fingerprint = f"{capture_ts_unix_ms}_{retest_price}_{zone_direction}"
+```
+- **Barrera 1:** Huella Causal (anti Spatial Multi-Touch).
+- **Barrera 2:** Chequeo contra dataset persistido (por sample_id).
+- **Barrera 3:** Chequeo contra cola pending (por sample_id).
+- **Persistencia:** `_sync_seen_ids()` reconstruye huellas desde disco al reiniciar.
+
+#### Purga Retroactiva
+- `scripts/clean_dataset_duplicates.py` actualizado para deduplicar por huella causal.
+- Dataset purgado: 369 → 195 muestras genuinas.
+
+#### Tests de Regresión
+Nuevo archivo `tests/test_spatial_multitouch.py` con 3 tests:
+1. 3 zonas mismo tick → solo 1 registro.
+2. Eventos causalmente distintos no se bloquean.
+3. Huellas sobreviven reinicios del proceso.
+
+**Entrada Codex:** B-008 — "La identidad de un evento debe reflejar su posición en el espacio-tiempo físico del mercado, no la etiqueta alfanumérica del detector."
+
+### 11.12 Fix Debounce Zombie: Persistencia de `last_retest_ts_ms`
+**Fecha:** 30 de Mayo, 2026
+
+#### El Problema
+Tras reiniciar `launch_shadow_live.py`, los logs se inundaban con cientos de warnings por segundo:
+```
+⚠️ Zone 463: retest_detected=True but last_retest_ts_ms=None — debounce inconsistente
+```
+**Causa raíz:** El campo `last_retest_ts_ms` (timestamp del último toque para debounce) nunca se serializaba en `save_state()` ni se restauraba en `load_state()`. Las zonas tocadas se recargaban como "zombies": sabían que habían sido tocadas pero no *cuándo*, disparando el warning en cada tick del mercado.
+
+Además, dos rutas legacy del código (`process_live_tick` y `backtest_from_df`) asignaban `retest_detected = True` sin escribir `last_retest_ts_ms`, creando la inconsistencia incluso sin reinicio.
+
+#### Fix Aplicado (4 puntos quirúrgicos en `triple_coincidence.py`)
+1. `save_state()` ahora serializa `last_retest_ts_ms`.
+2. `load_state()` restaura `last_retest_ts_ms` con fallback `None` para zonas legacy.
+3. Ruta kline-level live (L969): asigna `last_retest_ts_ms` al detectar retest.
+4. Ruta backtest (L1069): asigna `last_retest_ts_ms` al detectar retest.
+5. Warning degradado a `DEBUG` (causa raíz eliminada; zonas legacy preexistentes no justifican alarma).
+
+**Verificación:** 9/9 tests de regresión pasados. Commit: `2db8935`.
+**Estado:** Pipeline limpio, sin warning storm en logs.
