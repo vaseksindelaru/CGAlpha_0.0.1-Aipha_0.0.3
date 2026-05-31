@@ -452,7 +452,11 @@ class OracleTrainer_v3(BaseComponentV3):
             cl = sample.get("clearance", {})
             out = sample.get("outcome", {})
             
-            normalized["vwap_at_retest"] = l2.get("vwap_at_retest")
+            normalized["vwap_at_retest"] = (
+                l2.get("vwap_at_retest")
+                or l2.get("vwap_session")
+                or l2.get("retest_price")
+            )
             normalized["obi_10_at_retest"] = l2.get("obi_10")
             normalized["cumulative_delta_at_retest"] = l2.get("cumulative_delta")
             normalized["atr_14"] = cl.get("atr_at_detection")

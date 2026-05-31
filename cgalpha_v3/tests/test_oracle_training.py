@@ -42,6 +42,44 @@ def _make_training_data(n: int = 60, nested: bool = False) -> list[dict]:
     return samples
 
 
+def _make_v2_training_data(n: int = 60) -> list[dict]:
+    rng = np.random.default_rng(42)
+    samples: list[dict] = []
+
+    for i in range(n):
+        outcome = "BREAKOUT" if i % 5 == 0 else "BOUNCE_STRONG"
+        samples.append({
+            "_meta": {
+                "schema_version": "2.0.0",
+                "sample_id": f"re_v2_{i}",
+            },
+            "zone_geometry": {
+                "direction": str(rng.choice(["bullish", "bearish"])),
+            },
+            "clearance": {
+                "atr_at_detection": float(rng.uniform(250, 950)),
+                "regime": str(rng.choice(["TREND", "LATERAL", "HIGH_VOL"])),
+            },
+            "l2_snapshot_at_touch": {
+                "retest_price": float(65000 + rng.normal(0, 1500)),
+                "vwap_session": float(65000 + rng.normal(0, 1500)),
+                "obi_10": float(rng.uniform(-0.7, 0.7)),
+                "cumulative_delta": float(rng.normal(0, 450)),
+                "delta_divergence": str(
+                    rng.choice(["BULLISH_ABSORPTION", "BEARISH_EXHAUSTION", "NEUTRAL"])
+                ),
+            },
+            "l2_temporal_profile": {
+                "l2_data_quality": "FULL",
+            },
+            "outcome": {
+                "label": outcome,
+            },
+        })
+
+    return samples
+
+
 def _sample_micro() -> MicrostructureRecord:
     return MicrostructureRecord(
         timestamp=1000,
@@ -78,6 +116,17 @@ def test_train_model_with_nested_features_dataset() -> None:
 
     metrics = oracle.get_training_metrics()
     assert metrics is not None
+    assert metrics["n_samples"] == 60
+
+
+def test_train_model_with_v2_snapshot_uses_vwap_session_fallback() -> None:
+    oracle = OracleTrainer_v3.create_default()
+    oracle.load_training_dataset(_make_v2_training_data(60))
+    oracle.train_model()
+
+    metrics = oracle.get_training_metrics()
+    assert metrics is not None
+    assert metrics.get("quality_gate") != "FAILED"
     assert metrics["n_samples"] == 60
 
 

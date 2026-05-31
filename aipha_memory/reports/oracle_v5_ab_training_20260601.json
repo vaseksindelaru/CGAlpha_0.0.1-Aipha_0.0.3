@@ -1,0 +1,161 @@
+{
+  "generated_at_utc": "2026-05-31T22:27:53.032631+00:00",
+  "dataset_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/operational/training_dataset_v2.jsonl",
+  "dataset_sha256": "f6c317e675e53f0893224e3f45b07788bb390808b6a9a1192ae73f71027573bc",
+  "prepared_sets": {
+    "set_a_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/operational/prepared_sets/set_a_full_l2_all_outcomes.jsonl",
+    "set_b_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/operational/prepared_sets/set_b_hybrid_bridge_trainable.jsonl"
+  },
+  "source_summary": {
+    "rows": 217,
+    "unique_ids": 217,
+    "duplicate_ids": 0,
+    "outcomes": {
+      "BOUNCE_STRONG": 50,
+      "BOUNCE_WEAK": 18,
+      "BREAKOUT": 81,
+      "INCONCLUSIVE": 68
+    },
+    "qualities": {
+      "?": 101,
+      "EMPTY": 43,
+      "FULL": 73
+    },
+    "trainable_rows": 131,
+    "trainable_outcomes": {
+      "BOUNCE_STRONG": 50,
+      "BREAKOUT": 81
+    },
+    "full_rows": 73,
+    "full_outcomes": {
+      "INCONCLUSIVE": 38,
+      "BREAKOUT": 26,
+      "BOUNCE_STRONG": 9
+    }
+  },
+  "set_a": {
+    "name": "set_a_full_l2_challenger",
+    "model_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/data/models/oracle_v5_set_a_challenger.joblib",
+    "input_summary": {
+      "rows": 73,
+      "unique_ids": 73,
+      "duplicate_ids": 0,
+      "outcomes": {
+        "INCONCLUSIVE": 38,
+        "BREAKOUT": 26,
+        "BOUNCE_STRONG": 9
+      },
+      "qualities": {
+        "FULL": 73
+      },
+      "trainable_rows": 35,
+      "trainable_outcomes": {
+        "BREAKOUT": 26,
+        "BOUNCE_STRONG": 9
+      },
+      "full_rows": 73,
+      "full_outcomes": {
+        "INCONCLUSIVE": 38,
+        "BREAKOUT": 26,
+        "BOUNCE_STRONG": 9
+      }
+    },
+    "train_result": null,
+    "metrics": {
+      "n_samples": 35,
+      "n_train": 28,
+      "n_test": 7,
+      "train_accuracy": 1.0,
+      "test_accuracy": 0.7143,
+      "cv_mean": 0.8667,
+      "cv_std": 0.1247,
+      "brier_score": 0.184939,
+      "n_features": 11,
+      "rebalance_applied": false,
+      "feature_importances": {
+        "vwap_at_retest": 0.143,
+        "obi_10_at_retest": 0.1986,
+        "cumulative_delta_at_retest": 0.2448,
+        "atr_14": 0.3712,
+        "is_trending": 0.0,
+        "is_lateral": 0.0,
+        "is_high_vol": 0.0,
+        "is_bullish": 0.0423,
+        "is_div_bullish": 0.0,
+        "is_div_bearish": 0.0,
+        "is_div_neutral": 0.0
+      },
+      "calibration_method": "platt_sigmoid",
+      "is_calibrated": true
+    },
+    "saved": true
+  },
+  "set_b": {
+    "name": "set_b_hybrid_bridge_champion_candidate",
+    "model_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/aipha_memory/data/models/oracle_v5_set_b_champion_candidate.joblib",
+    "input_summary": {
+      "rows": 110,
+      "unique_ids": 110,
+      "duplicate_ids": 0,
+      "outcomes": {
+        "BOUNCE_STRONG": 49,
+        "BREAKOUT": 61
+      },
+      "qualities": {
+        "LEGACY_NAN_BRIDGE": 75,
+        "FULL": 35
+      },
+      "trainable_rows": 110,
+      "trainable_outcomes": {
+        "BOUNCE_STRONG": 49,
+        "BREAKOUT": 61
+      },
+      "full_rows": 35,
+      "full_outcomes": {
+        "BREAKOUT": 26,
+        "BOUNCE_STRONG": 9
+      }
+    },
+    "train_result": null,
+    "metrics": {
+      "n_samples": 110,
+      "n_train": 88,
+      "n_test": 22,
+      "train_accuracy": 0.8977,
+      "test_accuracy": 0.7727,
+      "cv_mean": 0.5797,
+      "cv_std": 0.0214,
+      "brier_score": 0.174978,
+      "n_features": 11,
+      "rebalance_applied": false,
+      "feature_importances": {
+        "vwap_at_retest": 0.2498,
+        "obi_10_at_retest": 0.1492,
+        "cumulative_delta_at_retest": 0.1457,
+        "atr_14": 0.3661,
+        "is_trending": 0.0,
+        "is_lateral": 0.0645,
+        "is_high_vol": 0.0,
+        "is_bullish": 0.0247,
+        "is_div_bullish": 0.0,
+        "is_div_bearish": 0.0,
+        "is_div_neutral": 0.0
+      },
+      "calibration_method": "platt_sigmoid",
+      "is_calibrated": true
+    },
+    "saved": true
+  },
+  "promotion_decision": {
+    "decision": "keep_set_b_champion",
+    "champion": "set_b_hybrid_bridge",
+    "challenger": "set_a_full_l2",
+    "criteria": {
+      "set_a_brier_lte_set_b": false,
+      "set_a_oos_accuracy_gte_52_pct": true,
+      "set_a_train_oos_gap_lte_20_pct": false
+    },
+    "set_a_train_oos_gap": 0.2857,
+    "note": "oracle_v5.joblib was not overwritten by this runner"
+  }
+}

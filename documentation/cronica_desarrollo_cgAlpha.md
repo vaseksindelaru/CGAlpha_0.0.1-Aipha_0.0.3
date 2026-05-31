@@ -1780,3 +1780,45 @@ Se retiró `zone_direction` del `_causal_fingerprint` en `deferred_outcome_monit
 - **Política de decisión explícita evaluada:** Frente al escenario donde una doble zona generara simultáneamente dos rebotes registrados en el mismo milisegundo al mismo precio (choque perfecto), el sistema adoptó pragmáticamente el estándar **FCFS (First-Come, First-Served)** basado en el orden natural de iteración del diccionario `active_zones` del Python.
 - Se desestimó explícitamente incluir heurísticas complejas de ordenamiento por score de coincidencia (`coincidence_score`) para no agregar ciclos imperativos a un evento de baja incidencia estadística (limitando redundancia técnica).
 - Con este último ajuste, queda sellada la total pureza de dataset contra solapamientos de ruido. Todo `BOUNCE_STRONG` que entra a memoria post-arreglos es orgánico, sólido y excluyente.
+
+### 11.14 Recuperacion Operativa y Entrenamiento A/B Oracle v5 (1 de Junio, 2026)
+**Fecha:** 1 de Junio, 2026
+
+#### Recuperacion y Blindaje
+Tras detectar que `training_dataset_v2.jsonl` estaba siendo rastreado por Git y habia sido aplastado por un `git reset --hard`, se recupero el dataset desde el reflog (`7bdf1d6` / `HEAD@{2}`) y se reinyectaron 22 muestras por `sample_id` sin duplicados.
+
+- Dataset final: 217 muestras, 217 IDs unicos, 0 duplicados.
+- Set A FULL: 73 muestras.
+- FULL + `BOUNCE_STRONG`: 9.
+- FULL + `BREAKOUT`: 26.
+- `Set A ready`: True.
+
+Se saco del indice Git a:
+- `aipha_memory/operational/training_dataset_v2.jsonl`
+- `aipha_memory/operational/pending_labels.json`
+
+Ambos quedaron fisicamente vivos en disco y protegidos por `.gitignore`. Checkpoint publicado en `origin/main` con commit `c244961 chore(repo): checkpoint recovered oracle state`.
+
+#### Entrenamiento A/B
+Se agrego `cgalpha_v3/scripts/train_oracle_ab.py` para entrenar perfiles separados:
+
+- **Set A Pure L2 challenger:** 73 filas FULL, 35 entrenables (`9 BOUNCE_STRONG`, `26 BREAKOUT`).
+- **Set B Hybrid Bridge champion candidate:** 110 entrenables (`49 BOUNCE_STRONG`, `61 BREAKOUT`).
+
+Resultados:
+
+| Perfil | OOS accuracy | Brier Score | Gap train/OOS | Decision |
+| --- | ---: | ---: | ---: | --- |
+| Set A Pure L2 | 0.7143 | 0.184939 | 0.2857 | Challenger shadow |
+| Set B Hybrid Bridge | 0.7727 | 0.174978 | 0.1250 | Champion |
+
+#### Decision
+Set A ya puede entrenar, pero no se promociona todavia. Su Brier Score es peor que Set B y su gap train/OOS supera el limite prudente de 0.20. Se mantiene Set B como champion y Set A queda como challenger shadow.
+
+Artefactos:
+- `aipha_memory/data/models/oracle_v5_set_a_challenger.joblib`
+- `aipha_memory/data/models/oracle_v5_set_b_champion_candidate.joblib`
+- `aipha_memory/reports/oracle_v5_ab_training_20260601.json`
+- `documentation/oracle_v5_ab_training_2026-06-01.md`
+
+**Verificacion:** `python3 -m pytest cgalpha_v3/tests/test_oracle_training.py` -> 10 passed, 10 warnings por deprecacion conocida de `CalibratedClassifierCV(cv='prefit')`.
