@@ -84,7 +84,7 @@ class DeferredOutcomeMonitor:
     def __init__(self):
         self.pending: List[PendingLabel] = []
         self._seen_ids: set = set()
-        self._seen_fingerprints: set = set()  # Causal dedup: {ts}_{price}_{direction}
+        self._seen_fingerprints: set = set()  # Causal dedup: {ts}_{price}
         self._load_pending()
         self._sync_seen_ids()
 
@@ -92,14 +92,13 @@ class DeferredOutcomeMonitor:
     def _causal_fingerprint(meta: dict, l2: dict, zg: dict) -> str:
         """Genera huella causal espacio-temporal de un evento físico.
 
-        Dos snapshots con el mismo timestamp, precio de contacto y dirección
+        Dos snapshots con el mismo timestamp y precio de contacto
         representan el mismo evento en el mercado, aunque provengan de
-        zonas distintas superpuestas.
+        zonas distintas superpuestas (incluso de disinta polaridad).
         """
         ts = meta.get("capture_ts_unix_ms", 0)
         price = l2.get("retest_price", 0)
-        direction = zg.get("direction", "unknown")
-        return f"{ts}_{price}_{direction}"
+        return f"{ts}_{price}"
 
     def _sync_seen_ids(self):
         """Pre-puebla IDs y huellas causales del dataset persistido."""

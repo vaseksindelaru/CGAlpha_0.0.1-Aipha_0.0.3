@@ -81,228 +81,273 @@
     "created_at": 1779021599999
   },
   {
-    "zone_id": "455_bearish",
+    "zone_id": "176_bearish",
     "direction": "bearish",
     "state": "harvesting",
-    "zone_top": 77817.8,
-    "zone_bottom": 77748.65,
-    "touches": 2,
-    "created_at": 1779423299999
-  },
-  {
-    "zone_id": "453_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77817.8,
-    "zone_bottom": 77748.65,
-    "touches": 2,
-    "created_at": 1779423299999
-  },
-  {
-    "zone_id": "355_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77775.0,
-    "zone_bottom": 77702.4,
+    "zone_top": 73487.98,
+    "zone_bottom": 73341.85,
     "touches": 1,
-    "created_at": 1779422099999
+    "created_at": 1780058099999
   },
   {
-    "zone_id": "359_bearish",
+    "zone_id": "183_bearish",
     "direction": "bearish",
     "state": "harvesting",
-    "zone_top": 77775.9,
-    "zone_bottom": 77704.5,
+    "zone_top": 73374.0,
+    "zone_bottom": 73202.0,
     "touches": 1,
-    "created_at": 1779423299999
+    "created_at": 1780060199999
   },
   {
-    "zone_id": "360_bearish",
+    "zone_id": "199_bearish",
     "direction": "bearish",
     "state": "harvesting",
-    "zone_top": 77775.9,
-    "zone_bottom": 77704.5,
-    "touches": 1,
-    "created_at": 1779423599999
-  },
-  {
-    "zone_id": "376_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77664.3,
-    "zone_bottom": 77571.7,
-    "touches": 2,
-    "created_at": 1779428399999
-  },
-  {
-    "zone_id": "472_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77517.2,
-    "zone_bottom": 77416.3,
-    "touches": 2,
-    "created_at": 1779457199999
-  },
-  {
-    "zone_id": "473_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77517.2,
-    "zone_bottom": 77416.3,
-    "touches": 2,
-    "created_at": 1779457499999
-  },
-  {
-    "zone_id": "482_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77307.7,
-    "zone_bottom": 77120.0,
-    "touches": 2,
-    "created_at": 1779460199999
-  },
-  {
-    "zone_id": "161_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77700.29,
-    "zone_bottom": 77621.0,
-    "touches": 2,
-    "created_at": 1779428099999
-  },
-  {
-    "zone_id": "264_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77329.53,
-    "zone_bottom": 77155.35,
-    "touches": 2,
-    "created_at": 1779458999999
-  },
-  {
-    "zone_id": "315_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77404.18,
-    "zone_bottom": 76848.44,
-    "touches": 1,
-    "created_at": 1779571499999
-  },
-  {
-    "zone_id": "317_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77157.78,
-    "zone_bottom": 76752.12,
-    "touches": 1,
-    "created_at": 1779572099999
-  },
-  {
-    "zone_id": "254_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77404.18,
-    "zone_bottom": 76848.44,
-    "touches": 1,
-    "created_at": 1779571499999
-  },
-  {
-    "zone_id": "256_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77157.78,
-    "zone_bottom": 76752.12,
-    "touches": 1,
-    "created_at": 1779572099999
-  },
-  {
-    "zone_id": "370_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 76816.63,
-    "zone_bottom": 76716.02,
-    "touches": 2,
-    "created_at": 1779606299999
-  },
-  {
-    "zone_id": "247_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77404.18,
-    "zone_bottom": 76848.44,
-    "touches": 1,
-    "created_at": 1779571499999
-  },
-  {
-    "zone_id": "249_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77157.78,
-    "zone_bottom": 76752.12,
-    "touches": 1,
-    "created_at": 1779572099999
-  },
-  {
-    "zone_id": "363_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 76816.63,
-    "zone_bottom": 76716.02,
-    "touches": 2,
-    "created_at": 1779606299999
-  },
-  {
-    "zone_id": "241_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77404.18,
-    "zone_bottom": 76848.44,
-    "touches": 1,
-    "created_at": 1779571499999
-  },
-  {
-    "zone_id": "243_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 77157.78,
-    "zone_bottom": 76752.12,
-    "touches": 1,
-    "created_at": 1779572099999
-  },
-  {
-    "zone_id": "357_bearish",
-    "direction": "bearish",
-    "state": "harvesting",
-    "zone_top": 76816.63,
-    "zone_bottom": 76716.02,
-    "touches": 2,
-    "created_at": 1779606299999
-  },
-  {
-    "zone_id": "64_bearish",
-    "direction": "bearish",
-    "state": "active",
-    "zone_top": 77197.6,
-    "zone_bottom": 76968.4,
+    "zone_top": 73346.04,
+    "zone_bottom": 73062.08,
     "touches": 0,
-    "created_at": 1779671999999
+    "created_at": 1780064999999
   },
   {
-    "zone_id": "162_bullish",
+    "zone_id": "332_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73580.0,
+    "zone_bottom": 73472.8,
+    "touches": 1,
+    "created_at": 1780104899999
+  },
+  {
+    "zone_id": "374_bullish",
     "direction": "bullish",
     "state": "active",
-    "zone_top": 77472.7,
-    "zone_bottom": 77391.1,
-    "touches": 0,
-    "created_at": 1779701399999
+    "zone_top": 73386.01,
+    "zone_bottom": 73216.0,
+    "touches": 1,
+    "created_at": 1780117499999
   },
   {
-    "zone_id": "164_bullish",
+    "zone_id": "386_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73635.0,
+    "zone_bottom": 73542.11,
+    "touches": 1,
+    "created_at": 1780121099999
+  },
+  {
+    "zone_id": "451_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73658.19,
+    "zone_bottom": 73614.83,
+    "touches": 2,
+    "created_at": 1780140599999
+  },
+  {
+    "zone_id": "462_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73615.01,
+    "zone_bottom": 73584.27,
+    "touches": 2,
+    "created_at": 1780143899999
+  },
+  {
+    "zone_id": "463_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73615.01,
+    "zone_bottom": 73584.27,
+    "touches": 1,
+    "created_at": 1780144199999
+  },
+  {
+    "zone_id": "474_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73698.18,
+    "zone_bottom": 73655.05,
+    "touches": 1,
+    "created_at": 1780147499999
+  },
+  {
+    "zone_id": "47_bearish",
+    "direction": "bearish",
+    "state": "harvesting",
+    "zone_top": 73600.0,
+    "zone_bottom": 73463.52,
+    "touches": 1,
+    "created_at": 1780020299999
+  },
+  {
+    "zone_id": "48_bearish",
+    "direction": "bearish",
+    "state": "harvesting",
+    "zone_top": 73600.0,
+    "zone_bottom": 73463.52,
+    "touches": 1,
+    "created_at": 1780020599999
+  },
+  {
+    "zone_id": "173_bearish",
+    "direction": "bearish",
+    "state": "harvesting",
+    "zone_top": 73487.98,
+    "zone_bottom": 73341.85,
+    "touches": 1,
+    "created_at": 1780058099999
+  },
+  {
+    "zone_id": "180_bearish",
+    "direction": "bearish",
+    "state": "harvesting",
+    "zone_top": 73374.0,
+    "zone_bottom": 73202.0,
+    "touches": 1,
+    "created_at": 1780060199999
+  },
+  {
+    "zone_id": "196_bearish",
+    "direction": "bearish",
+    "state": "harvesting",
+    "zone_top": 73346.04,
+    "zone_bottom": 73062.08,
+    "touches": 0,
+    "created_at": 1780064999999
+  },
+  {
+    "zone_id": "329_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73580.0,
+    "zone_bottom": 73472.8,
+    "touches": 1,
+    "created_at": 1780104899999
+  },
+  {
+    "zone_id": "371_bullish",
     "direction": "bullish",
     "state": "active",
-    "zone_top": 77472.7,
-    "zone_bottom": 77391.1,
-    "touches": 0,
-    "created_at": 1779701999999
+    "zone_top": 73386.01,
+    "zone_bottom": 73216.0,
+    "touches": 1,
+    "created_at": 1780117499999
+  },
+  {
+    "zone_id": "383_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73635.0,
+    "zone_bottom": 73542.11,
+    "touches": 1,
+    "created_at": 1780121099999
+  },
+  {
+    "zone_id": "448_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73658.19,
+    "zone_bottom": 73614.83,
+    "touches": 2,
+    "created_at": 1780140599999
+  },
+  {
+    "zone_id": "459_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73615.01,
+    "zone_bottom": 73584.27,
+    "touches": 2,
+    "created_at": 1780143899999
+  },
+  {
+    "zone_id": "460_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73615.01,
+    "zone_bottom": 73584.27,
+    "touches": 1,
+    "created_at": 1780144199999
+  },
+  {
+    "zone_id": "471_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73698.18,
+    "zone_bottom": 73655.05,
+    "touches": 1,
+    "created_at": 1780147499999
+  },
+  {
+    "zone_id": "82_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73635.0,
+    "zone_bottom": 73542.11,
+    "touches": 1,
+    "created_at": 1780121099999
+  },
+  {
+    "zone_id": "147_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73658.19,
+    "zone_bottom": 73614.83,
+    "touches": 1,
+    "created_at": 1780140599999
+  },
+  {
+    "zone_id": "158_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73615.01,
+    "zone_bottom": 73584.27,
+    "touches": 2,
+    "created_at": 1780143899999
+  },
+  {
+    "zone_id": "159_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73615.01,
+    "zone_bottom": 73584.27,
+    "touches": 1,
+    "created_at": 1780144199999
+  },
+  {
+    "zone_id": "170_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73698.18,
+    "zone_bottom": 73655.05,
+    "touches": 1,
+    "created_at": 1780147499999
+  },
+  {
+    "zone_id": "425_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73894.83,
+    "zone_bottom": 73804.05,
+    "touches": 1,
+    "created_at": 1780223999999
+  },
+  {
+    "zone_id": "159_bullish",
+    "direction": "bullish",
+    "state": "active",
+    "zone_top": 73698.18,
+    "zone_bottom": 73655.05,
+    "touches": 1,
+    "created_at": 1780147499999
+  },
+  {
+    "zone_id": "414_bullish",
+    "direction": "bullish",
+    "state": "harvesting",
+    "zone_top": 73894.83,
+    "zone_bottom": 73804.05,
+    "touches": 1,
+    "created_at": 1780223999999
   }
 ]
