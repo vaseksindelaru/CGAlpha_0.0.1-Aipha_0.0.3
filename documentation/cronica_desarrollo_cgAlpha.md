@@ -1767,3 +1767,16 @@ Además, dos rutas legacy del código (`process_live_tick` y `backtest_from_df`)
 
 **Verificación:** 9/9 tests de regresión pasados. Commit: `2db8935`.
 **Estado:** Pipeline limpio, sin warning storm en logs.
+
+### 11.13 Resolución Definitiva B-008: Cierre FCFS Spatial Clones (31 de Mayo, 2026)
+**Fecha:** 31 de Mayo, 2026
+
+#### El Ajuste Final
+En revisión de la estrategia contra clones espaciales detectados en zonas superpuestas (11.11), se re-evaluó la decisión de depender de la `zone_direction` dentro de la huella causal (`fingerprint`). Esto permitía teóricamente un "doble conteo" si zonas bullish y bearish se cruzaban en el exacto mismo nivel de precio y tiempo.
+
+#### Fix Definitivo Implementado
+Se retiró `zone_direction` del `_causal_fingerprint` en `deferred_outcome_monitor.py`.
+- **Huella causal final:** `{ts}_{price}`
+- **Política de decisión explícita evaluada:** Frente al escenario donde una doble zona generara simultáneamente dos rebotes registrados en el mismo milisegundo al mismo precio (choque perfecto), el sistema adoptó pragmáticamente el estándar **FCFS (First-Come, First-Served)** basado en el orden natural de iteración del diccionario `active_zones` del Python.
+- Se desestimó explícitamente incluir heurísticas complejas de ordenamiento por score de coincidencia (`coincidence_score`) para no agregar ciclos imperativos a un evento de baja incidencia estadística (limitando redundancia técnica).
+- Con este último ajuste, queda sellada la total pureza de dataset contra solapamientos de ruido. Todo `BOUNCE_STRONG` que entra a memoria post-arreglos es orgánico, sólido y excluyente.

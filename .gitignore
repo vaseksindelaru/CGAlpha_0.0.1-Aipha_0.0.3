@@ -36,6 +36,10 @@ aipha.egg-info/
 tests/generated/
 aipha_memory/temporary/ast_backups/
 aipha_memory/temporary/task_buffer.db
+aipha_memory/operational/training_dataset_v2.jsonl
+aipha_memory/operational/training_dataset_v2.jsonl.*
+aipha_memory/operational/pending_labels.json
+aipha_memory/operational/pending_labels.json.*
 aipha_memory/operational/librarian_history.jsonl
 memory/backups/config_backup_*.json
 memory/*.jsonl

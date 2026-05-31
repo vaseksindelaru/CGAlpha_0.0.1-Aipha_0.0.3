@@ -2182,5 +2182,61 @@
     "flip_ts": 1780249352.7891467,
     "flip_price": 73687.55,
     "harvest_expiry_ts": 1780422152.7891467
+  },
+  {
+    "candle_index": 199,
+    "zone_top": 73912.0,
+    "zone_bottom": 73821.99,
+    "vwap_at_detection": 73872.44673091851,
+    "detection_timestamp": 1780265759999,
+    "direction": "bullish",
+    "key_candle": {
+      "index": 199,
+      "open": 73911.99,
+      "high": 73996.0,
+      "low": 73911.99,
+      "close": 73938.0,
+      "volume": 27.330759999999998,
+      "vol_z_score": 0.6419764504180289,
+      "body_percentage": 30.960599928575625,
+      "upper_wick_pct": 69.03940007142437,
+      "lower_wick_pct": 0.0,
+      "rejection_direction": "UP",
+      "timestamp": 1780265700000
+    },
+    "accumulation_zone": {
+      "start_idx": 194,
+      "end_idx": 199,
+      "high": 73912.0,
+      "low": 73821.99,
+      "volume_avg": 12.515959999999982,
+      "vwap": 73872.44673091851,
+      "mfi": 50,
+      "quality_score": 0.9726477884842151
+    },
+    "mini_trend": {
+      "start_idx": 186,
+      "end_idx": 199,
+      "direction": "bullish",
+      "start_price": 73802.83,
+      "end_price": 73938.0,
+      "slope": 14.579736263735349,
+      "slope_normalized": 0.019753444420851172,
+      "r2": 0.7588999379133708
+    },
+    "atr_at_detection": 310.0,
+    "max_price_since_detection": 73938.0,
+    "min_price_since_detection": 73938.0,
+    "max_price_since_last_touch": -1.0,
+    "min_price_since_last_touch": 10000000000.0,
+    "retest_detected": false,
+    "last_retest_ts_ms": null,
+    "lifecycle_state": "active",
+    "touch_count": 0,
+    "polarity_flipped": false,
+    "zone_id": "",
+    "flip_ts": null,
+    "flip_price": null,
+    "harvest_expiry_ts": null
   }
 ]
