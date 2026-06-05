@@ -98,7 +98,7 @@ class DeferredOutcomeMonitor:
         """
         ts = meta.get("capture_ts_unix_ms", 0)
         price = l2.get("retest_price", 0)
-        return f"{ts}_{price}"
+        return f"{int(ts)}_{float(price):.2f}"
 
     def _sync_seen_ids(self):
         """Pre-puebla IDs y huellas causales del dataset persistido."""
@@ -162,7 +162,7 @@ class DeferredOutcomeMonitor:
 
         # --- DEDUPLICACIÓN DE SEGURIDAD (Triple Barrera) ---
         # 1. Huella causal espacio-temporal (Anti Spatial Multi-Touch)
-        #    Mismo instante + mismo precio + misma dirección = mismo evento físico
+        #    Mismo instante + mismo precio = mismo evento físico (sin dirección → B-008-v2)
         fingerprint = self._causal_fingerprint(meta, l2, zg)
         if fingerprint in self._seen_fingerprints:
             logger.warning(
