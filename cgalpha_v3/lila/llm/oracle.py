@@ -11,6 +11,11 @@ from sklearn.utils import resample
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import brier_score_loss
 
+try:
+    from sklearn.frozen import FrozenEstimator  # sklearn >= 1.6
+except ImportError:
+    FrozenEstimator = None  # sklearn < 1.6
+
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.records import MicrostructureRecord
 
@@ -203,7 +208,11 @@ class OracleTrainer_v3(BaseComponentV3):
         )
         
         # Calibración Platt Scaling (sigmoid) — ideal para datasets < 1000 samples
-        self.model = CalibratedClassifierCV(base_model, method='sigmoid', cv='prefit')
+        self.model = (
+            CalibratedClassifierCV(FrozenEstimator(base_model), method='sigmoid', cv='prefit')
+            if FrozenEstimator is not None
+            else CalibratedClassifierCV(base_model, method='sigmoid', cv='prefit')
+        )
         
         # Primero entrenar base con training set
         base_model.fit(X_train, y_train)
@@ -324,6 +333,17 @@ class OracleTrainer_v3(BaseComponentV3):
         self._encoders = data["encoders"]
         self._training_metrics = data["metrics"]
         self._causal_signature = data["causal_signature"]
+
+    def is_placeholder(self) -> bool:
+        """True si el modelo no está entrenado o es el placeholder.
+
+        Fix BUG-4: el sistema puede distinguir predicciones reales
+        de confidence=0.85 hardcoded.
+        """
+        return (
+            self.model is None
+            or self.model == "placeholder_model_trained"
+        )
 
     def predict(self, micro: MicrostructureRecord, signal_data: Dict) -> OraclePrediction:
         """

@@ -187,6 +187,26 @@ def _train_profile(name: str, rows: list[dict[str, Any]], model_path: Path) -> d
 def _promotion_decision(set_a: dict[str, Any], set_b: dict[str, Any]) -> dict[str, Any]:
     a_metrics = set_a.get("metrics") or {}
     b_metrics = set_b.get("metrics") or {}
+
+    # ── Prerequisito OOS (Codex D-003) ────────────────────────────
+    MIN_OOS_SAMPLES = 30
+    a_n_test = int(a_metrics.get("n_test", 0))
+    b_n_test = int(b_metrics.get("n_test", 0))
+    if a_n_test < MIN_OOS_SAMPLES or b_n_test < MIN_OOS_SAMPLES:
+        return {
+            "decision": "OOS_TOO_SMALL",
+            "oos_a": a_n_test,
+            "oos_b": b_n_test,
+            "min_required": MIN_OOS_SAMPLES,
+            "message": (
+                f"OOS insuficiente (A={a_n_test}, B={b_n_test}). "
+                f"Mínimo {MIN_OOS_SAMPLES} para comparación válida. "
+                "Ver Codex D-003."
+            ),
+            "champion": "set_b_hybrid_bridge",
+            "challenger": "set_a_full_l2",
+        }
+
     if not set_a.get("saved") or not set_b.get("saved"):
         return {
             "decision": "no_promotion",
