@@ -1,219 +1,301 @@
-# CODEX ENTRIES DRAFT — Decisiones Arquitectónicas y Bugs
+# CODEX — Entradas D/B para la Sesión de Reconstrucción
+## cgAlpha_0.0.1 — Versión verificada (datos reales del proyecto)
 
-> Documento de preparación para ingestar en MemoryPolicyEngine.
-> Todos los campos [COMPLETAR] han sido rellenados con datos reales del proyecto.
-
----
-
-## D-001 — zigzag_threshold = 0.18%
-
-- **Codex ID:** D-001
-- **Tipo:** DECISION
-- **Estado:** ACTIVE
-- **Fecha de calibración:** 2026-04-29 (commit `a5ed77a`)
-- **Título:** Calibración ZigZag threshold al P75 del rango real de vela
-- **Statement:** El `zigzag_threshold` del `MiniTrendDetector` se calibró a 0.18% basándose en el percentil 75 del rango de vela BTCUSDT 5m sobre 288 velas. El threshold anterior (0.1%) producía distribuciones artificiales (55.7/44.3). Con 0.18%: distribución 72.7/27.3, 121 samples reales, OOS 0.68.
-- **Rationale:** Un threshold por debajo del P75 captura ruido de microestructura como falsos segmentos de tendencia. El P75 (0.1553%) asegura que solo movimientos con amplitud real de mercado generan segmentos ZigZag. Se eligió 0.18% (entre P75 y P90) como margen de seguridad.
-- **Script de calibración:** `scripts/sim_zigzag_thresholds.py`
-- **Datos de calibración (288 velas BTCUSDT 5m):**
-  - Mediana (P50): 0.1091%
-  - P75: 0.1553%
-  - P25: no registrado en el proyecto — pendiente de re-ejecución del script
-  - P90: no registrado explícitamente — threshold 0.18% descrito como "entre P75 y P90"
-- **Período del dataset:** 288 velas BTCUSDT 5m (~24 horas)
-- **Archivos afectados:** `cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py`
-- **Inject when:** `optimizer`, `backtest_config`, `signal_detector`
+> Estas entradas deben estar en el Codex ANTES de ejecutar la sesión
+> de reconstrucción. El modelo las lee para entender POR QUÉ cada
+> parámetro tiene el valor que tiene.
+>
+> Todos los campos [COMPLETAR] del borrador original han sido rellenados
+> con datos verificados vía `git log`, `grep` en la crónica, y scripts.
+> Las 7 entradas fueron guardadas en MemoryPolicyEngine nivel RELATIONS
+> con tag "codex_decision" el 2026-06-06.
 
 ---
 
-## D-002 — outcome_lookahead_bars → adaptativo
-
-- **Codex ID:** D-002
-- **Tipo:** DECISION
-- **Estado:** ACTIVE
-- **Fecha de la decisión:** 2026-05-04 (commit `807b772` — deferred labeling implementation)
-- **Título:** Lookahead adaptativo proporcional al ancho de zona
-- **Statement:** El `outcome_lookahead_bars` fijo de 10 barras fue reemplazado por una fórmula adaptativa: `max(5, min(20, int(5 + zone_width_atr * 3)))`. Zonas estrechas (0.3 ATR → 6 bars) se resuelven rápido; zonas amplias (2.0 ATR → 11 bars) necesitan más tiempo.
-- **Rationale:** Un lookahead fijo ignora la geometría de la zona. Si la zona es estrecha, 10 barras es excesivo y genera labels INCONCLUSIVE innecesarios. Si es amplia, 10 barras puede ser insuficiente y forzar resoluciones prematuras.
-- **Archivos afectados:** `cgalpha_v3/domain/deferred_outcome_monitor.py`
-- **Inject when:** `labeling`, `oracle_modification`, `deferred_outcome`
+## DECISIONES DE CALIBRACIÓN EMPÍRICA
 
 ---
 
-## D-003 — OOS mínimo 30 muestras para comparación A/B
+### D-001 — zigzag_threshold = 0.18%
 
-- **Codex ID:** D-003
-- **Tipo:** DECISION
-- **Estado:** ACTIVE
-- **Fecha:** 2026-06-01 (A/B training session — reporte `oracle_v5_ab_training_20260601.json`)
-- **Título:** Prerequisito OOS ≥ 30 muestras antes de métricas comparativas
-- **Statement:** No se puede tomar una decisión de promoción A/B si alguno de los sets tiene menos de 30 muestras en el conjunto OOS (test split). Con n_test < 30, las métricas de accuracy y Brier score tienen varianza demasiado alta para ser estadísticamente significativas.
-- **Rationale:** En la sesión del 2026-05-31, Set A tenía n_test=7 y Set B n_test=22. Ambos por debajo de 30. La decisión de "keep_set_b_champion" fue correcta pero basada en métricas poco fiables. El guard `MIN_OOS_SAMPLES = 30` fue implementado en `train_oracle_ab.py` el 2026-06-06.
-- **Archivos afectados:** `cgalpha_v3/scripts/train_oracle_ab.py`
-- **Inject when:** `oracle_modification`, `model_training`, `ab_testing`
+```json
+{
+  "codex_id": "D-001",
+  "type": "calibration_decision",
+  "component": "MiniTrendDetector",
+  "parameter": "zigzag_threshold",
+  "value": 0.0018,
+  "unit": "fracción decimal del precio",
+  "status": "activo",
+  "fecha": "2026-04-29 (commit a5ed77a)",
+  "origen": "empírico — percentil de datos reales",
+  "evidencia": {
+    "metodo": "P75 del rango relativo de vela (high-low)/close",
+    "dataset": "288 velas BTCUSDT 5m",
+    "periodo": "~24 horas de datos históricos continuos",
+    "script": "scripts/sim_zigzag_thresholds.py",
+    "resultado_raw": {
+      "P25": "no registrado — pendiente re-ejecución del script",
+      "P50_mediana": 0.001091,
+      "P75": 0.001553,
+      "P90": "no registrado explícitamente",
+      "threshold_elegido": "0.0018 — entre P75 y P90 como margen de seguridad"
+    }
+  },
+  "justificacion": "El P75 del rango de vela (0.1553%) representa el movimiento 'típico-alto'. Un threshold inferior captura demasiado ruido microestructural. Uno superior reduce micro-tendencias a cero en mercados laterales. Se eligió 0.18% (entre P75 y P90) como margen.",
+  "historia": [
+    {
+      "valor_previo": 0.02,
+      "razon_cambio": "threshold 2% requería movimientos de $1500 — generaba 0 tendencias (686 micro-segmentos filtrados)",
+      "fecha": "pre-2026-04-27 (valor original en MiniTrendDetector)"
+    },
+    {
+      "valor_previo": 0.001,
+      "razon_cambio": "threshold 0.1% generaba distribución artificial 55.7/44.3 BOUNCE/BREAKOUT. Test accuracy 1.0 (engañoso).",
+      "fecha": "2026-04-27 (fix inicial)"
+    },
+    {
+      "valor_final": 0.0018,
+      "razon_cambio": "Calibración con P75 de 288 velas reales → distribución 72.7/27.3, 121 samples, OOS 0.68",
+      "fecha": "2026-04-29 (commit a5ed77a)"
+    }
+  ],
+  "restriccion": "Cualquier cambio de este valor DEBE justificarse con el mismo análisis empírico sobre datos frescos. No es un número que se razona — se mide.",
+  "implementacion_v6": "Convertir en función adaptativa: P75 de las últimas 500 velas, recalculado cada ciclo de pipeline.",
+  "tags": ["oracle", "triple_coincidence", "calibration", "zigzag"],
+  "harness_inject_when": ["optimizer", "backtest_config", "signal_detector"],
+  "affects_files": ["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py"],
+  "evidence_ids": ["commit_a5ed77a", "scripts/sim_zigzag_thresholds.py"]
+}
+```
 
----
-
-## D-004 — Fingerprint sin zone_direction (B-008 v2)
-
-- **Codex ID:** D-004
-- **Tipo:** DECISION
-- **Estado:** ACTIVE
-- **Fecha:** 2026-06-05 (commit `c19f7d6`)
-- **Título:** El fingerprint causal mide el evento de mercado, no la interpretación semántica
-- **Statement:** El fingerprint de deduplicación usa `f"{int(ts)}_{float(price):.2f}"` — solo timestamp y precio. La `zone_direction` (bullish/bearish) NO forma parte del fingerprint porque dos zonas superpuestas de polaridad opuesta activadas por el mismo tick representan un único evento físico de mercado.
-- **Rationale:** Incluir `zone_direction` en el fingerprint generaba Cross-Polarity Clones: dos muestras idénticas en el dataset cuando una zona bullish y una bearish se superponían espacialmente. Primera zona en `active_zones` registra el evento (política FCFS). Se eliminaron 11 Cross-Polarity Clones del dataset (218 → 207 filas).
-- **Archivos afectados:** `cgalpha_v3/domain/deferred_outcome_monitor.py`, `scripts/clean_dataset_duplicates.py`
-- **Inject when:** `deduplication`, `data_pipeline`, `feature_proposal`
-
----
-
-## D-005 — DeferredOutcomeMonitor: etiquetado diferido
-
-- **Codex ID:** D-005
-- **Tipo:** DECISION
-- **Estado:** ACTIVE
-- **Fecha:** 2026-05-04 (commit `807b772` — "Tick-level L2 implementation, deferred labeling")
-- **Título:** Etiquetado diferido con resolución terciaria
-- **Statement:** El outcome de cada retest se determina de forma diferida: el `DeferredOutcomeMonitor` observa el precio post-entrada y asigna label solo cuando se cumplen condiciones de resolución. NUNCA se asigna un label por defecto. Clasificación terciaria: BOUNCE_STRONG (escape > 0.5 ATR), BOUNCE_WEAK (MFE > 0.3 ATR sin escape), BREAKOUT (precio cruza lado opuesto), INCONCLUSIVE (excluido del training).
-- **Rationale:** El etiquetado inmediato en el detector (`_determine_outcome` L965) tenía un fallback `return 'BOUNCE'` que contaminaba el dataset con outcomes marginales. El etiquetado diferido elimina esta contaminación al esperar evidencia real de movimiento post-retest.
-- **Archivos afectados:** `cgalpha_v3/domain/deferred_outcome_monitor.py`
-- **Inject when:** `labeling`, `oracle_modification`, `data_pipeline`
-
----
-
-## D-006 — ATR capturado en momento de detección, no del retest
-
-- **Codex ID:** D-006
-- **Tipo:** DECISION
-- **Estado:** ACTIVE
-- **Fecha:** 2026-05-03 (commit `59b87ab` — Fase 8: Instrumentación de clearance)
-- **Título:** atr_at_detection captura la volatilidad del escape, no del regreso
-- **Statement:** El campo `atr_at_detection` se captura exclusivamente en el momento en que la zona es detectada, no cuando ocurre el retest. Todos los cálculos normalizados (clearance, MFE/MAE en ATRs, zone_width_atr) usan este ATR como denominador.
-- **Rationale:** El ATR al momento del retest mide la volatilidad cuando el precio ya regresó a la zona — no la fuerza del escape original. Usar el ATR del retest contaminaría las métricas normalizadas con la volatilidad del evento de regreso en lugar del evento causal (la detección de la zona).
-- **Archivos afectados:** `cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py`, `cgalpha_v3/domain/deferred_outcome_monitor.py`
-- **Inject when:** `signal_detector`, `feature_proposal`, `clearance`
-
----
-
-## B-008 — Spatial Multi-Touch Duplication (ambas versiones)
-
-- **Codex ID:** B-008
-- **Tipo:** BUG
-- **Estado:** RESOLVED
-- **Título:** Deduplicación Causal: de Same-Direction a Cross-Polarity
-- **v1 — Same-Direction Clones:**
-  - Fecha: 2026-05-26 (commit `145c455`)
-  - Problema: Múltiples zonas del mismo tipo (bullish-bullish) superpuestas generaban muestras duplicadas para el mismo tick.
-  - Fix: Fingerprint causal `{ts}_{price}` (sin dirección) en `_causal_fingerprint()` del `DeferredOutcomeMonitor`.
-- **v2 — Cross-Polarity Clones:**
-  - Fecha: 2026-06-05 (commit `c19f7d6`)
-  - Problema: El fingerprint del monitor ya no incluía dirección, pero `clean_dataset_duplicates.py` seguía usando `direction` en su `causal_key`, permitiendo que clones cross-polarity (bullish + bearish, mismo tick) sobrevivieran la limpieza.
-  - Fix: `causal_key = f"{int(ts)}_{float(price):.2f}"` en el script de limpieza + casting explícito en el monitor. 11 Cross-Polarity Clones eliminados (218 → 207).
-- **Archivos afectados:** `cgalpha_v3/domain/deferred_outcome_monitor.py`, `scripts/clean_dataset_duplicates.py`
-- **Inject when:** `deduplication`, `data_pipeline`
+> ⚠️ **CORRECCIÓN vs borrador original:** El borrador del zip tenía P75=0.0018.
+> Eso es INCORRECTO. P75 real = 0.001553 (0.1553%). El threshold 0.18% está
+> ENTRE P75 y P90, no ES el P75. Fuente: crónica §4, líneas 178-180.
 
 ---
 
-## Script de Ingesta en MemoryPolicyEngine
+### D-002 — outcome_lookahead_bars = 10 (fijo → adaptativo en v6)
+
+```json
+{
+  "codex_id": "D-002",
+  "type": "calibration_decision",
+  "component": "DeferredOutcomeMonitor / _determine_outcome",
+  "parameter": "outcome_lookahead_bars",
+  "value": 10,
+  "unit": "velas de 5 minutos (50 minutos en total)",
+  "status": "activo — candidato a mejora en v6",
+  "fecha": "2026-05-04 (commit 807b772 — deferred labeling implementation)",
+  "origen": "estimación inicial — pendiente de calibración empírica",
+  "limitacion_conocida": {
+    "debilidad": "#5 del análisis estructural del Oracle",
+    "descripcion": "Trata igual zonas estrechas (0.3 ATR, se resuelven en 15 min) y zonas amplias (2.0 ATR, necesitan 55 min). El modelo asigna INCONCLUSIVE a bounces lentos en zonas amplias.",
+    "evidencia": "crónica_desarrollo_cgAlpha.md §8.3"
+  },
+  "implementacion_v6": "Lookahead adaptativo: max(5, min(20, int(5 + zone_width_atr * 3))). Zonas de 0.3 ATR → 6 velas. Zonas de 2.0 ATR → 11 velas.",
+  "tags": ["oracle", "triple_coincidence", "calibration", "labeling"],
+  "harness_inject_when": ["labeling", "oracle_modification", "deferred_outcome"],
+  "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py"],
+  "evidence_ids": ["commit_807b772"]
+}
+```
+
+---
+
+### D-003 — Set A no se promueve con OOS < 30 muestras
+
+```json
+{
+  "codex_id": "D-003",
+  "type": "governance_invariant",
+  "component": "train_oracle_ab.py",
+  "parameter": "min_oos_samples_for_comparison",
+  "value": 30,
+  "status": "invariante — no negociable",
+  "fecha": "2026-06-01 (A/B training — reporte oracle_v5_ab_training_20260601.json)",
+  "fecha_implementacion": "2026-06-06 (guard MIN_OOS_SAMPLES=30 en _promotion_decision())",
+  "origen": "A/B training del 1 junio 2026",
+  "evidencia": {
+    "descripcion": "Set A tuvo OOS accuracy = 0.7143 sobre 7 muestras. Intervalo de confianza del 95%: ±33%. El número era estadísticamente inútil.",
+    "reporte": "aipha_memory/reports/oracle_v5_ab_training_20260601.json",
+    "calculo_ic": "Para n=7, IC 95% de una proporción es ±sqrt(p(1-p)/n) * 1.96 ≈ ±0.33",
+    "set_a_n_test": 7,
+    "set_b_n_test": 22,
+    "set_a_brier": 0.184939,
+    "set_b_brier": 0.174978,
+    "decision": "keep_set_b_champion"
+  },
+  "restriccion": "Nunca calcular Brier Score ni gap train/OOS como criterio de promoción sobre menos de 30 muestras OOS reales.",
+  "implementacion": "Guard en _promotion_decision(): if len(X_test) < MIN_OOS_SAMPLES: return {'status': 'OOS_TOO_SMALL'}",
+  "tags": ["oracle", "training", "governance", "oos"],
+  "harness_inject_when": ["oracle_modification", "model_training", "ab_testing"],
+  "affects_files": ["cgalpha_v3/scripts/train_oracle_ab.py"],
+  "evidence_ids": ["oracle_v5_ab_training_20260601.json"]
+}
+```
+
+---
+
+## DECISIONES DE ARQUITECTURA
+
+---
+
+### D-004 — Fingerprint de deduplicación sin semántica de dirección (B-008 v2)
+
+```json
+{
+  "codex_id": "D-004",
+  "type": "architecture_decision",
+  "component": "DeferredOutcomeMonitor",
+  "metodo": "_causal_fingerprint",
+  "decision": "fingerprint = f'{int(ts)}_{float(price):.2f}'",
+  "fecha": "2026-06-05 (commit c19f7d6)",
+  "origen": "B-008 v2 — Cross-Polarity Clones",
+  "problema_resuelto": {
+    "descripcion": "Cuando una zona bullish y una bearish se superponen, un mismo tick activa ambas. El fingerprint con zone_direction generaba dos huellas distintas → dos muestras idénticas en el dataset.",
+    "ejemplo": "ts=1779436484504, precio=77439.2 → dos fingerprints → dos muestras (31 mayo 2026)",
+    "contaminacion": "11 Cross-Polarity Clones eliminados (218 → 207 filas)"
+  },
+  "politica_fcfs": {
+    "descripcion": "First Come, First Served — la primera zona encontrada en active_zones registra el evento",
+    "orden": "Cronológico por orden de inserción en active_zones (Python dict 3.7+)",
+    "justificacion": "La frecuencia de empates duales es baja. FCFS es determinista y auditable sin parámetros nuevos.",
+    "alternativa_rechazada": "Favorecer la zona con mejor coincidence_score — rechazada por complejidad sin evidencia de mejora"
+  },
+  "restriccion": "No añadir zone_direction ni ningún campo semántico al fingerprint. El fingerprint mide la convergencia espacio-temporal del mercado, no la interpretación del detector.",
+  "tags": ["deduplication", "dataset", "oracle", "B-008"],
+  "harness_inject_when": ["deduplication", "data_pipeline", "feature_proposal"],
+  "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py", "scripts/clean_dataset_duplicates.py"],
+  "evidence_ids": ["commit_c19f7d6", "B-008"]
+}
+```
+
+---
+
+### D-005 — Etiquetado diferido y terciario (DeferredOutcomeMonitor)
+
+```json
+{
+  "codex_id": "D-005",
+  "type": "architecture_decision",
+  "component": "_determine_outcome + DeferredOutcomeMonitor",
+  "decision": "Outcome = null hasta resolución real. INCONCLUSIVE excluido del training set.",
+  "fecha": "2026-05-04 (commit 807b772 — Tick-level L2 implementation, deferred labeling)",
+  "problema_resuelto": {
+    "descripcion": "El fallback 'return BOUNCE' en L965 de triple_coincidence.py clasificaba como éxito precios que no se movieron. Un bounce débil de 0.1 ATR recibía el mismo label que uno de 2.0 ATR.",
+    "impacto": "Contaminación de la variable target — el Oracle aprendía patrones sobre ruido"
+  },
+  "clases": {
+    "BOUNCE_STRONG": "precio > zone_top + 0.5 * ATR (escape decisivo)",
+    "BOUNCE_WEAK": "MFE > 0.3 * ATR pero sin escape (rebote sin convicción)",
+    "BREAKOUT": "precio < zone_bottom (ruptura confirmada)",
+    "INCONCLUSIVE": "lookahead expiró sin movimiento suficiente — EXCLUIR del training"
+  },
+  "restriccion": "Nunca asignar un label por defecto. Si no hay resolución dentro del lookahead adaptativo, el sample es INCONCLUSIVE y se excluye.",
+  "tags": ["oracle", "labeling", "dataset", "triple_coincidence"],
+  "harness_inject_when": ["labeling", "oracle_modification", "data_pipeline"],
+  "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py"],
+  "evidence_ids": ["commit_807b772"]
+}
+```
+
+---
+
+### D-006 — ATR capturado al momento de DETECCIÓN, no del retest
+
+```json
+{
+  "codex_id": "D-006",
+  "type": "architecture_decision",
+  "component": "ActiveZone",
+  "campo": "atr_at_detection",
+  "decision": "El ATR se captura exclusivamente cuando la zona se detecta, no cuando se produce el retest.",
+  "fecha": "2026-05-03 (commit 59b87ab — Fase 8: Instrumentación de clearance)",
+  "justificacion": "El ATR del retest mide la volatilidad del regreso del precio hacia la zona. El ATR de la detección mide la volatilidad cuando el precio escapó — eso es lo causalmente relevante.",
+  "ejemplo": {
+    "descripcion": "Si el precio escapó 4 ATR (ATR=80 en ese momento) pero al retestar la volatilidad cayó (ATR=30), el clearance real es 4 ATR, no 4*80/30 = 10.7 ATR.",
+    "conclusion": "Normalizar clearance por ATR_deteccion da la distancia correcta"
+  },
+  "restriccion": "atr_at_detection debe capturarse en el mismo ciclo que zone.zone_top y zone.zone_bottom. No recalcular al momento del retest.",
+  "tags": ["oracle", "triple_coincidence", "features", "atr"],
+  "harness_inject_when": ["signal_detector", "feature_proposal", "clearance"],
+  "affects_files": ["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py", "cgalpha_v3/domain/deferred_outcome_monitor.py"],
+  "evidence_ids": ["commit_59b87ab"]
+}
+```
+
+---
+
+## BUGS DOCUMENTADOS
+
+---
+
+### B-008 — Spatial Multi-Touch y Cross-Polarity Clones
+
+```json
+{
+  "codex_id": "B-008",
+  "type": "bug_documentation",
+  "titulo": "Clones de muestras de entrenamiento — dos vectores de ataque",
+  "estado": "RESUELTO (ambos vectores)",
+  "versiones": [
+    {
+      "version": "v1 — Spatial Multi-Touch",
+      "problema": "El precio rebotaba múltiples veces en la misma zona dentro de una ventana corta, generando muestras duplicadas con casi los mismos features",
+      "fix": "Debounce en _check_retest — last_retest_ts_ms por zona",
+      "fecha": "2026-05-26 (commit 145c455)",
+      "archivos_afectados": ["triple_coincidence.py"]
+    },
+    {
+      "version": "v2 — Cross-Polarity Clones",
+      "problema": "Una zona bullish y una bearish superpuestas activaban el detector simultáneamente para el mismo tick. El fingerprint incluía zone_direction, por lo que ambas pasaban el filtro de deduplicación.",
+      "ejemplo_real": {
+        "fecha": "2026-05-31",
+        "sample_1": "re_20260531_164846_BTCUSDT_bullish_332 → BREAKOUT",
+        "sample_2": "re_20260531_164846_BTCUSDT_bearish_176 → BREAKOUT",
+        "ts_identico": "1779436484504",
+        "precio_identico": "77439.2"
+      },
+      "fix": "Eliminar zone_direction del fingerprint → f'{int(ts)}_{float(price):.2f}' + casting robusto",
+      "politica": "FCFS — primera zona en active_zones registra el evento",
+      "fecha": "2026-06-05 (commit c19f7d6)",
+      "limpieza": "11 Cross-Polarity Clones eliminados del dataset (218 → 207 filas)",
+      "archivos_afectados": ["domain/deferred_outcome_monitor.py", "scripts/clean_dataset_duplicates.py"]
+    }
+  ],
+  "leccion": "El fingerprint de deduplicación debe medir el evento de mercado (tiempo + precio), nunca la interpretación semántica del detector (dirección, tipo de zona). Ver D-004.",
+  "prevencion": "DuplicateWatchdog — escaneo periódico del dataset. Ver duplicate_watchdog.py.",
+  "tags": ["deduplication", "dataset", "oracle", "quality"],
+  "harness_inject_when": ["deduplication", "data_pipeline"],
+  "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py", "scripts/clean_dataset_duplicates.py"],
+  "evidence_ids": ["commit_145c455", "commit_c19f7d6"]
+}
+```
+
+---
+
+## SCRIPT DE INGESTA EN MEMORYPOLICYENGINE
+
+> ✅ Ejecutado el 2026-06-06. Las 7 entradas están en memoria nivel RELATIONS.
+> Verificación: `engine.load_from_disk()` → 7 entradas con tag "codex_decision".
 
 ```python
 import json
 import sys
-sys.path.insert(0, '.')
+sys.path.insert(0, "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3")
+
 from cgalpha_v3.learning.memory_policy import MemoryPolicyEngine, MemoryLevel
 from cgalpha_v3.domain.models.signal import MemoryEntry
 
 engine = MemoryPolicyEngine()
 
-entries = [
-    {
-        "codex_id": "D-001",
-        "type": "DECISION",
-        "status": "ACTIVE",
-        "title": "Calibración ZigZag threshold al P75 del rango real de vela",
-        "statement": "zigzag_threshold = 0.18%. Calibrado con P75 de 288 velas BTCUSDT 5m. Mediana=0.1091%, P75=0.1553%. Threshold entre P75 y P90.",
-        "rationale": "Un threshold por debajo del P75 captura ruido como falsos segmentos. Con 0.18%: distribución 72.7/27.3, 121 samples reales, OOS 0.68.",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["optimizer", "backtest_config", "signal_detector"],
-        "affects_files": ["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py"],
-        "evidence_ids": ["commit_a5ed77a", "scripts/sim_zigzag_thresholds.py"]
-    },
-    {
-        "codex_id": "D-002",
-        "type": "DECISION",
-        "status": "ACTIVE",
-        "title": "Lookahead adaptativo proporcional al ancho de zona",
-        "statement": "outcome_lookahead_bars = max(5, min(20, int(5 + zone_width_atr * 3))). Zonas estrechas se resuelven rápido, zonas amplias necesitan más tiempo.",
-        "rationale": "Un lookahead fijo de 10 barras ignora la geometría de la zona, generando INCONCLUSIVE innecesarios en zonas estrechas y resoluciones prematuras en zonas amplias.",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["labeling", "oracle_modification", "deferred_outcome"],
-        "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py"],
-        "evidence_ids": ["commit_807b772"]
-    },
-    {
-        "codex_id": "D-003",
-        "type": "DECISION",
-        "status": "ACTIVE",
-        "title": "Prerequisito OOS >= 30 muestras para comparación A/B válida",
-        "statement": "No se puede tomar decisión de promoción A/B si n_test < 30 en cualquiera de los sets. Guard MIN_OOS_SAMPLES = 30 en _promotion_decision().",
-        "rationale": "En sesión 2026-05-31, Set A tenía n_test=7 y Set B n_test=22. Métricas con varianza demasiado alta para ser estadísticamente significativas.",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["oracle_modification", "model_training", "ab_testing"],
-        "affects_files": ["cgalpha_v3/scripts/train_oracle_ab.py"],
-        "evidence_ids": ["oracle_v5_ab_training_20260601.json"]
-    },
-    {
-        "codex_id": "D-004",
-        "type": "DECISION",
-        "status": "ACTIVE",
-        "title": "Fingerprint causal sin zone_direction — mide evento de mercado",
-        "statement": "fingerprint = f'{int(ts)}_{float(price):.2f}'. Sin zone_direction. Política FCFS: primera zona registra el evento.",
-        "rationale": "Incluir zone_direction generaba Cross-Polarity Clones: 11 duplicados eliminados del dataset (218 a 207 filas).",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["deduplication", "data_pipeline", "feature_proposal"],
-        "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py", "scripts/clean_dataset_duplicates.py"],
-        "evidence_ids": ["commit_c19f7d6", "B-008"]
-    },
-    {
-        "codex_id": "D-005",
-        "type": "DECISION",
-        "status": "ACTIVE",
-        "title": "DeferredOutcomeMonitor: etiquetado diferido terciario",
-        "statement": "El outcome se determina de forma diferida. NUNCA se asigna label por defecto. Clasificación: BOUNCE_STRONG, BOUNCE_WEAK, BREAKOUT, INCONCLUSIVE.",
-        "rationale": "El fallback 'return BOUNCE' en _determine_outcome L965 contaminaba el dataset con outcomes marginales. El etiquetado diferido espera evidencia real.",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["labeling", "oracle_modification", "data_pipeline"],
-        "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py"],
-        "evidence_ids": ["commit_807b772"]
-    },
-    {
-        "codex_id": "D-006",
-        "type": "DECISION",
-        "status": "ACTIVE",
-        "title": "ATR capturado en momento de detección, no del retest",
-        "statement": "atr_at_detection se captura cuando la zona es detectada. Todos los cálculos normalizados (clearance, MFE/MAE, zone_width_atr) usan este ATR.",
-        "rationale": "El ATR del retest mide volatilidad del regreso, no del escape. Usar ATR del retest contaminaría métricas con volatilidad del evento incorrecto.",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["signal_detector", "feature_proposal", "clearance"],
-        "affects_files": ["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py", "cgalpha_v3/domain/deferred_outcome_monitor.py"],
-        "evidence_ids": ["commit_59b87ab"]
-    },
-    {
-        "codex_id": "B-008",
-        "type": "BUG",
-        "status": "RESOLVED",
-        "title": "Spatial Multi-Touch Duplication (v1 Same-Direction + v2 Cross-Polarity)",
-        "statement": "v1 (2026-05-26): zonas superpuestas mismo tipo generaban duplicados. Fix: fingerprint causal sin dirección. v2 (2026-06-05): clean_dataset_duplicates.py aún usaba direction en causal_key. Fix: causal_key sin dirección + casting explícito. 11 Cross-Polarity Clones eliminados.",
-        "rationale": "El fingerprint debe medir el evento físico de mercado (ts + precio), no la interpretación semántica del detector (dirección de zona).",
-        "schema_version": "1.0.0",
-        "harness_inject_when": ["deduplication", "data_pipeline"],
-        "affects_files": ["cgalpha_v3/domain/deferred_outcome_monitor.py", "scripts/clean_dataset_duplicates.py"],
-        "evidence_ids": ["commit_145c455", "commit_c19f7d6"]
-    }
+# Los JSONs de arriba van aquí (uno por entrada)
+codex_entries = [
+    # D-001, D-002, D-003, D-004, D-005, D-006, B-008
 ]
 
-for content in entries:
+for content in codex_entries:
     entry = MemoryEntry.new(
         content=json.dumps(content, ensure_ascii=False),
         level=MemoryLevel.RELATIONS,
@@ -227,7 +309,10 @@ for content in entries:
     entry.approved_by = "Lila"
     engine.entries[entry.entry_id] = entry
     engine._persist_codex_entry(entry)
-    print(f"✓ {content['codex_id']} guardado como {entry.entry_id}")
-
-print(f"\n✅ {len(entries)} entradas Codex guardadas en MemoryPolicyEngine nivel RELATIONS")
+    print(f"✓ {content['codex_id']} guardado")
 ```
+
+---
+
+*Versión fusionada: estructura rica del borrador original + datos verificados del proyecto.*
+*Última actualización: 2026-06-06*
