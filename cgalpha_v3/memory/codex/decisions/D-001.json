@@ -3,23 +3,11 @@
   "entry_id": "D-001",
   "type": "DECISION",
   "status": "ACTIVE",
-  "title": "Test entry D-001",
-  "statement": "Statement for D-001",
-  "rationale": "Rationale for D-001",
-  "schema_version": "4.0.0",
-  "level": "4",
-  "created_at": "2026-05-18T04:09:48.619003+00:00",
-  "approved_by": "human",
-  "harness_inject_when": [
-    "feature_proposal",
-    "oracle_modification",
-    "memory_governance"
-  ],
-  "supersedes": null,
-  "superseded_by": null,
-  "related_entries": [],
-  "affects_files": [],
-  "affects_components": [],
-  "categories_applicable": [],
-  "evidence_ids": []
+  "title": "Calibración ZigZag threshold al P75 del rango real de vela",
+  "statement": "zigzag_threshold = 0.18%. Calibrado con P75 de 288 velas BTCUSDT 5m. Mediana=0.1091%, P75=0.1553%. Threshold entre P75 y P90.",
+  "rationale": "Un threshold por debajo del P75 captura ruido como falsos segmentos. Con 0.18%: distribución 72.7/27.3, 121 samples reales, OOS 0.68.",
+  "schema_version": "1.0.0",
+  "level": "2",
+  "created_at": "2026-06-06T18:19:02.944104+00:00",
+  "approved_by": "Lila"
 }

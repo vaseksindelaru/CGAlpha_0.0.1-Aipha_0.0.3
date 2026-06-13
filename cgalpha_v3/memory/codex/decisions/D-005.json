@@ -1,16 +1,13 @@
 {
   "codex_id": "D-005",
+  "entry_id": "D-005",
   "type": "DECISION",
   "status": "ACTIVE",
-  "statement": "Safety Envelope: Umbral mínimo de validación OOS.",
-  "rationale": "Ninguna propuesta de evolución (CEP) será promovida a MAIN si su precisión Out-of-Sample cae por debajo del 52% o su Brier Score empeora respecto al baseline. Previene el overfitting agresivo.",
-  "schema_version": "4.0.0",
-  "harness_inject_when": [
-    "evolution_proposal",
-    "model_promotion",
-    "backtest_validation"
-  ],
-  "evidence_ids": [
-    "V3_overfit_incident_report"
-  ]
+  "title": "DeferredOutcomeMonitor: etiquetado diferido terciario",
+  "statement": "El outcome se determina de forma diferida. NUNCA se asigna label por defecto. Clasificación: BOUNCE_STRONG, BOUNCE_WEAK, BREAKOUT, INCONCLUSIVE.",
+  "rationale": "El fallback return BOUNCE en _determine_outcome L965 contaminaba el dataset con outcomes marginales. El etiquetado diferido espera evidencia real.",
+  "schema_version": "1.0.0",
+  "level": "2",
+  "created_at": "2026-06-06T18:19:02.952048+00:00",
+  "approved_by": "Lila"
 }

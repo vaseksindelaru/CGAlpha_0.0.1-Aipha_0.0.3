@@ -62,6 +62,14 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.interval_s = 60
         self.symbol = "BTCUSDT"
         self._last_kline_close = 0
+
+        # Heartbeat watchdog (EVO-TICKET-0003 fix)
+        # Tracks last aggTrade arrival to detect silent stream failure.
+        # When aggTrade is absent > _heartbeat_timeout_ms, depthUpdate
+        # timestamps drive candle close as fallback clock.
+        self._last_aggtrade_ts_ms: int = int(time.time() * 1000)
+        self._heartbeat_timeout_ms: int = 30_000  # 30 seconds
+        self._last_heartbeat_price: float = 0.0
         self.live_signals: List[Dict] = []
 
         # NexusGate & Causal Drift
@@ -105,10 +113,25 @@ class LiveDataFeedAdapter(BaseComponentV3):
     # ══════════════════════════════════════════════════════════════
 
     async def on_ws_message(self, data: Dict[str, Any]):
-        """Callback procesador de mensajes del WebSocket."""
+        """Callback procesador de mensajes del WebSocket.
+
+        EVO-TICKET-0003 fix: no longer depends exclusively on aggTrade.
+        When aggTrade is absent for >30s (silent Binance Futures stream
+        failure), depthUpdate timestamps drive candle close as fallback.
+        """
         event_type = data.get('e')
         if event_type == 'aggTrade':
+            self._last_aggtrade_ts_ms = int(
+                data.get('T', data.get('E', time.time() * 1000))
+            )
+            self._last_heartbeat_price = float(data['p'])
             await self._process_trade(data)
+        elif event_type == 'depthUpdate' or ('b' in data and 'a' in data):
+            # Heartbeat watchdog: use depthUpdate clock when aggTrade is dead
+            depth_ts_ms = int(data.get('E', data.get('T', time.time() * 1000)))
+            gap_ms = depth_ts_ms - self._last_aggtrade_ts_ms
+            if gap_ms > self._heartbeat_timeout_ms:
+                self._heartbeat_candle_close(depth_ts_ms)
 
     async def _process_trade(self, trade: Dict[str, Any]):
         """
@@ -162,6 +185,68 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.deferred_monitor.tick(price, bar_closed=False)
 
         # ── 4. Update open DryRun positions with current price ───
+        self.order_mgr.update_positions(price)
+
+    # ══════════════════════════════════════════════════════════════
+    # HEARTBEAT WATCHDOG (EVO-TICKET-0003)
+    # ══════════════════════════════════════════════════════════════
+
+    def _heartbeat_candle_close(self, depth_ts_ms: int):
+        """Fallback clock: close candle using depthUpdate timestamp
+        when aggTrade stream has been silent > heartbeat_timeout.
+
+        This prevents full pipeline freeze when Binance Futures stops
+        distributing aggTrade while depth20@100ms continues flowing.
+        Uses last known price from aggTrade or best bid from order book.
+        """
+        kline_start = (depth_ts_ms // (self.interval_s * 1000)) * (self.interval_s * 1000)
+
+        # Only fire if we've actually crossed into a new candle period
+        if kline_start <= self._last_kline_close:
+            return
+
+        # Derive price from order book best bid if no aggTrade price available
+        price = self._last_heartbeat_price
+        if price <= 0:
+            state = self.ws.order_book_state.get(self.symbol.upper(), {})
+            bids = state.get('bids', [])
+            if bids:
+                price = float(bids[0][0])
+        if price <= 0:
+            return  # No price source available at all
+
+        logger.warning(
+            f"💓 HEARTBEAT: aggTrade silent for "
+            f"{(depth_ts_ms - self._last_aggtrade_ts_ms) / 1000:.0f}s. "
+            f"Forcing candle close via depthUpdate clock. price={price:.2f}"
+        )
+
+        # Synthesize minimal candle from last known state
+        if self.current_kline:
+            self.current_kline["close"] = price
+            self._on_candle_close(self.current_kline)
+
+        # ── HEARTBEAT RETEST DETECTION ───────────────────────────
+        # Critical: if we don't check retests here, the system is 
+        # blind to price touches during aggTrade outages.
+        if self._is_causally_safe and self.detector.active_zones:
+            hits = self.detector.check_intra_candle_retest(price, depth_ts_ms)
+            for hit in hits:
+                self._on_retest_detected(hit, price, depth_ts_ms)
+
+        # Reset candle for next period
+        self.current_kline = {
+            "open_time": kline_start,
+            "open": price, "high": price, "low": price, "close": price,
+            "volume": 0.0,
+            "close_time": kline_start + (self.interval_s * 1000) - 1,
+        }
+        self._last_kline_close = kline_start
+
+        # Tick deferred monitor with heartbeat price
+        self.deferred_monitor.tick(price, bar_closed=False)
+
+        # Update positions with heartbeat price
         self.order_mgr.update_positions(price)
 
     # ══════════════════════════════════════════════════════════════

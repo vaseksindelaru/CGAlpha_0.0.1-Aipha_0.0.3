@@ -38,7 +38,7 @@ ACTIVE_WS_MANAGER = None
 # MÓDULO DE ARRANQUE EN FRÍO (Historical Pre-load)
 # ─────────────────────────────────────────────────────────────────────
 
-BOOTSTRAP_LIMIT     = 500
+BOOTSTRAP_LIMIT     = 1000
 BOOTSTRAP_INTERVAL  = "5m"
 
 def _ts_to_str(unix_ms: int | str) -> str:
