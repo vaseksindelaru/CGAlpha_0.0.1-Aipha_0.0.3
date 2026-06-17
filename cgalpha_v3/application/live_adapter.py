@@ -120,7 +120,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         failure), depthUpdate timestamps drive candle close as fallback.
         """
         event_type = data.get('e')
-        if event_type == 'aggTrade':
+        if event_type in ('aggTrade', 'trade'):
             self._last_aggtrade_ts_ms = int(
                 data.get('T', data.get('E', time.time() * 1000))
             )
@@ -135,7 +135,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
     async def _process_trade(self, trade: Dict[str, Any]):
         """
-        Procesa cada trade individual. Dos responsabilidades:
+        Procesa cada trade individual (aggTrade o trade). Dos responsabilidades:
         1. Agregar al candle actual (OHLCV aggregation)
         2. Check tick-level retest contra zonas activas
         """
@@ -173,7 +173,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         # ── 2. TICK-LEVEL RETEST CHECK (the critical change) ─────
         # O(n_zones) pure — no I/O, no DataFrame. ~5-10 zones × 30 ticks/s = trivial
-        if self._is_causally_safe and self.detector.active_zones:
+        if self.detector.active_zones:
             hits = self.detector.check_intra_candle_retest(price, ts)
 
             for hit in hits:
@@ -229,7 +229,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         # ── HEARTBEAT RETEST DETECTION ───────────────────────────
         # Critical: if we don't check retests here, the system is 
         # blind to price touches during aggTrade outages.
-        if self._is_causally_safe and self.detector.active_zones:
+        if self.detector.active_zones:
             hits = self.detector.check_intra_candle_retest(price, depth_ts_ms)
             for hit in hits:
                 self._on_retest_detected(hit, price, depth_ts_ms)
@@ -622,10 +622,12 @@ class LiveDataFeedAdapter(BaseComponentV3):
             is_secondary_retest = getattr(zone, "lifecycle_state") == "harvesting" or getattr(zone, "lifecycle_state").value == "harvesting"
 
         if not is_secondary_retest:
-            if confidence > 0.70 and is_safe_by_mae:
+            if confidence > 0.70 and is_safe_by_mae and self._is_causally_safe:
                 self.order_mgr.execute_signal(signal)
             elif confidence > 0.70 and not is_safe_by_mae:
                 logger.warning(f"🚫 Señal abortada por Capa 2 (MAE Seguridad): {mae_reason}")
+            elif confidence > 0.70 and not self._is_causally_safe:
+                logger.warning(f"🚫 Señal abortada por NEXUSGATE (ΔCausal={self.delta_causal:.4f}). Cosechando muestra...")
         else:
             logger.info(f"🌾 [ShadowHarvest] Toque secuencial en {zone.zone_id} (polarity_flipped={getattr(zone, 'polarity_flipped', False)}). Sin ejecución viva.")
 
@@ -636,6 +638,8 @@ class LiveDataFeedAdapter(BaseComponentV3):
             assigned_seq = 1
 
         # ── 6. REGISTER WITH DEFERRED MONITOR ────────────────────
+        snapshot["_meta"]["touch_sequence"] = assigned_seq
+        snapshot["_meta"]["polarity_flipped"] = getattr(zone, "polarity_flipped", False)
         self.deferred_monitor.register_retest(
             snapshot,
             raw_buffer=raw_buffer,

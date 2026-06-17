@@ -87,7 +87,8 @@ class BinanceWebSocketManager(BaseComponentV3):
         streams = []
         for s in self.symbols:
             streams.append(f"{s.lower()}@depth20@100ms")
-            streams.append(f"{s.lower()}@aggTrade")
+            # Switch to @trade because @aggTrade is experiencing global silence/lag on some endpoints
+            streams.append(f"{s.lower()}@trade")
         
         url = f"{self.base_url.replace('/ws', '/stream')}?streams={'/'.join(streams)}"
         
@@ -151,7 +152,7 @@ class BinanceWebSocketManager(BaseComponentV3):
                 "asks": [[data['a'], data['A']]],
                 "timestamp": binance_ts_ms
             }
-        elif event_type == 'aggTrade':
+        elif event_type in ('aggTrade', 'trade'):
             trade_data = {
                 "price": float(data['p']),
                 "qty": float(data['q']),

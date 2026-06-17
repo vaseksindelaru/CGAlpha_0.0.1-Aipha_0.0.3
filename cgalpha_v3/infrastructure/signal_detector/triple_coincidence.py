@@ -1055,7 +1055,7 @@ class TripleCoincidenceDetector:
           for idx in range(len(df)):
             # 1. Detectar nuevas zonas
             new_zones = self._detect_new_zones(df, idx, all_trends)
-            self.active_zones.extend(new_zones)
+            self._add_zones_without_duplicates(new_zones)
 
             # 2. Monitorear retests de zonas activas
             for zone in self.active_zones:
@@ -1405,13 +1405,37 @@ class TripleCoincidenceDetector:
 
         # Detect new zones at this candle
         new_zones = self._detect_new_zones(df, current_idx)
-        self.active_zones.extend(new_zones)
+        
+        self._add_zones_without_duplicates(new_zones)
 
         # ── Z-Score Calibration Instrumentation (Cat.1, observacional) ──
         self._log_zscore_calibration(df, current_idx, len(new_zones) > 0)
 
         # Cleanup expired zones
         self._cleanup_expired_zones(current_idx)
+
+    def _add_zones_without_duplicates(self, new_zones: List[ActiveZone]):
+        """Añade zonas a la lista filtrando duplicados espaciales o temporales."""
+        for nz in new_zones:
+            is_dupe = False
+            for az in self.active_zones:
+                if az.candle_index == nz.candle_index and az.direction == nz.direction:
+                    is_dupe = True
+                    break
+                
+                # Solapamiento de precios (si comparten > 90% del rango)
+                inter_top = min(az.zone_top, nz.zone_top)
+                inter_bot = max(az.zone_bottom, nz.zone_bottom)
+                if inter_top > inter_bot:
+                    union_top = max(az.zone_top, nz.zone_top)
+                    union_bot = min(az.zone_bottom, nz.zone_bottom)
+                    overlap = (inter_top - inter_bot) / (union_top - union_bot)
+                    if overlap > 0.9:
+                        is_dupe = True
+                        break
+            
+            if not is_dupe:
+                self.active_zones.append(nz)
 
     def _log_zscore_calibration(self, df: pd.DataFrame, idx: int, zone_detected: bool):
         """
