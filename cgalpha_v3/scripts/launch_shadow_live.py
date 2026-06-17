@@ -20,6 +20,9 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from cgalpha_v3.infrastructure.binance_websocket_manager import BinanceWebSocketManager
 from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import TripleCoincidenceDetector
 from cgalpha_v3.application.live_adapter import LiveDataFeedAdapter
