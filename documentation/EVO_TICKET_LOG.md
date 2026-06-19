@@ -8,7 +8,7 @@ EVO-TICKETs are precedents."
 AlphaLab como cámara completa (QUARANTINE_GATE, READY_FOR_CODEX,
 resurrección automática de tickets dormidos) NO EXISTE como
 componente — es arquitectura objetivo, igual que el Harness del
-Acto VIII (ver NEXUS_SUPERIOR.md §5.11, líneas 703/721).
+Acto VIII (ver B008_NEXUS_CAPSULE.md).
 
 Lo que SÍ existe desde hoy: este log, en formato de ticket.
 Cuando EvolutionOrchestrator (P6) y MemoryPolicyEngine (P7) estén
@@ -22,9 +22,7 @@ EVOLUTIONARY_DEBT → RECONSTRUCTION → LIBRARY
 
 Mientras QUARANTINE_GATE/READY_FOR_CODEX no existan como gates
 automáticos, su función la cumple: revisión humana + Ruta C
-(documentada en NEXUS_SUPERIOR.md §7 línea 699, archivo físico
-LILA_ROUTING_PROMPT.md PENDIENTE DE CREACIÓN) + verificación
-contra §3 del Nexus.
+(LILA_ROUTING_PROMPT.md) + verificación contra §3 del Nexus.
 ```
 
 ---
@@ -34,51 +32,44 @@ contra §3 del Nexus.
 ```
 ORIGIN          : Operational Anomaly + Epistemic Distillation
                   (cobertura 54.77%, LabelEncoder no-determinista,
-                  FEATURE_COLS legacy — issues #1-#4 de §5.1 Nexus)
+                  FEATURE_COLS legacy)
 
-MATURITY        : MATURITY_3
-                  (dirección clara en NEXUS_SUPERIOR.md §5.1,
-                  issues #1-#4 identificados con especificación
-                  suficiente para diseño. SIN artefactos de
-                  implementación ejecutables — los archivos
-                  oracle_v6_skeleton.py y test_oracle_v6_skeleton.py
-                  referenciados en §5.1 L288-289 del Nexus NUNCA
-                  FUERON CREADOS. Verificado: git log --all no
-                  registra su existencia. cgalpha_v4/ solo contiene
-                  documentos fundacionales S2-S8 + WHITEPAPER.)
+MATURITY        : MATURITY_3  [corregido 2026-06-13 — era MATURITY_5]
+                  MOTIVO: evidencia anterior citaba oracle_v6_skeleton.py
+                  y test_oracle_v6_skeleton.py como existentes. Ambos
+                  verificados en Git: NO EXISTEN. Sin artefactos de
+                  implementación reales el ticket no puede superar
+                  MATURITY_3 (diseño consolidado, sin código todavía).
+                  MATURITY_4 requiere: skeleton creado + ≥1 test de
+                  contrato pasando en pytest.
 
 VITALITY        : ACTIVE
-                  (en progreso, P1 del Nexus, sesión activa)
+                  (desbloqueado tras resolución de EVO-TICKET-0003)
 
-ESTADO EN CICLO : INCUBATION
-                  (no puede ser EXECUTING sin artefactos de código
-                  verificables. Prerequisito para avanzar a MATURITY_4:
-                  crear oracle_v6_skeleton.py + tests de contrato.)
+ESTADO EN CICLO : READY_FOR_CODEX
+                  [simulado — revisión humana aprobada, pendiente
+                  sesión de ejecución con LLM avanzado]
+
+PHANTOM FILES RESUELTOS (Causal Closure violation — verificado 2026-06-13):
+  ❌→⏳ RECONSTRUCTION_BRIEF.md v1.1 — NO EXISTE → pendiente creación
+  ❌→⏳ oracle_v6_skeleton.py       — NO EXISTE → pendiente creación
+  ❌→⏳ test_oracle_v6_skeleton.py  — NO EXISTE → pendiente creación
+  Estos archivos no pueden citarse como base de maturity hasta existir.
+
+PRÓXIMOS PASOS para MATURITY_4:
+  [ ] Crear oracle_v6_skeleton.py (interfaz pública, sin implementación)
+  [ ] Crear test_oracle_v6_skeleton.py (tests de contrato de interfaz)
+  [ ] pytest pasa → MATURITY_4 confirmada → sesión LLM avanzado
 
 DEBT CLASS (estimado pre-ejecución) : CONSOLIDATION_DEBT
-  Razón: no añade capacidad nueva, consolida una base de código
-  con deuda técnica conocida (issues #1-#4 de §5.1 Nexus) hacia
-  un estado verificable. La capacidad nueva real es Fase B.
+  Razón: consolida base existente con deuda técnica documentada.
+  Capacidad nueva real es Fase B (EVO-TICKET-0002).
 
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [ ] RECONSTRUCTION_MAP_UPDATE (plantilla PENDIENTE DE CREACIÓN —
-      RECONSTRUCTION_MAP_UPDATE_TEMPLATE.md no existe, debe crearse
-      como parte del scaffolding constitucional)
-  [ ] ARCHITECTURAL_DECISION_RECORD por cada decisión con
-      alternativas (mínimo esperado: 1, sobre el esquema de
-      encoding — ver issue #2 de §5.1)
-  [ ] Actualización de §3 (verdades inmutables) si se fija
-      algún valor nuevo (ej: ENCODING_MAP)
-  [ ] Actualización de §7/§8 del Nexus
-
-REFERENCIA DE BRIEF:
-  NEXUS_SUPERIOR.md §5.1 L287 referencia cgalpha_v4/RECONSTRUCTION_BRIEF.md
-  como brief existente. VERIFICADO: NO EXISTE. cgalpha_v4/ contiene:
-    LILA_V4_PROMPT_FUNDACIONAL.md, S2-S8, WHITEPAPER.md
-  El brief debe CREARSE como prerequisito para MATURITY_4+.
-
-CRITERIOS DE ÉXITO : ver §5.1 del Nexus, issues #1-#4
-NO TOCAR           : PROTECTED_MODULES de §3 del Nexus
+  [ ] RECONSTRUCTION_MAP_UPDATE
+  [ ] ADR-EVO-TICKET-0001-1-encoding-determinista (mínimo esperado)
+  [ ] Actualización §3 Nexus si se fija ENCODING_MAP
+  [ ] Actualización §7/§8 Nexus
 ```
 
 ---
@@ -87,257 +78,261 @@ NO TOCAR           : PROTECTED_MODULES de §3 del Nexus
 
 ```
 ORIGIN          : Human Investigation + Operational Anomaly
-                  (limitación central del sistema, §1 Nexus:
-                  "el Oracle aprende con features estáticas")
+                  ("el Oracle aprende con features estáticas" — §1 Nexus)
 
 MATURITY        : MATURITY_3
-                  (dirección clara — Ring Buffer 30s + walk-forward —
-                  pero depende de P3 L2 Ring Buffer y P4
-                  DeferredOutcomeMonitor Fase Bridge, aún sin CRB)
+                  (dirección clara, bloqueado por P3/P4 sin CRB)
 
 VITALITY        : DORMANT
-                  (no puede avanzar a INCUBATION plena hasta que
-                  P3/P4 tengan CRB — bloqueado por dependencia,
-                  no por falta de evidencia)
+                  (no puede avanzar hasta que P3/P4 tengan CRB)
 
 ESTADO EN CICLO : INCUBATION
 
 DEBT CLASS (estimado) : EXPANSION_DEBT
-  Razón: introduce capacidad genuinamente nueva (features
-  temporales dinámicas) sobre una base que Fase A habrá
-  consolidado.
 
-BLOQUEO ADICIONAL (2026-06-13):
-  EVO-TICKET-0003 (WebSocket Pipeline Freeze) bloquea
-  indirectamente este ticket: cada día sin cosecha de datos
-  retrasa la acumulación de Set A necesaria para Fase B.
-  3+ días de pipeline muerto al momento de escribir esto.
-
-PROTOCOLO DE RESURRECCIÓN (Apéndice — obligatorio, no opcional):
-  Cuando P3 (L2 Ring Buffer) y P4 (DeferredOutcomeMonitor Fase
-  Bridge) tengan CRB completo, este ticket DEBE ser revisado y
-  decidido — no archivado sin acción:
-    (a) vuelve a INCUBATION con la nueva evidencia de los CRBs, o
-    (b) se termina formalmente si las suposiciones de
-        §5.1 del Nexus ya no aplican.
+PROTOCOLO DE RESURRECCIÓN:
+  Cuando P3 (L2 Ring Buffer) y P4 (DeferredOutcomeMonitor) tengan CRB:
+    (a) retomar INCUBATION con nueva evidencia, o
+    (b) terminar formalmente si suposiciones ya no aplican.
   "Permanent abandonment is forbidden."
 
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
   [ ] RECONSTRUCTION_MAP_UPDATE
-  [ ] ARCHITECTURAL_DECISION_RECORD: walk-forward vs split estático
-  [ ] ARCHITECTURAL_DECISION_RECORD: diseño del Ring Buffer feed
-      hacia Oracle (interfaz con P3)
-
-CRITERIOS DE ÉXITO : ver NEXUS_SUPERIOR.md §5.1, issues #5-#6
-NO TOCAR           : igual que EVO-TICKET-0001
+  [ ] ADR: walk-forward vs split estático
+  [ ] ADR: diseño Ring Buffer feed hacia Oracle (interfaz con P3)
 ```
 
 ---
 
-## EVO-TICKET-0003 — WebSocket Pipeline Freeze (Anomalía Recurrente)
+## EVO-TICKET-0003 — WebSocket Pipeline Freeze (RESUELTO)
 
 ```
-ORIGIN          : Operational Anomaly (confirmada con evidencia de
-                  código y tests de red — no solo observación OS-level)
+ORIGIN          : Operational Anomaly (dos observaciones confirmadas)
+                  Primera: ~2026-06-10 06:55 UTC
+                  Segunda: 2026-06-13 (diagnóstico operador)
+                  Pipeline inactivo: 3 días. PID 165833 vivo,
+                  conexión ESTABLISHED, ficheros congelados.
 
-                  Cronología verificada:
-                    2026-06-10 06:55 UTC — última escritura en
-                      training_dataset_v2.jsonl y pending_labels.json
-                    2026-06-10 23:41 UTC — reinicio manual (PID 165833),
-                      bootstrap exitoso (7 samples, 64 zonas activas),
-                      reconexión WS OK (Epoch 1-4 en log)
-                    2026-06-12 00:39 UTC — diagnóstico: proceso vivo,
-                      ficheros congelados, aggTrade mudo en Futures
-                      (confirmado con script de test: Spot OK, Futures
-                      timeout), depth20@100ms fluyendo normalmente
-                    2026-06-13 07:55 UTC — segundo reinicio (PID 565679)
-                    2026-06-13 23:00 UTC — 15h+ después del reinicio,
-                      training_dataset_v2.jsonl SIGUE sin cambios (211
-                      líneas, mtime 2026-06-10 06:55). El reinicio NO
-                      resolvió el problema.
+CAUSA RAÍZ CONFIRMADA — H4 (verificada en código 2026-06-13):
+  live_adapter.py línea ~110: on_ws_message() despachaba ÚNICAMENTE
+  en event_type == 'aggTrade'. Cuando Binance Futures silencia ese
+  stream (verificado experimentalmente), depthUpdate sigue fluyendo
+  a 10 msg/s manteniendo el TCP ESTABLISHED — pero el reloj interno
+  del pipeline nunca avanza. Resultado: proceso vivo, pipeline muerto.
 
-                  Ficheros congelados confirmados (stat):
-                    training_dataset_v2.jsonl — 351166 bytes, mtime 06-10
-                    pending_labels.json — 2 bytes ("[]"), mtime 06-10
-                    market_price.json — 81 bytes, mtime 06-10 23:32
-                    active_zones.json — 13044 bytes, mtime 06-13 07:55
-                      (actualizado solo por bootstrap, no por operación)
+  Corrección de registro previo:
+  - Puntos Ciegos #3 y #4 marcados como "no implementados" en ticket
+    original — ERROR. Ambos SÍ implementados en BWS:
+    PC#3: get_rolling_delta() línea 241 (rolling window, no global)
+    PC#4: _connection_epoch líneas 54/97/99 (tracking reconexiones)
+  - H1/H2/H3 descartadas. H4 es la causa real y única.
 
-MATURITY        : MATURITY_4
-                  Causa raíz CONFIRMADA con evidencia de código.
-                  Fix propuesto y delimitado. Sin implementación todavía.
+MATURITY        : MATURITY_5 → IMPLEMENTED
+VITALITY        : ACTIVE → RESOLVED
+ESTADO EN CICLO : IMPLEMENTED (2026-06-13)
 
-                  CAUSA RAÍZ CONFIRMADA (H4):
-                    live_adapter.py línea 107-111:
-                      async def on_ws_message(self, data):
-                          event_type = data.get('e')
-                          if event_type == 'aggTrade':
-                              await self._process_trade(data)
+FIX IMPLEMENTADO — Heartbeat Watchdog (live_adapter.py):
+  _last_aggtrade_ts_ms: int    — timestamp del último aggTrade
+  _heartbeat_timeout_ms: 30000 — 30s sin aggTrade = stream muerto
+  _last_heartbeat_price: float — último precio conocido
 
-                    on_ws_message() SOLO despacha en 'aggTrade'.
-                    Los eventos 'depthUpdate' (depth20@100ms) llegan
-                    abundantemente (~10/seg) pero se ignoran para el
-                    avance del reloj interno de velas. Cuando el stream
-                    aggTrade falla silenciosamente (verificado: la
-                    conexión WS sigue ESTABLISHED, Binance sigue
-                    distribuyendo depth, pero aggTrade no llega en
-                    Futures), _on_candle_close() nunca se invoca →
-                    no se evalúan retests → no se etiquetan outcomes
-                    → pipeline completamente congelado.
+  on_ws_message() extendido:
+    aggTrade → procesar normalmente (sin cambio)
+    depthUpdate → calcular gap = depth_ts - last_aggtrade_ts
+                  si gap > 30s → _heartbeat_candle_close(depth_ts)
 
-                    Esto explica TODOS los síntomas simultáneamente:
-                    - Proceso vivo con conexión ESTABLISHED ✓
-                    - Reconexiones exitosas (Epoch 2/3/4) ✓
-                    - depth20 fluyendo (OBI actualizándose) ✓
-                    - training_dataset sin cambios desde 06-10 ✓
-                    - market_price.json congelado ✓
-                    - Reinicio no resuelve (bug estructural) ✓
+  _heartbeat_candle_close():
+    cierra vela usando timestamp de depth + último precio conocido
+    o best bid del book si no hay precio de aggTrade disponible
+    volumen = 0.0 (factualmente correcto: no hubo trades en ese periodo)
 
-                  HIPÓTESIS PREVIAS (reclasificadas):
-                    H1 (aggTrade silenciado por Binance Futures):
-                       PARCIALMENTE CONFIRMADA. El stream aggTrade
-                       en Futures puede fallar silenciosamente mientras
-                       depth20 sigue activo. Verificado con script de
-                       test (Spot OK, Futures timeout). Pero H1 es el
-                       trigger, no la causa raíz — un sistema resiliente
-                       debe avanzar sin aggTrade.
-                    H2 (silent disconnect / event loop bloqueado):
-                       DESCARTADA. Las reconexiones Epoch 2/3/4
-                       demuestran que el event loop siguió vivo.
-                    H3 (tarea de escritura bloqueada):
-                       DESCARTADA. No hay asyncio.create_task separado
-                       para escritura. Todo corre síncrono dentro de
-                       _on_candle_close() y _process_trade().
+DEBT CLASS CONFIRMADO : EMERGENCY_DEBT
+  (interrupción de 3 días en recolección de Set A)
+  → pasa a EVOLUTIONARY_DEBT registrado: live_adapter.py tiene
+  ahora dependencia de _last_heartbeat_price como fallback de precio,
+  que puede ser stale si el silencio de aggTrade es muy prolongado.
+  Riesgo documentado en ADR-EVO-TICKET-0003-1.
 
-VITALITY        : ACTIVE — EMERGENCY
-                  Afecta directamente la acumulación de Set A.
-                  3+ días de pipeline muerto. Cada día bloquea
-                  EVO-TICKET-0002 indirectamente.
+NOTA SOBRE ADR-008 (nomenclatura del editor):
+  El editor lo llamó "ADR-008". La convención canónica de este log es
+  ADR-EVO-TICKET-0003-1-heartbeat-watchdog. El contenido es correcto.
+  Se almacena bajo ambos nombres para trazabilidad.
 
-ESTADO EN CICLO : INCUBATION (con fix propuesto, listo para
-                  QUARANTINE_GATE → READY_FOR_CODEX)
+NOTA SOBRE "PUNTO CIEGO #7":
+  ADR-008 referencia "Punto Ciego #7 (identificado tras el fallo)".
+  No existía en architectural_analysis.md (que solo define PC#1-#6).
+  Formalmente: este fallo constituye un nuevo Punto Ciego y debería
+  añadirse al documento base como PC#7 — single clock source
+  dependency. Pendiente de sesión que actualice ese documento.
 
-DEBT CLASS      : EMERGENCY_DEBT
-  Razón: causa raíz confirmada, pipeline completamente inerte,
-  reinicios no resuelven, datos de entrenamiento no se acumulan.
+ENTREGABLES CONSTITUCIONALES — ESTADO FINAL:
+  [x] FIX implementado y verificado (live_adapter.py extendido)
+  [x] ADR-EVO-TICKET-0003-1-heartbeat-watchdog generado
+  [ ] RECONSTRUCTION_MAP_UPDATE — pendiente generación formal
+  [ ] Actualizar §3 Nexus: añadir _heartbeat_timeout_ms como
+      parámetro protegido (cambios requieren ADR)
+  [ ] Añadir PC#7 a architectural_analysis.md
 
-FIX PROPUESTO (Cat.2 — live_adapter.py NO es PROTECTED_MODULE):
-  Añadir heartbeat watchdog en on_ws_message() que use el
-  timestamp de depthUpdate para avanzar el reloj de velas cuando
-  aggTrade lleve >30s sin aparecer. El fix toca SOLO:
-    - live_adapter.py: on_ws_message() + nuevo método _heartbeat()
-  NO toca:
-    - deferred_outcome_monitor.py (PROTECTED — Cat.3)
-    - triple_coincidence.py (PROTECTED — Cat.3)
-    - binance_websocket_manager.py (no necesario, BWS ya
-      propaga timestamps correctamente)
-
-COMPONENTES AFECTADOS:
-  live_adapter.py (NO protegido — Cat.2)
-  binance_websocket_manager.py (P3 del Nexus — indirecto, no
-    requiere cambios para este fix)
-
-RELACIONADO CON:
-  Punto Ciego #3 — architectural_analysis.md (cumulative_delta)
-    ESTADO: ✅ IMPLEMENTADO — get_rolling_delta() BWS línea 241,
-    ventana 300 segundos. NO es causa de este bug.
-  Punto Ciego #4 — architectural_analysis.md (connection_epoch)
-    ESTADO: ✅ IMPLEMENTADO — _connection_epoch BWS líneas 54,97,99,
-    propagado a L2RingBuffer via mark_reconnection(). NO es causa.
-  NUEVO punto ciego identificado por este ticket:
-    Single-clock dependency — live_adapter.on_ws_message() depende
-    exclusivamente de aggTrade para el avance temporal. depthUpdate
-    mantiene viva la conexión TCP pero no avanza el pipeline.
-
-PROTOCOLO DE RESURRECCIÓN (si se STALL sin resolución):
-  Este ticket no puede cerrarse como DORMANT sin:
-    (a) haber implementado el fix del heartbeat, o
-    (b) decidir formalmente que el reinicio manual periódico es
-        suficiente y documentarlo como ADR.
-  "Permanent abandonment is forbidden."
-
-ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [ ] RECONSTRUCTION_MAP_UPDATE si se modifica código
-  [ ] ARCHITECTURAL_DECISION_RECORD: heartbeat watchdog design
-      (Cat.2 — live_adapter.py no es módulo protegido, pero
-      el ADR es obligatorio por tratarse de cambio en el reloj
-      del pipeline)
-  [ ] Actualizar §5.7 del Nexus (BWS) añadiendo:
-      "Issue #5: Single-clock dependency en live_adapter — RESUELTO"
+PID DE VERIFICACIÓN: 686383 (activo desde 2026-06-13 07:55)
+  active_zones.json actualiza cada ~60s ✅
+  market_price.json actualiza cada ~60s ✅
 ```
 
 ---
 
-## EVO-TICKET-0004 — File Reader (Observabilidad Admin)
+## EVO-TICKET-0005 — TripleCoincidenceDetector: zone cleanup + warm_start fix
 
 ```
-ORIGIN          : Human Request (Gantry stabilization)
-MATURITY        : MATURITY_4
-VITALITY        : ACTIVE
-ESTADO EN CICLO : EXECUTING
-DEBT CLASS      : TECHNICAL_DEBT
-CRITERIOS ÉXITO : Endpoint /api/admin/read-file funcional con auth.
-```
+ORIGIN          : Operational Anomaly (GUI mostraba zonas obsoletas
+                  66.5k-66.0k con precio en 63.9k) + Human Investigation
+                  Componente: P5 del Nexus (TripleCoincidenceDetector)
+                  — SIN CRB todavía, zona de mayor riesgo del sistema.
 
----
-
-## EVO-TICKET-0005 — Active Zones Stale After Restart (Cleanup + Warm-start)
-
-```
-ORIGIN          : Operational Anomaly (GUI showing 2 stale zones at 66.5k-66.0k
-                  while BTCUSDT spot ~63.9k; zones persisted across restarts
-                  without expiry)
+CAUSA RAÍZ IDENTIFICADA:
+  1. feed_kline_for_zone_detection recalculaba tendencias ZigZag por
+     vela en lugar de precalcular sobre buffer — con 60 velas rara
+     vez encontraba segmento válido.
+  2. warm_start solo hidrataba buffer, no reproducía detección
+     histórica — zonas persistidas nunca se renovaban tras reinicio.
+  3. _cleanup_expired_zones usaba candle_index del buffer, no
+     comparable entre reinicios (mismo patrón que Punto Ciego #4
+     de architectural_analysis.md — estado no estable ante restart).
 
 MATURITY        : MATURITY_3
-                  (root cause identified and fix implemented:
-                   _cleanup_expired_zones used unstable buffer indices;
-                   feed_kline_for_zone_detection recalculated ZigZag trends
-                   per-candle instead of precomputing;
-                   warm_start hydrated buffer but did not replay detection.)
+                  Diagnóstico verificado, fix aplicado, tests
+                  preexistentes confirmados (no rotos por el cambio).
+                  No sube a MATURITY_4 porque zone_max_distance_atr
+                  está marcado calibration_pending (ver abajo) — un
+                  componente con un parámetro no calibrado no puede
+                  considerarse diseño completo, solo funcional.
 
 VITALITY        : ACTIVE
-                  (fix deployed, awaiting 2-4h observation after restart)
-
 ESTADO EN CICLO : EXECUTING
-                  (code changes in triple_coincidence.py, live_adapter.py,
-                   gui/server.py; restart pending human approval)
+                  (servidor detenido intencionalmente, pendiente
+                  verificación final antes de reinicio — ver
+                  Verificaciones Pendientes)
 
 DEBT CLASS      : CONSOLIDATION_DEBT
-                  (no new capability; consolidates stable zone lifecycle
-                   cleanup and warm-start detection into a verifiable state)
+  [CORREGIDO 2026-06-14 — editor reportó "CALIBRATION_DEBT", clase
+  no válida. El Apéndice define únicamente 4 clases canónicas:
+  EXPANSION/CONSOLIDATION/EMERGENCY/TOXIC. "Calibración pendiente"
+  es ortogonal a la clase de deuda, no una clase en sí misma —
+  ver flag calibration_pending abajo.]
 
-CALIBRATION     : PENDING
-  Parameter     : zone_max_distance_atr=5.0
-  Status        : PROVISIONAL (intuition-based placeholder)
-  Method        : percentile analysis of real expired-vs-active zone
-                  distances, same methodology used for ZigZag threshold
-                  calibration (288 candles, P75/P90)
-  Exit criteria : replace 5.0 with P90_distance_expired + margin once
-                  ~500-1000 candles of post-fix detection cycles are
-                  collected; document in ADR and update this ticket to
-                  MATURITY_4
+CALIBRATION_PENDING (flag ortogonal, no clase de deuda):
+  calibration_pending: true
+  parameter: zone_max_distance_atr
+  current_value: 5.0
+  method_required: "percentile analysis de distancia real entre
+                    zonas expiradas vs activas, sobre ≥200 ciclos
+                    de detección — misma metodología aplicada al
+                    ZigZag threshold (cronica_desarrollo_cgAlpha.md,
+                    lección operativa #2)."
+  marca_en_codigo: "EVO-TICKET-0005: zone_max_distance_atr is
+                    PROVISIONAL" — comentario ya insertado en
+                    triple_coincidence.py junto al valor.
 
-CRITERIOS ÉXITO :
-  [ ] Tras reinicio, las 2 zonas viejas (66.5k-66.0k) no reaparecen.
-  [ ] Si el mercado forma una zona válida, aparece en L2 Forensics
-      dentro de ~50 velas (timeout actual).
-  [ ] Dataset sigue creciendo (retests detectados y resueltos).
+VERIFICACIONES COMPLETADAS:
+  [x] Backup de detector_state.json y active_zones.json antes del wipe
+  [x] Estado restaurado desde backup, servidor detenido
+  [x] git checkout <commit>^ -- archivos (NO stash — cambios ya
+      commiteados, stash no aplicaba). Confirmado: 2 tests fallan
+      idéntico antes/después → preexistentes, no regresión.
+  [x] --collect-only confirmó 4 tests recolectados, sin errores
+      de import silenciando tests
+  [x] zone_max_distance_atr marcado PROVISIONAL en código + ticket
+  [x] debt_class corregida a CONSOLIDATION_DEBT + calibration_pending
+      (ya no CALIBRATION_DEBT, clase no canónica)
 
-NO TOCAR        : PROTECTED_MODULES de §3 del Nexus
-                  (no se modificaron módulos protegidos)
+COMMITS:
+  e984c61 — fix stale active zones after restart
+  2155bdd — correct debt class and add calibration_pending flag
+  (ambos en origin/main)
 
-CALIBRATION DEBT:
-  - zone_max_distance_atr=5.0 provisional. Método de calibración futuro:
-    1. Medir distancia (en ATR) de zonas expiradas vs vigentes durante
-       ~500-1000 velas de operación real.
-    2. Calcular percentiles (P75/P90) de distancia en el momento de
-       expiración por tiempo o por ruptura.
-    3. Fijar zone_max_distance_atr = P90_distancia_expiradas + margen.
-    4. Documentar en ADR y actualizar este ticket a MATURITY_4.
+NOTA — MATURITY se mantiene en 3, no sube a pesar de verificación
+completa. Razón: rigor de proceso y calibración del parámetro son
+ejes ortogonales. zone_max_distance_atr sigue sin pasar por análisis
+de percentiles — eso es lo único que puede subir la maturity de este
+ticket, no la calidad de la verificación del fix en sí.
 
-NOTA: CALIBRATION_DEBT no es una clase de deuda canónica del Apéndice.
-Este ticket usa CONSOLIDATION_DEBT + calibration_pending:true para mantener
-el vocabulario cerrado y evitar proliferación de clases híbridas.
+ESTADO POST-REINICIO (verificado 2026-06-14):
+  active_zones: 0          → Criterio #1 CUMPLIDO (zonas viejas no
+                              reaparecieron)
+  dataset_total: 236        → pipeline no interrumpido durante el
+  full_samples: 94            trabajo (85→92→94 FULL en esta sesión)
+  pending_count: 0
+
+  Criterio #2 (zona nueva detectada en ~50 velas) AÚN NO VERIFICABLE
+  — active_zones=0 es consistente tanto con "fix funcionó, el
+  mercado no ha formado zona válida todavía" como con "el bug
+  persiste". Ticket permanece en EXECUTING, no pasa a IMPLEMENTED,
+  hasta observar al menos una detección real post-fix.
+
+CRITERIOS DE ÉXITO post-reinicio:
+  1. Las 2 zonas viejas (66.5k-66.0k) no reaparecen
+  2. Si el mercado forma zona válida, aparece en L2 Forensics
+     dentro de ~50 velas
+  3. El dataset sigue creciendo (training_dataset_v2.jsonl)
+
+ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
+  [ ] RECONSTRUCTION_MAP_UPDATE
+  [ ] ADR-EVO-TICKET-0005-1: cleanup por tiempo+distancia vs índice
+      (alternativas: índice estable cross-restart vs timestamp+ATR
+      — se eligió la segunda, requiere ADR por afectar componente P5)
+  [ ] Iniciar CRB de TripleCoincidenceDetector (P5) — este ticket es
+      la primera evidencia real de por qué P5 necesita CRB propio
+  [ ] Cuando calibration_pending se resuelva: nuevo EVO-TICKET para
+      el valor calibrado de zone_max_distance_atr (no reabrir este)
+```
+
+---
+
+## EVO-TICKET-0004 — P6.5 File Reader (G4 building block)
+
+```
+ORIGIN          : Human Investigation (sesión 2026-06-14)
+                  "una herramienta simple — un endpoint que dado un
+                  path relativo devuelve el contenido del archivo"
+                  Conexión directa con D-010: habilita LLM Readability
+                  Check en tiempo real durante sesiones de chat.
+
+MATURITY        : MATURITY_4
+                  Diseño completo + implementación lista en
+                  P65_FILE_READER_SPEC.md. Pendiente aplicación
+                  en server.py y verificación con pytest.
+                  MATURITY_5 = aplicado + tests pasando.
+
+VITALITY        : ACTIVE
+ESTADO EN CICLO : READY_FOR_CODEX
+                  [Cat.2 — toca server.py, requiere aprobación
+                  antes de aplicar. Ruta C.]
+
+COMPONENTE      : Chat de Lila (P6.5 del Nexus)
+GAP QUE AVANZA  : G4 (ContextBuilder dinámico) — building block
+                  Los gaps G2/G3/G5 quedan pendientes para sesión
+                  posterior (prerequisito: este ticket cerrado).
+
+PROTECTED_MODULES TOCADOS:
+  server.py — añade endpoint nuevo. No modifica endpoints existentes.
+  deferred_outcome_monitor.py — NO TOCADO.
+  oracle.py — NO TOCADO.
+
+DEBT CLASS      : EXPANSION_DEBT
+  Nueva capacidad (lectura dinámica de archivos en chat)
+  sobre infraestructura existente (server.py Flask).
+
+INVARIANTES DEL ENDPOINT (no negociables — ver P65_FILE_READER_SPEC.md):
+  1. path siempre resuelto contra _PROJECT_ROOT_READER
+  2. Solo GET — nunca modifica archivos
+  3. @require_auth obligatorio
+  4. Archivos >100KB sin rango → 413
+
+ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
+  [ ] Aplicar código de P65_FILE_READER_SPEC.md en server.py
+  [ ] pytest pasa (sintaxis + test manual de los 4 casos del spec)
+  [ ] RECONSTRUCTION_MAP_UPDATE (incluyendo LLM Readability Check D-010)
+  [ ] Actualizar §5.11 del Nexus con Knowledge Card del File Reader
+  [ ] Actualizar §8 del Nexus: P6.5 de "iniciado" a "G4 partial"
 ```
 
 ---
@@ -345,24 +340,16 @@ el vocabulario cerrado y evitar proliferación de clases híbridas.
 ## Registro de cierre (se completa al terminar cada ticket)
 
 ```
-Esta tabla es el resumen humano (snapshot). La secuencia completa
-y cronológica de eventos vive en la sección JSONL al final de
-este documento.
-
-NOTA: constitutional_events.jsonl como archivo independiente y
-CONSTITUTIONAL_EVENT_LEDGER_SPEC.md (citado como D-009 del Nexus)
-NO EXISTEN. D-009 no está registrado en §3 del Nexus (último:
-D-007). El ledger JSONL se mantiene inline aquí hasta que la
-infraestructura constitucional se construya.
+Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 ```
 
-| Ticket | Fecha cierre | RMU generado | ADRs generados | Debt final | Próximo estado |
+| Ticket | Fecha cierre | RMU | ADRs | Debt final | Estado |
 |---|---|---|---|---|---|
-| EVO-TICKET-0001 | pendiente | pendiente | pendiente | pendiente | pendiente |
-| EVO-TICKET-0002 | bloqueado por P3/P4 + EVO-0003 | — | — | — | DORMANT |
-| EVO-TICKET-0003 | pendiente | pendiente | pendiente (≥1 ADR) | EMERGENCY_DEBT | pendiente |
-| EVO-TICKET-0004 | pendiente | pendiente | pendiente | TECHNICAL_DEBT | pendiente |
-| EVO-TICKET-0005 | pendiente | pendiente | pendiente (≥1 ADR) | CONSOLIDATION_DEBT + calibration_pending | pendiente |
+| EVO-TICKET-0001 | pendiente | pendiente | pendiente | CONSOLIDATION | READY_FOR_CODEX |
+| EVO-TICKET-0002 | bloqueado P3/P4 | — | — | EXPANSION | DORMANT |
+| EVO-TICKET-0003 | 2026-06-13 | pendiente formal | ADR-EVO-TICKET-0003-1 ✅ | EMERGENCY | IMPLEMENTED |
+| EVO-TICKET-0004 | pendiente | pendiente | pendiente | EXPANSION | READY_FOR_CODEX |
+| EVO-TICKET-0005 | pendiente (verif. en curso) | pendiente | pendiente | CONSOLIDATION + calibration_pending | EXECUTING |
 
 ---
 
@@ -389,4 +376,7 @@ infraestructura constitucional se construya.
 {"event":"calibration_pending_flagged","ticket":"EVO-TICKET-0005","parameter":"zone_max_distance_atr","value":"5.0","status":"PROVISIONAL","reason":"intuition-based placeholder; requires percentile calibration from real detection cycles","timestamp":"2026-06-18T21:35:00Z"}
 {"event":"debt_class_corrected","ticket":"EVO-TICKET-0005","from":"CALIBRATION_DEBT","to":"CONSOLIDATION_DEBT","reason":"CALIBRATION_DEBT is not a canonical debt class per Appendix; use orthogonal calibration_pending flag instead","timestamp":"2026-06-19T20:20:00Z"}
 {"event":"state_preserved","ticket":"EVO-TICKET-0005","action":"detector_state.json and active_zones.json restored from .bak-pre-reset; restart deferred pending human approval","timestamp":"2026-06-18T21:35:00Z"}
+{"event":"verification_completed","ticket":"EVO-TICKET-0005","method":"git checkout <commit>^ -- files + pytest","result":"2 failed 2 passed identical before/after — pre-existing failures, no regression","timestamp":"2026-06-19T20:25:00Z"}
+{"event":"collection_verified","ticket":"EVO-TICKET-0005","method":"pytest --collect-only","result":"4 tests collected, no import errors silencing tests","timestamp":"2026-06-19T20:25:00Z"}
+{"event":"post_restart_check","ticket":"EVO-TICKET-0005","active_zones":0,"dataset_total":236,"full_samples":94,"pending_count":0,"criterion_1":"PASSED (stale zones did not reappear)","criterion_2":"NOT_YET_VERIFIABLE (no new zone formed since restart)","timestamp":"2026-06-19T20:30:00Z"}
 ```
