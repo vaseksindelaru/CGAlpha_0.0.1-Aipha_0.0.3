@@ -302,11 +302,20 @@ ESTADO EN CICLO : EXECUTING
                   (code changes in triple_coincidence.py, live_adapter.py,
                    gui/server.py; restart pending human approval)
 
-DEBT CLASS      : CALIBRATION_DEBT
-                  (new parameter zone_max_distance_atr=5.0 is PROVISIONAL
-                   and intentionally uncalibrated — must be replaced with
-                   percentile analysis of real expired-vs-active zone
-                   distances once enough detection cycles are collected)
+DEBT CLASS      : CONSOLIDATION_DEBT
+                  (no new capability; consolidates stable zone lifecycle
+                   cleanup and warm-start detection into a verifiable state)
+
+CALIBRATION     : PENDING
+  Parameter     : zone_max_distance_atr=5.0
+  Status        : PROVISIONAL (intuition-based placeholder)
+  Method        : percentile analysis of real expired-vs-active zone
+                  distances, same methodology used for ZigZag threshold
+                  calibration (288 candles, P75/P90)
+  Exit criteria : replace 5.0 with P90_distance_expired + margin once
+                  ~500-1000 candles of post-fix detection cycles are
+                  collected; document in ADR and update this ticket to
+                  MATURITY_4
 
 CRITERIOS ÉXITO :
   [ ] Tras reinicio, las 2 zonas viejas (66.5k-66.0k) no reaparecen.
@@ -325,6 +334,10 @@ CALIBRATION DEBT:
        expiración por tiempo o por ruptura.
     3. Fijar zone_max_distance_atr = P90_distancia_expiradas + margen.
     4. Documentar en ADR y actualizar este ticket a MATURITY_4.
+
+NOTA: CALIBRATION_DEBT no es una clase de deuda canónica del Apéndice.
+Este ticket usa CONSOLIDATION_DEBT + calibration_pending:true para mantener
+el vocabulario cerrado y evitar proliferación de clases híbridas.
 ```
 
 ---
@@ -349,7 +362,7 @@ infraestructura constitucional se construya.
 | EVO-TICKET-0002 | bloqueado por P3/P4 + EVO-0003 | — | — | — | DORMANT |
 | EVO-TICKET-0003 | pendiente | pendiente | pendiente (≥1 ADR) | EMERGENCY_DEBT | pendiente |
 | EVO-TICKET-0004 | pendiente | pendiente | pendiente | TECHNICAL_DEBT | pendiente |
-| EVO-TICKET-0005 | pendiente | pendiente | pendiente (≥1 ADR) | CALIBRATION_DEBT | pendiente |
+| EVO-TICKET-0005 | pendiente | pendiente | pendiente (≥1 ADR) | CONSOLIDATION_DEBT + calibration_pending | pendiente |
 
 ---
 
@@ -373,6 +386,7 @@ infraestructura constitucional se construya.
 {"event":"ticket_created","ticket":"EVO-TICKET-0004","component":"server","maturity":"MATURITY_4","vitality":"ACTIVE","timestamp":"2026-06-16T18:45:00Z"}
 {"event":"ticket_created","ticket":"EVO-TICKET-0005","component":"triple_coincidence_detector","maturity":"MATURITY_3","vitality":"ACTIVE","timestamp":"2026-06-18T21:35:00Z"}
 {"event":"fix_deployed","ticket":"EVO-TICKET-0005","files":["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py","cgalpha_v3/application/live_adapter.py","cgalpha_v3/gui/server.py"],"decided_by":"human","timestamp":"2026-06-18T21:35:00Z"}
-{"event":"calibration_debt_flagged","ticket":"EVO-TICKET-0005","parameter":"zone_max_distance_atr","value":"5.0","status":"PROVISIONAL","reason":"intuition-based placeholder; requires percentile calibration from real detection cycles","timestamp":"2026-06-18T21:35:00Z"}
+{"event":"calibration_pending_flagged","ticket":"EVO-TICKET-0005","parameter":"zone_max_distance_atr","value":"5.0","status":"PROVISIONAL","reason":"intuition-based placeholder; requires percentile calibration from real detection cycles","timestamp":"2026-06-18T21:35:00Z"}
+{"event":"debt_class_corrected","ticket":"EVO-TICKET-0005","from":"CALIBRATION_DEBT","to":"CONSOLIDATION_DEBT","reason":"CALIBRATION_DEBT is not a canonical debt class per Appendix; use orthogonal calibration_pending flag instead","timestamp":"2026-06-19T20:20:00Z"}
 {"event":"state_preserved","ticket":"EVO-TICKET-0005","action":"detector_state.json and active_zones.json restored from .bak-pre-reset; restart deferred pending human approval","timestamp":"2026-06-18T21:35:00Z"}
 ```
