@@ -17,20 +17,28 @@ import json
 import logging
 import os
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
+import pandas as pd
+
+from cgalpha_v3.data_quality.nexus_gate import NexusGate
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.deferred_outcome_monitor import DeferredOutcomeMonitor
 from cgalpha_v3.infrastructure.binance_websocket_manager import BinanceWebSocketManager
-from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import TripleCoincidenceDetector, RetestEvent
-from cgalpha_v3.data_quality.nexus_gate import NexusGate
+from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import (
+    RetestEvent,
+    TripleCoincidenceDetector,
+)
 from cgalpha_v3.risk.order_manager import DryRunOrderManager
 
 logger = logging.getLogger("live_adapter")
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-_TRAINING_DATASET_V2 = _PROJECT_ROOT / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+_TRAINING_DATASET_V2 = (
+    _PROJECT_ROOT / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+)
 
 
 class LiveDataFeedAdapter(BaseComponentV3):
@@ -46,10 +54,13 @@ class LiveDataFeedAdapter(BaseComponentV3):
     ╚═══════════════════════════════════════════════════════════════╝
     """
 
-    def __init__(self, manifest: ComponentManifest,
-                 ws_manager: BinanceWebSocketManager,
-                 detector: TripleCoincidenceDetector,
-                 order_manager: Optional[DryRunOrderManager] = None):
+    def __init__(
+        self,
+        manifest: ComponentManifest,
+        ws_manager: BinanceWebSocketManager,
+        detector: TripleCoincidenceDetector,
+        order_manager: Optional[DryRunOrderManager] = None,
+    ):
         super().__init__(manifest)
         self.ws = ws_manager
         self.detector = detector
@@ -77,17 +88,29 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.micro_buffer: List[Dict] = []
         self.delta_causal = 0.0
         self._is_causally_safe = True
-        self._disable_nexus_gate = os.environ.get("CGALPHA_DISABLE_NEXUS_GATE", "0").lower() in {"1", "true", "yes"}
+        self._disable_nexus_gate = os.environ.get(
+            "CGALPHA_DISABLE_NEXUS_GATE", "0"
+        ).lower() in {"1", "true", "yes"}
         self._last_bypass_warn_ts = 0.0
-        self._bypass_disable_mode = os.environ.get("CGALPHA_BYPASS_DISABLE_MODE", "set_a_ready").strip().lower()
-        self._bypass_disable_full_target = int(os.environ.get("CGALPHA_BYPASS_DISABLE_AT_FULL", "50"))
+        self._bypass_disable_mode = (
+            os.environ.get("CGALPHA_BYPASS_DISABLE_MODE", "set_a_ready").strip().lower()
+        )
+        self._bypass_disable_full_target = int(
+            os.environ.get("CGALPHA_BYPASS_DISABLE_AT_FULL", "50")
+        )
         self._set_a_min_bounce = int(os.environ.get("CGALPHA_SET_A_MIN_BOUNCE", "8"))
-        self._set_a_min_breakout = int(os.environ.get("CGALPHA_SET_A_MIN_BREAKOUT", "16"))
+        self._set_a_min_breakout = int(
+            os.environ.get("CGALPHA_SET_A_MIN_BREAKOUT", "16")
+        )
         self._set_a_min_full = int(os.environ.get("CGALPHA_SET_A_MIN_FULL", "24"))
-        self._proximity_penalty = float(os.environ.get("CGALPHA_PROXIMITY_PENALTY", "0.85"))
-        
+        self._proximity_penalty = float(
+            os.environ.get("CGALPHA_PROXIMITY_PENALTY", "0.85")
+        )
+
         # Incremental Counter Patch (Feature Flagged)
-        self._use_incremental_counter = os.environ.get("CGALPHA_USE_INCREMENTAL_COUNTER", "0") == "1"
+        self._use_incremental_counter = (
+            os.environ.get("CGALPHA_USE_INCREMENTAL_COUNTER", "0") == "1"
+        )
         self._cached_full_count = -1  # -1 means not yet initialized
         self._set_a_cache_mtime = None
         self._set_a_cache_stats = None
@@ -108,6 +131,110 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self._oracle_regressor = regressor
         logger.info("🎯 Regresor MAE (Capa 2) inyectado en LiveAdapter.")
 
+    def warm_start(self, lookback_bars: int = 60) -> bool:
+        """
+        Hidrata el buffer de klines del detector desde Binance REST.
+        Evita el cold start de 30+ minutos después de reinicios.
+        """
+        if not hasattr(self.detector, "seed_history"):
+            logger.warning("⚠️ Detector no soporta seed_history — warm start omitido.")
+            return False
+
+        url = (
+            "https://api.binance.com/api/v3/klines"
+            f"?symbol={self.symbol.upper()}&interval=1m&limit={lookback_bars}"
+        )
+        try:
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                raw = json.loads(resp.read().decode())
+        except Exception as e:
+            logger.warning(f"⚠️ Warm start REST falló para {self.symbol}: {e}")
+            return False
+
+        if not raw:
+            logger.warning(f"⚠️ Warm start REST vacío para {self.symbol}.")
+            return False
+
+        # Binance klines columns:
+        # 0 open_time, 1 open, 2 high, 3 low, 4 close, 5 volume,
+        # 6 close_time, 7 quote_volume, 8 trades, 9 taker_buy_base, 10 taker_buy_quote, 11 ignore
+        records = []
+        for row in raw:
+            records.append(
+                {
+                    "open_time": int(row[0]),
+                    "open": float(row[1]),
+                    "high": float(row[2]),
+                    "low": float(row[3]),
+                    "close": float(row[4]),
+                    "volume": float(row[5]),
+                    "close_time": int(row[6]),
+                    "quote_asset_volume": float(row[7]),
+                    "trades": int(row[8]),
+                }
+            )
+
+        df = pd.DataFrame(records)
+        self.detector.seed_history(df)
+
+        # Bootstrap: replay historical candles through zone detection so the
+        # detector does not stay blind until a brand-new key candle forms.
+        # Deduplication inside the detector prevents duplicate zones.
+        # Skip index-based cleanup during bootstrap so zones detected early in
+        # the historical window are not expired by the time we reach the end.
+        self.detector.is_bootstrapping = True
+        try:
+            df = pd.DataFrame(records)
+            self.detector.key_candle_detector.load_data(df)
+            self.detector.zone_detector.load_data(df)
+            self.detector.trend_detector.load_data(df)
+            precomputed_trends = self.detector.trend_detector.detect_all()
+            lookback = self.detector.config["lookback_candles"]
+            timeout_bars = self.detector.config["retest_timeout_bars"]
+            # Only replay the most recent candles that would still be alive.
+            # This avoids detecting zones that are already beyond the timeout
+            # and would be discarded by the final cleanup.
+            start_idx = max(lookback, len(records) - timeout_bars)
+            for idx in range(start_idx, len(records)):
+                new_zones = self.detector._detect_new_zones(df, idx, precomputed_trends)
+                self.detector._add_zones_without_duplicates(new_zones)
+        finally:
+            self.detector.is_bootstrapping = False
+
+        # Sincronizar current_kline con la última vela histórica para evitar gaps
+        last = records[-1]
+
+        # Final cleanup after bootstrap: remove stale persisted zones using real
+        # time and price distance. Use current_idx=None so recently detected
+        # historical zones are not discarded by index-based timeout.
+        self.detector._cleanup_expired_zones(
+            current_idx=None,
+            current_timestamp_ms=last["close_time"],
+            current_price=last["close"],
+        )
+
+        self.current_kline = {
+            "open_time": last["open_time"],
+            "open": last["open"],
+            "high": last["high"],
+            "low": last["low"],
+            "close": last["close"],
+            "volume": last["volume"],
+            "close_time": last["close_time"],
+        }
+        self._last_kline_close = last["open_time"]
+
+        logger.info(
+            f"🔥 Warm start completado para {self.symbol}: "
+            f"{len(records)} velas de 1m hidratadas. "
+            f"Zonas activas tras bootstrap: {len(self.detector.active_zones)}. "
+            f"Última vela: {last['close']:.2f}"
+        )
+
+        # Persistir vista para la GUI inmediatamente
+        self._persist_active_zones()
+        return True
+
     # ══════════════════════════════════════════════════════════════
     # SPEED 2 (TICK): Entry point for every aggTrade (~10-50/s)
     # ══════════════════════════════════════════════════════════════
@@ -119,16 +246,16 @@ class LiveDataFeedAdapter(BaseComponentV3):
         When aggTrade is absent for >30s (silent Binance Futures stream
         failure), depthUpdate timestamps drive candle close as fallback.
         """
-        event_type = data.get('e')
-        if event_type in ('aggTrade', 'trade'):
+        event_type = data.get("e")
+        if event_type in ("aggTrade", "trade"):
             self._last_aggtrade_ts_ms = int(
-                data.get('T', data.get('E', time.time() * 1000))
+                data.get("T", data.get("E", time.time() * 1000))
             )
-            self._last_heartbeat_price = float(data['p'])
+            self._last_heartbeat_price = float(data["p"])
             await self._process_trade(data)
-        elif event_type == 'depthUpdate' or ('b' in data and 'a' in data):
+        elif event_type == "depthUpdate" or ("b" in data and "a" in data):
             # Heartbeat watchdog: use depthUpdate clock when aggTrade is dead
-            depth_ts_ms = int(data.get('E', data.get('T', time.time() * 1000)))
+            depth_ts_ms = int(data.get("E", data.get("T", time.time() * 1000)))
             gap_ms = depth_ts_ms - self._last_aggtrade_ts_ms
             if gap_ms > self._heartbeat_timeout_ms:
                 self._heartbeat_candle_close(depth_ts_ms)
@@ -139,9 +266,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
         1. Agregar al candle actual (OHLCV aggregation)
         2. Check tick-level retest contra zonas activas
         """
-        price = float(trade['p'])
-        qty = float(trade['q'])
-        ts = int(trade.get('T', trade.get('E', time.time() * 1000)))
+        price = float(trade["p"])
+        qty = float(trade["q"])
+        ts = int(trade.get("T", trade.get("E", time.time() * 1000)))
         kline_start = (ts // (self.interval_s * 1000)) * (self.interval_s * 1000)
 
         # ── 1. OHLCV Candle Aggregation ──────────────────────────
@@ -152,7 +279,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
             self.current_kline = {
                 "open_time": kline_start,
-                "open": price, "high": price, "low": price, "close": price,
+                "open": price,
+                "high": price,
+                "low": price,
+                "close": price,
                 "volume": qty,
                 "close_time": kline_start + (self.interval_s * 1000) - 1,
             }
@@ -161,7 +291,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
             self._last_kline_close = kline_start
             self.current_kline = {
                 "open_time": kline_start,
-                "open": price, "high": price, "low": price, "close": price,
+                "open": price,
+                "high": price,
+                "low": price,
+                "close": price,
                 "volume": qty,
                 "close_time": kline_start + (self.interval_s * 1000) - 1,
             }
@@ -199,7 +332,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
         distributing aggTrade while depth20@100ms continues flowing.
         Uses last known price from aggTrade or best bid from order book.
         """
-        kline_start = (depth_ts_ms // (self.interval_s * 1000)) * (self.interval_s * 1000)
+        kline_start = (depth_ts_ms // (self.interval_s * 1000)) * (
+            self.interval_s * 1000
+        )
 
         # Only fire if we've actually crossed into a new candle period
         if kline_start <= self._last_kline_close:
@@ -209,7 +344,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         price = self._last_heartbeat_price
         if price <= 0:
             state = self.ws.order_book_state.get(self.symbol.upper(), {})
-            bids = state.get('bids', [])
+            bids = state.get("bids", [])
             if bids:
                 price = float(bids[0][0])
         if price <= 0:
@@ -227,7 +362,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
             self._on_candle_close(self.current_kline)
 
         # ── HEARTBEAT RETEST DETECTION ───────────────────────────
-        # Critical: if we don't check retests here, the system is 
+        # Critical: if we don't check retests here, the system is
         # blind to price touches during aggTrade outages.
         if self.detector.active_zones:
             hits = self.detector.check_intra_candle_retest(price, depth_ts_ms)
@@ -237,7 +372,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
         # Reset candle for next period
         self.current_kline = {
             "open_time": kline_start,
-            "open": price, "high": price, "low": price, "close": price,
+            "open": price,
+            "high": price,
+            "low": price,
+            "close": price,
             "volume": 0.0,
             "close_time": kline_start + (self.interval_s * 1000) - 1,
         }
@@ -267,7 +405,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
             "vwap": kline["close"],
             "obi_10": obi,
             "cumulative_delta": cum_delta,
-            "timestamp": kline.get("close_time", int(time.time() * 1000))
+            "timestamp": kline.get("close_time", int(time.time() * 1000)),
         }
 
         # 1. NexusGate & Causal Drift
@@ -284,7 +422,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
             if self._bypass_disable_mode == "full_count":
                 full_samples = self._count_full_samples()
                 should_disable = full_samples >= self._bypass_disable_full_target
-                reason = f"FULL={full_samples} >= target {self._bypass_disable_full_target}"
+                reason = (
+                    f"FULL={full_samples} >= target {self._bypass_disable_full_target}"
+                )
             else:
                 # Default hardened mode: disable bypass only when Set A is truly ready.
                 stats = self._compute_set_a_readiness()
@@ -298,7 +438,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
             if should_disable:
                 self._disable_nexus_gate = False
-                logger.warning(f"🛑 NEXUSGATE BYPASS AUTO-DISABLED: {reason}. Gate reactivated.")
+                logger.warning(
+                    f"🛑 NEXUSGATE BYPASS AUTO-DISABLED: {reason}. Gate reactivated."
+                )
 
         logger.info(
             f"🕯️ Vela Live Cerrada: {self.symbol} "
@@ -307,8 +449,6 @@ class LiveDataFeedAdapter(BaseComponentV3):
             f"Zonas={len(self.detector.active_zones)} "
             f"Pending={self.deferred_monitor.get_pending_count()}"
         )
-        
-        self._persist_active_zones()
 
         if not self._is_causally_safe:
             logger.warning(
@@ -333,6 +473,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         # 2. Feed closed candle to detector for ZONE DETECTION (Speed 1)
         self.detector.feed_kline_for_zone_detection(kline, micro_data)
+
+        # Persist active zones AFTER zone detection so newly detected zones
+        # appear in the GUI immediately.
+        self._persist_active_zones()
 
         # 3. Deferred labeling: mark bar as closed (increment bars_elapsed)
         resolved = self.deferred_monitor.tick(kline["close"], bar_closed=True)
@@ -360,43 +504,75 @@ class LiveDataFeedAdapter(BaseComponentV3):
             # 1. El detector guarda su estado completo (para auto-recuperación térmica)
             if hasattr(self.detector, "save_state"):
                 self.detector.save_state()
-            
+
             # 2. El adaptador genera la vista simplificada para la GUI (active_zones.json)
             import json
             from pathlib import Path
+
             # CRITICAL: Ruta absoluta calculada desde __file__, NO relativa al CWD
             project_root = Path(__file__).resolve().parent.parent.parent
             path = project_root / "aipha_memory" / "operational" / "active_zones.json"
             path.parent.mkdir(parents=True, exist_ok=True)
             zones_data = []
             for z in self.detector.active_zones:
-                zones_data.append({
-                    "zone_id": z.zone_id or f"{z.candle_index}_{z.direction}",
-                    "direction": z.direction,
-                    "state": z.lifecycle_state.value if hasattr(z.lifecycle_state, "value") else z.lifecycle_state,
-                    "zone_top": float(z.zone_top),
-                    "zone_bottom": float(z.zone_bottom),
-                    "touches": int(getattr(z, "touch_count", 0)),
-                    "created_at": int(z.detection_timestamp)
-                })
+                effective_dir = (
+                    ("bearish" if z.direction == "bullish" else "bullish")
+                    if getattr(z, "polarity_flipped", False)
+                    else z.direction
+                )
+                display_zone_id = z.zone_id or f"{z.candle_index}_{effective_dir}"
+                zones_data.append(
+                    {
+                        "zone_id": display_zone_id,
+                        "direction": z.direction,
+                        "effective_direction": (
+                            ("bearish" if z.direction == "bullish" else "bullish")
+                            if getattr(z, "polarity_flipped", False)
+                            else z.direction
+                        ),
+                        "original_direction": z.direction,
+                        "polarity_flipped": getattr(z, "polarity_flipped", False),
+                        "state": z.lifecycle_state.value
+                        if hasattr(z.lifecycle_state, "value")
+                        else z.lifecycle_state,
+                        "zone_top": float(z.zone_top),
+                        "zone_bottom": float(z.zone_bottom),
+                        "touches": int(getattr(z, "touch_count", 0)),
+                        "created_at": int(z.detection_timestamp),
+                    }
+                )
             try:
                 with open(path, "w") as f:
                     json.dump(zones_data, f, indent=2)
-                logger.info(f"💾 Zonas GUI persistidas: {len(zones_data)} zonas → {path}")
+                logger.info(
+                    f"💾 Zonas GUI persistidas: {len(zones_data)} zonas → {path}"
+                )
             except TypeError as e:
                 logger.critical(
                     f"🔴 [PERSIST_ZONES] Serialización fallida — zona no guardada: {e}"
                 )
-                import sys; print(f"🔴 CRITICAL PERSIST_ZONES: {e}", file=sys.stderr, flush=True)
+                import sys
+
+                print(f"🔴 CRITICAL PERSIST_ZONES: {e}", file=sys.stderr, flush=True)
             except IOError as e:
                 logger.critical(
                     f"🔴 [PERSIST_ZONES] Error de disco — zona no guardada: {e}"
                 )
-                import sys; print(f"🔴 CRITICAL IO_ZONES: {e}", file=sys.stderr, flush=True)
+                import sys
+
+                print(f"🔴 CRITICAL IO_ZONES: {e}", file=sys.stderr, flush=True)
 
             # 3. Persist current market price for GUI dashboard
+            #    Archivo separado por símbolo para evitar condición de carrera
+            #    entre adaptadores multi-asset (BTC vs ETH).
             if self.current_kline and self.current_kline.get("close"):
-                price_path = project_root / "aipha_memory" / "operational" / "market_price.json"
+                safe_symbol = self.symbol.replace("/", "_").upper()
+                price_path = (
+                    project_root
+                    / "aipha_memory"
+                    / "operational"
+                    / f"market_price_{safe_symbol}.json"
+                )
                 price_data = {
                     "symbol": self.symbol,
                     "price": float(self.current_kline["close"]),
@@ -409,12 +585,18 @@ class LiveDataFeedAdapter(BaseComponentV3):
                     logger.critical(
                         f"🔴 [PERSIST_ZONES] Serialización fallida — zona no guardada (price): {e}"
                     )
-                    import sys; print(f"🔴 CRITICAL PERSIST_ZONES: {e}", file=sys.stderr, flush=True)
+                    import sys
+
+                    print(
+                        f"🔴 CRITICAL PERSIST_ZONES: {e}", file=sys.stderr, flush=True
+                    )
                 except IOError as e:
                     logger.critical(
                         f"🔴 [PERSIST_ZONES] Error de disco — zona no guardada (price): {e}"
                     )
-                    import sys; print(f"🔴 CRITICAL IO_ZONES: {e}", file=sys.stderr, flush=True)
+                    import sys
+
+                    print(f"🔴 CRITICAL IO_ZONES: {e}", file=sys.stderr, flush=True)
         except Exception as e:
             if not isinstance(e, (TypeError, IOError)):
                 logger.error(f"Error persisting active zones: {e}", exc_info=True)
@@ -433,7 +615,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
         zone = hit["zone"]
         clearance_atr = hit["clearance_atr"]
         retest_type = hit.get("retest_type", "ZONE_INTERIOR")
-        retest_penalty = self._proximity_penalty if retest_type == "PROXIMITY_BUFFER" else 1.0
+        retest_penalty = (
+            self._proximity_penalty if retest_type == "PROXIMITY_BUFFER" else 1.0
+        )
 
         # ── 1. SYNTHESIZE L2 PROFILE (the whole point of this refactor) ──
         sym_lower = self.symbol.lower()
@@ -455,8 +639,8 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         # Book depth
         state = self.ws.order_book_state.get(self.symbol, {})
-        bids = state.get('bids', [])
-        asks = state.get('asks', [])
+        bids = state.get("bids", [])
+        asks = state.get("asks", [])
         best_bid_size = float(bids[0][1]) if bids else 0.0
         best_ask_size = float(asks[0][1]) if asks else 0.0
         bid_depth_10 = sum(float(b[1]) for b in bids[:10])
@@ -493,12 +677,16 @@ class LiveDataFeedAdapter(BaseComponentV3):
                 "detection_candle_index": zone.candle_index,
                 "detection_ts_utc": datetime.fromtimestamp(
                     zone.detection_timestamp / 1000, tz=timezone.utc
-                ).isoformat() if zone.detection_timestamp > 1e9 else None,
+                ).isoformat()
+                if zone.detection_timestamp > 1e9
+                else None,
                 "key_candle_volume_ratio": zone.key_candle.get("volume_percentile", 0),
                 "key_candle_body_pct": zone.key_candle.get("body_percentage", 0),
                 "key_candle_upper_wick_pct": zone.key_candle.get("upper_wick_pct", 0),
                 "key_candle_lower_wick_pct": zone.key_candle.get("lower_wick_pct", 0),
-                "key_candle_rejection": zone.key_candle.get("rejection_direction", "NONE"),
+                "key_candle_rejection": zone.key_candle.get(
+                    "rejection_direction", "NONE"
+                ),
                 "accumulation_bar_count": (
                     zone.accumulation_zone.get("end_idx", 0)
                     - zone.accumulation_zone.get("start_idx", 0)
@@ -509,13 +697,15 @@ class LiveDataFeedAdapter(BaseComponentV3):
             "clearance": {
                 "atr_at_detection": atr,
                 "max_clearance_price": (
-                    zone.max_price_since_detection if zone.direction == "bullish"
+                    zone.max_price_since_detection
+                    if zone.direction == "bullish"
                     else zone.min_price_since_detection
                 ),
                 "max_clearance_atr": clearance_atr,
                 "seconds_since_detection": (
                     (timestamp_ms - zone.detection_timestamp) / 1000
-                    if zone.detection_timestamp > 0 else 0
+                    if zone.detection_timestamp > 0
+                    else 0
                 ),
             },
             "l2_snapshot_at_touch": {
@@ -550,14 +740,20 @@ class LiveDataFeedAdapter(BaseComponentV3):
         confidence = 0.5
         prediction = "PENDING"
 
-        if self._oracle and self._oracle.model and self._oracle.model != "placeholder_model_trained":
+        if (
+            self._oracle
+            and self._oracle.model
+            and self._oracle.model != "placeholder_model_trained"
+        ):
             try:
                 signal_data = {
                     "vwap_at_retest": price,
                     "obi_10_at_retest": obi_10,
                     "cumulative_delta_at_retest": cum_delta,
                     "delta_divergence": (
-                        "CONFIRMED" if (zone.direction == "bullish" and cum_delta > 0) or (zone.direction == "bearish" and cum_delta < 0)
+                        "CONFIRMED"
+                        if (zone.direction == "bullish" and cum_delta > 0)
+                        or (zone.direction == "bearish" and cum_delta < 0)
                         else "DIVERGENT"
                     ),
                     "atr_14": atr,
@@ -568,7 +764,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
                     "zone_top": zone.zone_top,
                     "zone_bottom": zone.zone_bottom,
                 }
-                oracle_result = self._oracle.predict(micro=None, signal_data=signal_data)
+                oracle_result = self._oracle.predict(
+                    micro=None, signal_data=signal_data
+                )
                 confidence = oracle_result.confidence
                 confidence *= retest_penalty
                 prediction = oracle_result.suggested_action
@@ -583,7 +781,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         if confidence > 0.70 and prediction == "EXECUTE" and self._oracle_regressor:
             try:
-                mae_pred = self._oracle_regressor.predict_mae(micro=None, signal_data=signal_data)
+                mae_pred = self._oracle_regressor.predict_mae(
+                    micro=None, signal_data=signal_data
+                )
                 predicted_mae_atr = mae_pred.predicted_mae_atr
                 limit_price = mae_pred.limit_price
                 is_safe_by_mae = mae_pred.is_safe
@@ -607,7 +807,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
             "status": "active",
             "predicted_mae_atr": predicted_mae_atr,
             "limit_price": limit_price,
-            "mae_reason": mae_reason
+            "mae_reason": mae_reason,
         }
         self.live_signals.append(signal)
 
@@ -619,21 +819,32 @@ class LiveDataFeedAdapter(BaseComponentV3):
         is_secondary_retest = False
         if hasattr(zone, "lifecycle_state"):
             # Using value explicitly in case it's an Enum string
-            is_secondary_retest = getattr(zone, "lifecycle_state") == "harvesting" or getattr(zone, "lifecycle_state").value == "harvesting"
+            is_secondary_retest = (
+                getattr(zone, "lifecycle_state") == "harvesting"
+                or getattr(zone, "lifecycle_state").value == "harvesting"
+            )
 
         if not is_secondary_retest:
             if confidence > 0.70 and is_safe_by_mae and self._is_causally_safe:
                 self.order_mgr.execute_signal(signal)
             elif confidence > 0.70 and not is_safe_by_mae:
-                logger.warning(f"🚫 Señal abortada por Capa 2 (MAE Seguridad): {mae_reason}")
+                logger.warning(
+                    f"🚫 Señal abortada por Capa 2 (MAE Seguridad): {mae_reason}"
+                )
             elif confidence > 0.70 and not self._is_causally_safe:
-                logger.warning(f"🚫 Señal abortada por NEXUSGATE (ΔCausal={self.delta_causal:.4f}). Cosechando muestra...")
+                logger.warning(
+                    f"🚫 Señal abortada por NEXUSGATE (ΔCausal={self.delta_causal:.4f}). Cosechando muestra..."
+                )
         else:
-            logger.info(f"🌾 [ShadowHarvest] Toque secuencial en {zone.zone_id} (polarity_flipped={getattr(zone, 'polarity_flipped', False)}). Sin ejecución viva.")
+            logger.info(
+                f"🌾 [ShadowHarvest] Toque secuencial en {zone.zone_id} (polarity_flipped={getattr(zone, 'polarity_flipped', False)}). Sin ejecución viva."
+            )
 
         # Registrar toque en la zona (actualiza touch_count y touch_history)
         if hasattr(zone, "register_touch"):
-            assigned_seq = zone.register_touch(price=price, obi=obi_10, cum_delta=cum_delta)
+            assigned_seq = zone.register_touch(
+                price=price, obi=obi_10, cum_delta=cum_delta
+            )
         else:
             assigned_seq = 1
 
@@ -647,7 +858,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
             polarity_flipped=getattr(zone, "polarity_flipped", False),
             prior_touch_outcomes=getattr(zone, "prior_outcomes", []),
             zone_original_direction=getattr(zone, "direction", ""),
-            flip_ts=getattr(zone, "flip_ts", None)
+            flip_ts=getattr(zone, "flip_ts", None),
         )
 
         # ── 7. LOG ───────────────────────────────────────────────
@@ -689,9 +900,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
             return self._cached_full_count
 
         if not _TRAINING_DATASET_V2.exists():
-            if self._use_incremental_counter: self._cached_full_count = 0
+            if self._use_incremental_counter:
+                self._cached_full_count = 0
             return 0
-        
+
         total = 0
         try:
             with open(_TRAINING_DATASET_V2, "r") as handle:
@@ -703,15 +915,17 @@ class LiveDataFeedAdapter(BaseComponentV3):
                         row = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    quality = (row.get("l2_temporal_profile") or {}).get("l2_data_quality")
+                    quality = (row.get("l2_temporal_profile") or {}).get(
+                        "l2_data_quality"
+                    )
                     if quality == "FULL":
                         total += 1
         except OSError:
             return 0
-        
+
         if self._use_incremental_counter:
             self._cached_full_count = total
-            
+
         return total
 
     def _compute_set_a_readiness(self) -> Dict[str, Any]:
@@ -745,7 +959,9 @@ class LiveDataFeedAdapter(BaseComponentV3):
                         row = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    quality = (row.get("l2_temporal_profile") or {}).get("l2_data_quality")
+                    quality = (row.get("l2_temporal_profile") or {}).get(
+                        "l2_data_quality"
+                    )
                     if quality != "FULL":
                         continue
                     full_total += 1

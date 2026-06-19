@@ -268,6 +268,67 @@ ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
 
 ---
 
+## EVO-TICKET-0004 — File Reader (Observabilidad Admin)
+
+```
+ORIGIN          : Human Request (Gantry stabilization)
+MATURITY        : MATURITY_4
+VITALITY        : ACTIVE
+ESTADO EN CICLO : EXECUTING
+DEBT CLASS      : TECHNICAL_DEBT
+CRITERIOS ÉXITO : Endpoint /api/admin/read-file funcional con auth.
+```
+
+---
+
+## EVO-TICKET-0005 — Active Zones Stale After Restart (Cleanup + Warm-start)
+
+```
+ORIGIN          : Operational Anomaly (GUI showing 2 stale zones at 66.5k-66.0k
+                  while BTCUSDT spot ~63.9k; zones persisted across restarts
+                  without expiry)
+
+MATURITY        : MATURITY_3
+                  (root cause identified and fix implemented:
+                   _cleanup_expired_zones used unstable buffer indices;
+                   feed_kline_for_zone_detection recalculated ZigZag trends
+                   per-candle instead of precomputing;
+                   warm_start hydrated buffer but did not replay detection.)
+
+VITALITY        : ACTIVE
+                  (fix deployed, awaiting 2-4h observation after restart)
+
+ESTADO EN CICLO : EXECUTING
+                  (code changes in triple_coincidence.py, live_adapter.py,
+                   gui/server.py; restart pending human approval)
+
+DEBT CLASS      : CALIBRATION_DEBT
+                  (new parameter zone_max_distance_atr=5.0 is PROVISIONAL
+                   and intentionally uncalibrated — must be replaced with
+                   percentile analysis of real expired-vs-active zone
+                   distances once enough detection cycles are collected)
+
+CRITERIOS ÉXITO :
+  [ ] Tras reinicio, las 2 zonas viejas (66.5k-66.0k) no reaparecen.
+  [ ] Si el mercado forma una zona válida, aparece en L2 Forensics
+      dentro de ~50 velas (timeout actual).
+  [ ] Dataset sigue creciendo (retests detectados y resueltos).
+
+NO TOCAR        : PROTECTED_MODULES de §3 del Nexus
+                  (no se modificaron módulos protegidos)
+
+CALIBRATION DEBT:
+  - zone_max_distance_atr=5.0 provisional. Método de calibración futuro:
+    1. Medir distancia (en ATR) de zonas expiradas vs vigentes durante
+       ~500-1000 velas de operación real.
+    2. Calcular percentiles (P75/P90) de distancia en el momento de
+       expiración por tiempo o por ruptura.
+    3. Fijar zone_max_distance_atr = P90_distancia_expiradas + margen.
+    4. Documentar en ADR y actualizar este ticket a MATURITY_4.
+```
+
+---
+
 ## Registro de cierre (se completa al terminar cada ticket)
 
 ```
@@ -287,6 +348,8 @@ infraestructura constitucional se construya.
 | EVO-TICKET-0001 | pendiente | pendiente | pendiente | pendiente | pendiente |
 | EVO-TICKET-0002 | bloqueado por P3/P4 + EVO-0003 | — | — | — | DORMANT |
 | EVO-TICKET-0003 | pendiente | pendiente | pendiente (≥1 ADR) | EMERGENCY_DEBT | pendiente |
+| EVO-TICKET-0004 | pendiente | pendiente | pendiente | TECHNICAL_DEBT | pendiente |
+| EVO-TICKET-0005 | pendiente | pendiente | pendiente (≥1 ADR) | CALIBRATION_DEBT | pendiente |
 
 ---
 
@@ -307,4 +370,9 @@ infraestructura constitucional se construya.
 {"event":"phantom_reference_flagged","document":"EVO_TICKET_LOG","references":["RECONSTRUCTION_BRIEF.md","oracle_v6_skeleton.py","test_oracle_v6_skeleton.py","RECONSTRUCTION_MAP_UPDATE_TEMPLATE.md","B008_NEXUS_CAPSULE.md (as standalone file)","LILA_ROUTING_PROMPT.md","constitutional_events.jsonl","CONSTITUTIONAL_EVENT_LEDGER_SPEC.md"],"verdict":"NEVER_EXISTED (git log --all confirms zero commits)","timestamp":"2026-06-13T21:09:00Z"}
 {"event":"blind_spot_status_corrected","blind_spot":"#3 cumulative_delta","from":"NOT_IMPLEMENTED","to":"IMPLEMENTED","evidence":"get_rolling_delta() BWS L241, window=300s","timestamp":"2026-06-13T21:09:00Z"}
 {"event":"blind_spot_status_corrected","blind_spot":"#4 connection_epoch","from":"NOT_IMPLEMENTED","to":"IMPLEMENTED","evidence":"_connection_epoch BWS L54/L97/L99, mark_reconnection() propagated","timestamp":"2026-06-13T21:09:00Z"}
+{"event":"ticket_created","ticket":"EVO-TICKET-0004","component":"server","maturity":"MATURITY_4","vitality":"ACTIVE","timestamp":"2026-06-16T18:45:00Z"}
+{"event":"ticket_created","ticket":"EVO-TICKET-0005","component":"triple_coincidence_detector","maturity":"MATURITY_3","vitality":"ACTIVE","timestamp":"2026-06-18T21:35:00Z"}
+{"event":"fix_deployed","ticket":"EVO-TICKET-0005","files":["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py","cgalpha_v3/application/live_adapter.py","cgalpha_v3/gui/server.py"],"decided_by":"human","timestamp":"2026-06-18T21:35:00Z"}
+{"event":"calibration_debt_flagged","ticket":"EVO-TICKET-0005","parameter":"zone_max_distance_atr","value":"5.0","status":"PROVISIONAL","reason":"intuition-based placeholder; requires percentile calibration from real detection cycles","timestamp":"2026-06-18T21:35:00Z"}
+{"event":"state_preserved","ticket":"EVO-TICKET-0005","action":"detector_state.json and active_zones.json restored from .bak-pre-reset; restart deferred pending human approval","timestamp":"2026-06-18T21:35:00Z"}
 ```

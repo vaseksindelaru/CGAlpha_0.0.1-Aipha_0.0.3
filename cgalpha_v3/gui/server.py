@@ -9,19 +9,19 @@ Auth: Bearer token via AUTH_TOKEN en .env
 
 from __future__ import annotations
 
-import sys
 import asyncio
 import json
 import logging
 import os
 import random
 import re
+import sys
 import time
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any
 from pathlib import Path
+from typing import Any, Dict
 
 # Fix: Añadir raíz del proyecto al sys.path para evitar ModuleNotFoundError
 # cuando se lanza el script directamente.
@@ -29,9 +29,9 @@ project_root = Path(__file__).parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
 from flask.typing import ResponseReturnValue
-from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env (en raíz del proyecto)
 v3_env_path = project_root / ".env"
@@ -49,34 +49,46 @@ AUTH_TOKEN = os.getenv("CGV3_AUTH_TOKEN", "cgalpha-v3-local-dev")
 HOST = os.getenv("CGV3_HOST", "127.0.0.1")
 PORT = int(os.getenv("CGV3_PORT", "5000"))
 
-app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path='')
+app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 logger = logging.getLogger("server")
 
 # ---------------------------------------------------------------------------
 # Estado global y Managers
 # ---------------------------------------------------------------------------
-from cgalpha_v3.lila.llm import LLMAssistant
-from cgalpha_v3.application.rollback_manager import RollbackManager
 from cgalpha_v3.application.change_proposer import ChangeProposer
 from cgalpha_v3.application.experiment_runner import ExperimentResult, ExperimentRunner
-from cgalpha_v3.data_quality.gates import TemporalLeakageError
-from cgalpha_v3.domain.models.signal import ApproachType, MemoryEntry, MemoryLevel, Proposal, RiskAssessment
-from cgalpha_v3.learning.memory_policy import MemoryPolicyEngine
-from cgalpha_v3.application.promotion_validator import PromotionValidator
-from cgalpha_v3.application.production_gate import ProductionGate, ProductionGateError
-from cgalpha_v3.lila.library_manager import AdaptiveBacklogItem, LibraryManager, LibrarySource
-from cgalpha_v3.learning.project_history_learner import ProjectHistoryLearner
-from cgalpha_v3.risk.health_monitor import HealthMonitor
-from cgalpha_v3.infrastructure.binance_websocket_manager import BinanceWebSocketManager
-from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import TripleCoincidenceDetector
 from cgalpha_v3.application.live_adapter import LiveDataFeedAdapter
-from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
-from cgalpha_v3.lila.evolution_orchestrator import EvolutionOrchestratorV4
-from cgalpha_v3.lila.codecraft_sage import CodeCraftSage
-from cgalpha_v3.lila.llm.llm_switcher import LLMSwitcher
+from cgalpha_v3.application.production_gate import ProductionGate, ProductionGateError
+from cgalpha_v3.application.promotion_validator import PromotionValidator
+from cgalpha_v3.application.rollback_manager import RollbackManager
+from cgalpha_v3.data_quality.gates import TemporalLeakageError
 from cgalpha_v3.data_quality.nexus_gate import NexusGate
-from cgalpha_v3.risk.order_manager import DryRunOrderManager
+from cgalpha_v3.domain.models.signal import (
+    ApproachType,
+    MemoryEntry,
+    MemoryLevel,
+    Proposal,
+    RiskAssessment,
+)
+from cgalpha_v3.infrastructure.binance_websocket_manager import BinanceWebSocketManager
+from cgalpha_v3.infrastructure.signal_detector.triple_coincidence import (
+    TripleCoincidenceDetector,
+)
+from cgalpha_v3.learning.memory_policy import MemoryPolicyEngine
+from cgalpha_v3.learning.project_history_learner import ProjectHistoryLearner
+from cgalpha_v3.lila.codecraft_sage import CodeCraftSage
+from cgalpha_v3.lila.evolution_orchestrator import EvolutionOrchestratorV4
+from cgalpha_v3.lila.library_manager import (
+    AdaptiveBacklogItem,
+    LibraryManager,
+    LibrarySource,
+)
+from cgalpha_v3.lila.llm import LLMAssistant
+from cgalpha_v3.lila.llm.llm_switcher import LLMSwitcher
+from cgalpha_v3.lila.llm.oracle import OracleTrainer_v3
 from cgalpha_v3.risk.execution_factory import create_order_manager
+from cgalpha_v3.risk.health_monitor import HealthMonitor
+from cgalpha_v3.risk.order_manager import DryRunOrderManager
 from cgalpha_v3.trading.shadow_trader import BRIDGE_JSONL_PATH
 
 _rollback_mgr = RollbackManager(MEMORY_DIR / "snapshots")
@@ -89,8 +101,8 @@ logger.info(f"\u2705 Memoria cargada desde disco: {_memory_load_result}")
 _health_monitor = HealthMonitor()
 _promotion_validator = PromotionValidator()
 _production_gate = ProductionGate(_promotion_validator)
-_history_learner = ProjectHistoryLearner(_memory_engine, BASE_DIR.parent.parent) 
-_assistant = LLMAssistant() # Migrado a v3
+_history_learner = ProjectHistoryLearner(_memory_engine, BASE_DIR.parent.parent)
+_assistant = LLMAssistant()  # Migrado a v3
 _llm_switcher = LLMSwitcher(assistant=_assistant)
 _codecraft_sage = CodeCraftSage.create_default()
 _codecraft_sage.switcher = _llm_switcher
@@ -118,10 +130,19 @@ _ws_managers: Dict[str, BinanceWebSocketManager] = {}
 for symbol in SYMBOLS:
     _ws_managers[symbol] = BinanceWebSocketManager.create_default(symbol=symbol)
     _detectors[symbol] = TripleCoincidenceDetector()
-    _adapters[symbol] = LiveDataFeedAdapter.create_default(_ws_managers[symbol], _detectors[symbol], _order_mgr)
+    _adapters[symbol] = LiveDataFeedAdapter.create_default(
+        _ws_managers[symbol], _detectors[symbol], _order_mgr
+    )
     # Inyectar Oracle y Nexus en cada adaptador
     _adapters[symbol].inject_oracle(_oracle_v3)
     _adapters[symbol].nexus = NexusGate(_oracle_v3.get_causal_signature())
+    # Warm-start: hidratar buffer de klines para evitar cold start de 30+ min.
+    # 200 bars gives the ZigZag trend detector enough history to find valid
+    # segments while still keeping the window recent enough for live zones.
+    try:
+        _adapters[symbol].warm_start(lookback_bars=200)
+    except Exception as e:
+        logger.warning(f"⚠️ Warm start falló para {symbol}: {e}")
 
 # Por compatibilidad con endpoints existentes:
 _shadow_trader = _adapters["BTCUSDT"]
@@ -146,36 +167,39 @@ _latest_proposal: Proposal | None = Proposal(
         max_drawdown_impact_pct=1.5,
         position_sizing_impact="linear_risk_adjusted",
         kill_switch_threshold="drawdown_session > 5%",
-        circuit_breaker_interaction="pause_60m"
+        circuit_breaker_interaction="pause_60m",
     ),
     backtesting={
         "frictions": {"fee_taker_pct": 0.04, "slippage_bps": 2.0},
-        "walk_forward_windows": 3
-    }
+        "walk_forward_windows": 3,
+    },
 )
 _latest_experiment: ExperimentResult | None = None
 _experiment_history: list[ExperimentResult] = []
-_auto_proposals: list[dict[str, Any]] = [{
-    "id": "prop-auto-001",
-    "timestamp": datetime.now(timezone.utc).isoformat(),
-    "component": "TripleCoincidenceDetector",
-    "change": "retest_timeout_bars: 50 -> 40",
-    "reason": "Reducir timeout de espera mejora señal/ruido en retests tardíos.",
-    "detailed_description": "El análisis de los últimos 500 retests indica que los retests que ocurren después de 40 velas tienen un win rate 18% menor. Reducir retest_timeout_bars a 40 mejora la calidad del dataset de entrenamiento del Oracle.",
-    "estimated_delta": 0.062,
-    "confidence": 0.84,
-    "status": "pending"
-}, {
-    "id": "prop-auto-002",
-    "timestamp": datetime.now(timezone.utc).isoformat(),
-    "component": "OracleTrainer_v3",
-    "change": "min_confidence: 0.70 -> 0.72",
-    "reason": "Incrementar umbral filtra 8% de señales marginales preservando 94% del Alpha.",
-    "detailed_description": "El análisis de deriva de los últimos 200 retests detectados indica que señales con confidence entre 0.70-0.72 tienen un win rate solo 3% sobre el baseline aleatorio. Incrementar a 0.72 mejora la precisión del Oracle.",
-    "estimated_delta": 0.041,
-    "confidence": 0.79,
-    "status": "pending"
-}]
+_auto_proposals: list[dict[str, Any]] = [
+    {
+        "id": "prop-auto-001",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "component": "TripleCoincidenceDetector",
+        "change": "retest_timeout_bars: 50 -> 40",
+        "reason": "Reducir timeout de espera mejora señal/ruido en retests tardíos.",
+        "detailed_description": "El análisis de los últimos 500 retests indica que los retests que ocurren después de 40 velas tienen un win rate 18% menor. Reducir retest_timeout_bars a 40 mejora la calidad del dataset de entrenamiento del Oracle.",
+        "estimated_delta": 0.062,
+        "confidence": 0.84,
+        "status": "pending",
+    },
+    {
+        "id": "prop-auto-002",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "component": "OracleTrainer_v3",
+        "change": "min_confidence: 0.70 -> 0.72",
+        "reason": "Incrementar umbral filtra 8% de señales marginales preservando 94% del Alpha.",
+        "detailed_description": "El análisis de deriva de los últimos 200 retests detectados indica que señales con confidence entre 0.70-0.72 tienen un win rate solo 3% sobre el baseline aleatorio. Incrementar a 0.72 mejora la precisión del Oracle.",
+        "estimated_delta": 0.041,
+        "confidence": 0.79,
+        "status": "pending",
+    },
+]
 _incident_registry: list[dict[str, Any]] = []
 _adr_registry: list[dict[str, Any]] = []
 
@@ -194,7 +218,7 @@ def _populate_baseline_library():
             abstract="VWAP es el precio promedio ponderado por volumen, ancla institucional.",
             relevant_finding="Sirve como nivel de equilibrio dinámico.",
             applicability="Filtrado de entradas en zonas de valor.",
-            tags=["vwap", "theory"]
+            tags=["vwap", "theory"],
         ),
         LibrarySource(
             source_id="theory-triple-coincidence-001",
@@ -207,7 +231,13 @@ def _populate_baseline_library():
             abstract="Detección de señales de alta probabilidad basada en la convergencia simultánea de tres factores independientes: vela clave (alto volumen, cuerpo pequeño), zona de acumulación (rango estrecho + volumen elevado) y mini-tendencia (ZigZag + R² > 0.45).",
             relevant_finding="La triple coincidencia genera señales con score > 0.7, con win rate histórico del 68% en retests validados con microestructura.",
             applicability="Generación de zonas activas para monitoreo de retests. Pipeline: detectar zona → esperar retest → capturar VWAP/OBI/delta → entrenar Oracle.",
-            tags=["triple_coincidence", "signal_detection", "key_candles", "accumulation_zones", "mini_trends"]
+            tags=[
+                "triple_coincidence",
+                "signal_detection",
+                "key_candles",
+                "accumulation_zones",
+                "mini_trends",
+            ],
         ),
         LibrarySource(
             source_id="theory-retest-oracle-001",
@@ -220,7 +250,7 @@ def _populate_baseline_library():
             abstract="Método de entrenamiento del Oracle basado en la captura de features de microestructura (VWAP, OBI, CumDelta) en el momento exacto del retest de una zona detectada por Triple Coincidence. El outcome (BOUNCE vs BREAKOUT) se determina observando las N velas posteriores.",
             relevant_finding="Las features capturadas EN el retest son significativamente más predictivas que las capturadas en la detección de la zona. OBI > 0.15 con CumDelta alcista en retest bullish predice BOUNCE con 74% de accuracy.",
             applicability="Entrenamiento incremental del OracleTrainer_v3. Dataset: [features_retest → outcome]. Umbral de operación: confidence > 0.70.",
-            tags=["oracle", "meta_labeling", "retest", "microstructure", "training"]
+            tags=["oracle", "meta_labeling", "retest", "microstructure", "training"],
         ),
         LibrarySource(
             source_id="theory-obi-001",
@@ -233,7 +263,7 @@ def _populate_baseline_library():
             abstract="Análisis de desequilibrio en el libro de órdenes.",
             relevant_finding="Predice movimientos de micro-tendencia.",
             applicability="Cálculo de sesgo direccional.",
-            tags=["obi", "theory"]
+            tags=["obi", "theory"],
         ),
         LibrarySource(
             source_id="strat-triple-coincidence-v3",
@@ -246,7 +276,14 @@ def _populate_baseline_library():
             abstract="Primera estrategia completa de CGAlpha v3. Pipeline de 7 componentes: BinanceVisionFetcher → TripleCoincidenceDetector → ZonePhysicsMonitor → ShadowTrader → OracleTrainer → NexusGate → AutoProposer. Implementa la lógica correcta de retest: detección de zona → monitoreo → captura features en momento del retest → outcome → entrenamiento Oracle.",
             relevant_finding="El enfoque de captura de features EN el retest (no en la detección) mejora la predictibilidad del Oracle en un 23% respecto a capturar features en el momento de detección de la zona.",
             applicability="Core de la Fase 0 → Fase 1. Base de construcción para mejoras incrementales guiadas por datos reales.",
-            tags=["strategy", "triple_coincidence", "retest", "oracle", "pipeline", "phase0"]
+            tags=[
+                "strategy",
+                "triple_coincidence",
+                "retest",
+                "oracle",
+                "pipeline",
+                "phase0",
+            ],
         ),
         LibrarySource(
             source_id="signal-detector-triple-coincidence",
@@ -259,8 +296,8 @@ def _populate_baseline_library():
             abstract="Sistema de detección de señales basado en triple coincidencia: vela clave + zona de acumulación + mini-tendencia.",
             relevant_finding="Triple coincidencia (vela clave + zona acumulación + mini-tendencia) genera señales con score > 0.7.",
             applicability="Generación de señales de alta probabilidad para Experiment Loop.",
-            tags=["signal_detection", "triple_coincidence", "technical_analysis"]
-        )
+            tags=["signal_detection", "triple_coincidence", "technical_analysis"],
+        ),
     ]
     for src in baseline_sources:
         _lila_mgr.ingest(src)
@@ -307,15 +344,15 @@ _system_state: dict[str, Any] = {
         "quality_threshold": 0.45,
         "r2_min": 0.45,
         "proximity_tolerance": 8,
-        "min_signal_quality": 0.65
+        "min_signal_quality": 0.65,
     },
     "oracle": {
         "enabled": False,
         "min_confidence": 0.70,
         "model_type": "placeholder",  # "random_forest" | "xgboost" | "lightgbm"
         "retrain_interval_hours": 24,
-        "use_oracle_filtering": False
-    }
+        "use_oracle_filtering": False,
+    },
 }
 
 _events_log: list[dict[str, Any]] = []
@@ -325,6 +362,7 @@ _events_log: list[dict[str, Any]] = []
 # Auth middleware
 # ---------------------------------------------------------------------------
 
+
 def require_auth(f: Any) -> Any:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> ResponseReturnValue:
@@ -333,6 +371,7 @@ def require_auth(f: Any) -> Any:
         if token != AUTH_TOKEN:
             return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -437,8 +476,12 @@ def _theory_live_snapshot_json() -> dict[str, Any]:
             "open": snap.get("backlog", {}).get("open", 0),
             "in_progress": snap.get("backlog", {}).get("in_progress", 0),
             "resolved": snap.get("backlog", {}).get("resolved", 0),
-            "primary_source_gap_open": snap.get("backlog", {}).get("primary_source_gap_open", 0),
-            "top_priority_score": snap.get("backlog", {}).get("top_priority_score", 0.0),
+            "primary_source_gap_open": snap.get("backlog", {}).get(
+                "primary_source_gap_open", 0
+            ),
+            "top_priority_score": snap.get("backlog", {}).get(
+                "top_priority_score", 0.0
+            ),
             "top_items": [
                 _serialize_backlog_item(i)
                 for i in snap.get("backlog", {}).get("top_items", [])
@@ -525,10 +568,14 @@ def _learning_memory_snapshot_json() -> dict[str, Any]:
 def _persist_memory_entry(entry: MemoryEntry) -> None:
     _ensure_dirs()
     path = _memory_entries_dir() / f"{entry.entry_id}.json"
-    path.write_text(json.dumps(_serialize_memory_entry(entry), indent=2, ensure_ascii=False))
+    path.write_text(
+        json.dumps(_serialize_memory_entry(entry), indent=2, ensure_ascii=False)
+    )
 
 
-def _capture_memory_librarian_event(event: str, trigger: str, level: str, context: dict[str, Any] | None) -> None:
+def _capture_memory_librarian_event(
+    event: str, trigger: str, level: str, context: dict[str, Any] | None
+) -> None:
     tags = [f"trigger:{trigger}", f"level:{level}"]
     if context:
         tags.extend([f"ctx:{k}" for k in list(context.keys())[:5]])
@@ -572,7 +619,9 @@ def _is_operational_open_incident(incident: dict[str, Any]) -> bool:
 
 
 def _operational_open_incident_count() -> int:
-    return len([inc for inc in _incident_registry if _is_operational_open_incident(inc)])
+    return len(
+        [inc for inc in _incident_registry if _is_operational_open_incident(inc)]
+    )
 
 
 def _parse_iso_timestamp(value: Any) -> datetime | None:
@@ -618,7 +667,13 @@ def _read_last_non_empty_line(path: Path) -> str | None:
         return None
 
 
-def _read_last_lines(path: Path, limit: int, *, max_scan_bytes: int = 2 * 1024 * 1024, chunk_size: int = 8192) -> list[str]:
+def _read_last_lines(
+    path: Path,
+    limit: int,
+    *,
+    max_scan_bytes: int = 2 * 1024 * 1024,
+    chunk_size: int = 8192,
+) -> list[str]:
     """
     Lee las últimas N líneas de forma eficiente sin cargar archivos gigantes completos.
     Escanea desde el final con un límite de bytes para evitar picos de RAM/CPU.
@@ -688,7 +743,8 @@ def _production_readiness_snapshot(
     oracle_model_type = str(oracle_cfg.get("model_type", "placeholder")).strip().lower()
     oracle_runtime_model = getattr(_oracle_v3, "model", None)
     oracle_model_is_real = oracle_model_type != "placeholder" or (
-        oracle_runtime_model is not None and oracle_runtime_model != "placeholder_model_trained"
+        oracle_runtime_model is not None
+        and oracle_runtime_model != "placeholder_model_trained"
     )
 
     bridge_path = project_root / BRIDGE_JSONL_PATH
@@ -807,7 +863,9 @@ def _register_incident(
         "context": context or {},
         "post_mortem_path": str(post_mortem_path),
         "resolved_at": created_at.isoformat() if simulated else None,
-        "resolution_note": "Auto-resuelto: incidente de simulación." if simulated else "",
+        "resolution_note": "Auto-resuelto: incidente de simulación."
+        if simulated
+        else "",
     }
     _incident_registry.append(incident)
     if len(_incident_registry) > 200:
@@ -829,9 +887,7 @@ def _register_adr(
     _ensure_dirs()
     created_at = datetime.now(timezone.utc)
     adr_id = f"adr-{uuid.uuid4().hex[:8]}"
-    adr_filename = (
-        f"{created_at.strftime('%Y-%m-%d_%H-%M-%S')}_{_slugify(trigger, 24)}_{adr_id}.md"
-    )
+    adr_filename = f"{created_at.strftime('%Y-%m-%d_%H-%M-%S')}_{_slugify(trigger, 24)}_{adr_id}.md"
     adr_path = _adr_dir() / adr_filename
     adr_content = (
         f"# ADR {adr_id}\n\n"
@@ -869,7 +925,9 @@ def _experiment_loop_snapshot_json() -> dict[str, Any]:
         "has_proposal": _latest_proposal is not None,
         "has_experiment": _latest_experiment is not None,
         "proposal": _serialize_proposal(_latest_proposal) if _latest_proposal else None,
-        "latest_experiment": _serialize_experiment_result(_latest_experiment) if _latest_experiment else None,
+        "latest_experiment": _serialize_experiment_result(_latest_experiment)
+        if _latest_experiment
+        else None,
         "history_count": len(_experiment_history),
     }
 
@@ -903,7 +961,9 @@ def _generate_mock_market_rows(num_rows: int = 180) -> list[dict[str, Any]]:
         price = max(price + drift + noise, 1.0)
         close_price = price
         high_price = max(open_price, close_price) + abs(rng.uniform(0.0, 0.06))
-        low_price = max(min(open_price, close_price) - abs(rng.uniform(0.0, 0.06)), 0.0001)
+        low_price = max(
+            min(open_price, close_price) - abs(rng.uniform(0.0, 0.06)), 0.0001
+        )
         rows.append(
             {
                 "open_time": float(open_ts),
@@ -948,10 +1008,14 @@ def _build_iteration_status(
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     snapshots_dir = MEMORY_DIR / "snapshots"
-    rollback_available = snapshots_dir.exists() and any(d.is_dir() for d in snapshots_dir.iterdir())
+    rollback_available = snapshots_dir.exists() and any(
+        d.is_dir() for d in snapshots_dir.iterdir()
+    )
     recent_events = _events_log[-20:]
     learning_memory = _learning_memory_snapshot_json()
-    production_readiness = _production_readiness_snapshot(memory_snapshot=learning_memory)
+    production_readiness = _production_readiness_snapshot(
+        memory_snapshot=learning_memory
+    )
 
     status: dict[str, Any] = {
         "iteration": iteration_id,
@@ -984,7 +1048,9 @@ def _build_iteration_status(
         "production_readiness_checks": production_readiness["checks"],
         "production_readiness_diagnostics": production_readiness["diagnostics"],
         "rollback_available": rollback_available,
-        "rollback_note": "Snapshot disponible para rollback" if rollback_available else "Sin snapshots disponibles",
+        "rollback_note": "Snapshot disponible para rollback"
+        if rollback_available
+        else "Sin snapshots disponibles",
     }
     if context:
         status["context"] = context
@@ -995,8 +1061,7 @@ def _build_iteration_summary(status: dict[str, Any]) -> str:
     recent_events = list(reversed(_events_log[-10:]))
     if recent_events:
         events_md = "\n".join(
-            f"| {e['ts']} | {e['level']} | {e['event']} |"
-            for e in recent_events
+            f"| {e['ts']} | {e['level']} | {e['event']} |" for e in recent_events
         )
     else:
         events_md = "| — | — | Sin eventos |"
@@ -1005,7 +1070,9 @@ def _build_iteration_summary(status: dict[str, Any]) -> str:
     if status["kill_switch_status"] == "triggered":
         risks.append("- Kill-switch activo: señales suspendidas.")
     if status["data_quality"] != "valid":
-        risks.append("- Data quality no está en estado valid; mantener vigilancia operativa.")
+        risks.append(
+            "- Data quality no está en estado valid; mantener vigilancia operativa."
+        )
     if not risks:
         risks.append("- Sin riesgos críticos nuevos detectados en este ciclo GUI.")
     risks_text = "\n".join(risks)
@@ -1063,7 +1130,9 @@ def _persist_iteration_artifacts(
     (iteration_dir / "iteration_status.json").write_text(
         json.dumps(status, indent=2, ensure_ascii=False)
     )
-    (iteration_dir / "iteration_summary.md").write_text(_build_iteration_summary(status))
+    (iteration_dir / "iteration_summary.md").write_text(
+        _build_iteration_summary(status)
+    )
     return iteration_dir
 
 
@@ -1081,7 +1150,9 @@ def _record_control_cycle(
     except Exception as exc:  # pragma: no cover - error path defensivo
         _log_event(f"ITERATION_ARTIFACT_ERROR: {exc}", level="warning")
     try:
-        _capture_memory_librarian_event(event=event, trigger=trigger, level=level, context=context)
+        _capture_memory_librarian_event(
+            event=event, trigger=trigger, level=level, context=context
+        )
     except Exception as exc:  # pragma: no cover - error path defensivo
         _log_event(f"MEMORY_CAPTURE_ERROR: {exc}", level="warning")
     try:
@@ -1110,10 +1181,12 @@ def _record_control_cycle(
 # Rutas Estáticas
 # ---------------------------------------------------------------------------
 
+
 @app.route("/")
 def serve_index() -> ResponseReturnValue:
     """Sirve el dashboard principal."""
     return send_from_directory(STATIC_DIR, "index.html")
+
 
 # ---------------------------------------------------------------------------
 # Rutas API
@@ -1123,17 +1196,27 @@ def serve_index() -> ResponseReturnValue:
 def get_market_pulse() -> ResponseReturnValue:
     symbol = request.args.get("symbol", "BTCUSDT")
     obi = _ws_manager.get_current_obi(symbol)
-    
-    price = _read_live_market_price()
-    
-    return jsonify({
-        "symbol": symbol,
-        "price": round(price, 2),
-        "obi": round(obi, 4),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "status": "active" if _ws_manager.is_running else "connecting",
-        "delta": round(random.uniform(-0.02, 0.02), 4) # Placeholder para Cumulative Delta
-    })
+
+    state = _ws_manager.order_book_state.get(symbol.upper(), {})
+    if state and state.get("bids") and state.get("asks"):
+        best_bid = float(state["bids"][0][0])
+        best_ask = float(state["asks"][0][0])
+        price = (best_bid + best_ask) / 2
+    else:
+        price = _read_live_market_price(symbol)
+
+    return jsonify(
+        {
+            "symbol": symbol,
+            "price": round(price, 2),
+            "obi": round(obi, 4),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": "active" if _ws_manager.is_running else "connecting",
+            "delta": round(
+                random.uniform(-0.02, 0.02), 4
+            ),  # Placeholder para Cumulative Delta
+        }
+    )
 
 
 @app.route("/api/live/signals", methods=["GET"])
@@ -1143,31 +1226,37 @@ def get_live_signals() -> ResponseReturnValue:
     all_signals = []
     for adapter in _adapters.values():
         all_signals.extend(adapter.live_signals)
-    
+
     # Ordenar por tiempo descendente
     all_signals.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
-    
-    return jsonify({
-        "count": len(all_signals),
-        "signals": all_signals[:50],
-        "status": "multi-asset"
-    })
+
+    return jsonify(
+        {
+            "count": len(all_signals),
+            "signals": all_signals[:50],
+            "status": "multi-asset",
+        }
+    )
 
 
 @app.route("/api/live/portfolio", methods=["GET"])
 @require_auth
 def get_live_portfolio() -> ResponseReturnValue:
     """Retorna estado del balance y posiciones en Dry Run."""
-    history_serializable = [p.__dict__ for p in _order_mgr.history[-10:]] # Últimos 10
-    return jsonify({
-        "balance": round(_order_mgr.balance, 2),
-        "initial_balance": 10000.00,
-        "active_positions": [p.__dict__ for p in _order_mgr.active_positions.values()],
-        "exposure_breakdown": _order_mgr.get_exposure_breakdown(),
-        "history": history_serializable,
-        "history_count": len(_order_mgr.history),
-        "status": "dry_run"
-    })
+    history_serializable = [p.__dict__ for p in _order_mgr.history[-10:]]  # Últimos 10
+    return jsonify(
+        {
+            "balance": round(_order_mgr.balance, 2),
+            "initial_balance": 10000.00,
+            "active_positions": [
+                p.__dict__ for p in _order_mgr.active_positions.values()
+            ],
+            "exposure_breakdown": _order_mgr.get_exposure_breakdown(),
+            "history": history_serializable,
+            "history_count": len(_order_mgr.history),
+            "status": "dry_run",
+        }
+    )
 
 
 @app.route("/api/live/panic", methods=["POST"])
@@ -1176,7 +1265,10 @@ def live_panic_close() -> ResponseReturnValue:
     """Cierre de emergencia de todas las posiciones."""
     count = len(_order_mgr.active_positions)
     _order_mgr.close_all_positions("USER_PANIC")
-    _log_event(f"🛑 EMERGENCIA: El usuario ha cerrado {count} posiciones manualmente.", level="critical")
+    _log_event(
+        f"🛑 EMERGENCIA: El usuario ha cerrado {count} posiciones manualmente.",
+        level="critical",
+    )
     return jsonify({"status": "success", "closed_count": count})
 
 
@@ -1191,10 +1283,13 @@ def force_signal() -> ResponseReturnValue:
         "price": price,
         "direction": "bullish",
         "oracle_confidence": 0.89,
-        "obi": 0.45
+        "obi": 0.45,
     }
     pos = _order_mgr.execute_signal(signal)
-    _log_event(f"🧪 DEBUG: Señal sintética inyectada. Posición {pos.pos_id} abierta.", level="warning")
+    _log_event(
+        f"🧪 DEBUG: Señal sintética inyectada. Posición {pos.pos_id} abierta.",
+        level="warning",
+    )
     return jsonify({"status": "success", "position": pos.__dict__})
 
 
@@ -1206,47 +1301,55 @@ def api_status() -> ResponseReturnValue:
     """
     health = _health_monitor.status_snapshot()
     learning_memory = _learning_memory_snapshot_json()
-    production_readiness = _production_readiness_snapshot(memory_snapshot=learning_memory)
+    production_readiness = _production_readiness_snapshot(
+        memory_snapshot=learning_memory
+    )
 
-    return jsonify({
-        "panels_active": _system_state["panels_active"],
-        "auth_enabled": True,
-        "last_event": _system_state["last_event"],
-        "kill_switch_status": _system_state["kill_switch"],
-        "system_status": _system_state["status"],
-        "phase": _system_state["phase"],
-        "data_quality": _system_state["data_quality"],
-        "circuit_breaker": _system_state["circuit_breaker"],
-        "drawdown_session_pct": _system_state["drawdown_session_pct"],
-        "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
-        "max_position_size_pct": _system_state["max_position_size_pct"],
-        "max_signals_per_hour": _system_state["max_signals_per_hour"],
-        "min_signal_quality_score": _system_state["min_signal_quality_score"],
-        "health": health,
-        "regime_shift_active": _system_state.get("regime_shift_active", False),
-        "primary_source_gap": _system_state["primary_source_gap"],
-        "ws_active": _ws_manager.is_running,
-        "delta_causal": _shadow_trader.delta_causal,
-        "nexus_gate_open": _shadow_trader.nexus.is_safe(_shadow_trader.delta_causal),
-        "market": {
-            "symbol": _system_state["market_symbol"],
-            "interval": _system_state["market_interval"],
-            "price": _system_state["market_price"],
-            "ts": _system_state["market_ts"],
-            "obi": round(_ws_manager.get_current_obi(_system_state["market_symbol"]), 4)
-        },
-        "library": _library_snapshot_json(),
-        "theory_live": _theory_live_snapshot_json(),
-        "experiment_loop": _experiment_loop_snapshot_json(),
-        "learning_memory": learning_memory,
-        "production_ready": production_readiness["production_ready"],
-        "production_gate_reason": production_readiness["production_gate_reason"],
-        "production_readiness_checks": production_readiness["checks"],
-        "production_readiness_diagnostics": production_readiness["diagnostics"],
-        "incident_open_count": _operational_open_incident_count(),
-        "adr_count": len(_adr_registry),
-        "server_ts": datetime.now(timezone.utc).isoformat(),
-    })
+    return jsonify(
+        {
+            "panels_active": _system_state["panels_active"],
+            "auth_enabled": True,
+            "last_event": _system_state["last_event"],
+            "kill_switch_status": _system_state["kill_switch"],
+            "system_status": _system_state["status"],
+            "phase": _system_state["phase"],
+            "data_quality": _system_state["data_quality"],
+            "circuit_breaker": _system_state["circuit_breaker"],
+            "drawdown_session_pct": _system_state["drawdown_session_pct"],
+            "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+            "max_position_size_pct": _system_state["max_position_size_pct"],
+            "max_signals_per_hour": _system_state["max_signals_per_hour"],
+            "min_signal_quality_score": _system_state["min_signal_quality_score"],
+            "health": health,
+            "regime_shift_active": _system_state.get("regime_shift_active", False),
+            "primary_source_gap": _system_state["primary_source_gap"],
+            "ws_active": _ws_manager.is_running,
+            "delta_causal": _shadow_trader.delta_causal,
+            "nexus_gate_open": _shadow_trader.nexus.is_safe(
+                _shadow_trader.delta_causal
+            ),
+            "market": {
+                "symbol": _system_state["market_symbol"],
+                "interval": _system_state["market_interval"],
+                "price": _system_state["market_price"],
+                "ts": _system_state["market_ts"],
+                "obi": round(
+                    _ws_manager.get_current_obi(_system_state["market_symbol"]), 4
+                ),
+            },
+            "library": _library_snapshot_json(),
+            "theory_live": _theory_live_snapshot_json(),
+            "experiment_loop": _experiment_loop_snapshot_json(),
+            "learning_memory": learning_memory,
+            "production_ready": production_readiness["production_ready"],
+            "production_gate_reason": production_readiness["production_gate_reason"],
+            "production_readiness_checks": production_readiness["checks"],
+            "production_readiness_diagnostics": production_readiness["diagnostics"],
+            "incident_open_count": _operational_open_incident_count(),
+            "adr_count": len(_adr_registry),
+            "server_ts": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
 
 @app.route("/api/events")
@@ -1257,9 +1360,9 @@ def api_events() -> ResponseReturnValue:
         limit = min(max(int(request.args.get("limit", 50)), 1), 200)
     except (ValueError, TypeError):
         limit = 50
-        
+
     events = list(_events_log)
-    
+
     # Inyectar logs del shadow trader
     try:
         log_path = project_root / "shadow_trader.log"
@@ -1270,16 +1373,20 @@ def api_events() -> ResponseReturnValue:
                     parts = line.strip().split(" ", 2)
                     if len(parts) >= 3:
                         lvl = "info"
-                        if "[WARNING]" in line: lvl = "warning"
-                        if "[ERROR]" in line: lvl = "error"
-                        events.append({
-                            "timestamp": f"Log: {parts[0]}",
-                            "level": lvl,
-                            "event": parts[2].strip()
-                        })
+                        if "[WARNING]" in line:
+                            lvl = "warning"
+                        if "[ERROR]" in line:
+                            lvl = "error"
+                        events.append(
+                            {
+                                "timestamp": f"Log: {parts[0]}",
+                                "level": lvl,
+                                "event": parts[2].strip(),
+                            }
+                        )
     except Exception:
         pass
-        
+
     # Ordenar por timestamp (los logs inyectados se verán cronológicos)
     return jsonify(list(reversed(events))[:limit])
 
@@ -1288,10 +1395,12 @@ def api_events() -> ResponseReturnValue:
 @require_auth
 def library_status() -> ResponseReturnValue:
     """Snapshot de estado de la biblioteca Lila."""
-    return jsonify({
-        **_library_snapshot_json(),
-        "counts": _library_counts(),
-    })
+    return jsonify(
+        {
+            **_library_snapshot_json(),
+            "counts": _library_counts(),
+        }
+    )
 
 
 @app.route("/api/library/sources", methods=["GET"])
@@ -1312,13 +1421,15 @@ def library_sources() -> ResponseReturnValue:
         tags=tags or None,
         limit=limit,
     )
-    return jsonify({
-        "query": query,
-        "source_type": source_type,
-        "tags": tags,
-        "count": len(results),
-        "results": [_serialize_library_source(s) for s in results],
-    })
+    return jsonify(
+        {
+            "query": query,
+            "source_type": source_type,
+            "tags": tags,
+            "count": len(results),
+            "results": [_serialize_library_source(s) for s in results],
+        }
+    )
 
 
 @app.route("/api/library/sources/<source_id>", methods=["GET"])
@@ -1380,11 +1491,13 @@ def library_ingest() -> ResponseReturnValue:
             "title": stored.title,
         },
     )
-    return jsonify({
-        "is_new": is_new,
-        "source": _serialize_library_source(stored),
-        "snapshot": _library_snapshot_json(),
-    })
+    return jsonify(
+        {
+            "is_new": is_new,
+            "source": _serialize_library_source(stored),
+            "snapshot": _library_snapshot_json(),
+        }
+    )
 
 
 @app.route("/api/library/claims/validate", methods=["POST"])
@@ -1431,11 +1544,13 @@ def lila_backlog_list() -> ResponseReturnValue:
         return jsonify({"error": "invalid_status"}), 400
     limit = min(max(int(request.args.get("limit", 20)), 1), 200)
     items = _lila_mgr.list_backlog(status=status, limit=limit)  # type: ignore[arg-type]
-    return jsonify({
-        "status": status,
-        "count": len(items),
-        "items": [_serialize_backlog_item(i) for i in items],
-    })
+    return jsonify(
+        {
+            "status": status,
+            "count": len(items),
+            "items": [_serialize_backlog_item(i) for i in items],
+        }
+    )
 
 
 @app.route("/api/lila/backlog", methods=["POST"])
@@ -1449,7 +1564,12 @@ def lila_backlog_add() -> ResponseReturnValue:
         return jsonify({"error": "missing_fields", "fields": missing}), 400
 
     item_type = str(data.get("item_type", "")).strip().lower()
-    if item_type not in ("primary_source_gap", "theory_request", "evidence_conflict", "research_gap"):
+    if item_type not in (
+        "primary_source_gap",
+        "theory_request",
+        "evidence_conflict",
+        "research_gap",
+    ):
         return jsonify({"error": "invalid_item_type"}), 400
 
     rec_type = str(data.get("recommended_source_type", "primary")).strip().lower()
@@ -1476,7 +1596,11 @@ def lila_backlog_add() -> ResponseReturnValue:
         event=f"LILA: backlog item creado {item.item_id}",
         level="info",
         trigger="lila_backlog_add",
-        context={"item_id": item.item_id, "item_type": item.item_type, "priority_score": item.priority_score},
+        context={
+            "item_id": item.item_id,
+            "item_type": item.item_type,
+            "priority_score": item.priority_score,
+        },
     )
     return jsonify(_serialize_backlog_item(item))
 
@@ -1530,10 +1654,10 @@ def vault_status() -> ResponseReturnValue:
         _oracle_path = project_root / "aipha_memory" / "models" / "oracle_v3.joblib"
         if _oracle_path.exists():
             _oracle_v3.load_from_disk(str(_oracle_path))
-            
+
         metrics = _oracle_v3._training_metrics or {}
         n_samples = metrics.get("n_samples", 0)
-        
+
         # Zona 2: Market Activity (Bridge)
         real_trades = 0
         placeholder_trades = 0
@@ -1551,32 +1675,41 @@ def vault_status() -> ResponseReturnValue:
                                 placeholder_trades += 1
                             else:
                                 real_trades += 1
-                        except: continue
+                        except:
+                            continue
         except Exception as e:
             logger.error(f"Error parsing bridge.jsonl: {e}")
 
         # Zona 3: Evolution Governance
         orch_stats = _evolution_orchestrator.get_stats()
-        
-        return jsonify({
-            "oracle": {
-                "status": "TRAINED" if _oracle_v3.model and _oracle_v3.model != "placeholder_model_trained" else "PLACEHOLDER",
-                "samples": n_samples,
-                "test_accuracy": metrics.get("test_accuracy", 0.0),
-                "is_significant": n_samples >= 150
-            },
-            "market": {
-                "total_trades": total_trades,
-                "real_trades": real_trades,
-                "placeholder_trades": placeholder_trades,
-                "retests_detected": orch_stats.get("total_proposals", 0)
-            },
-            "evolution": {
-                "pending": orch_stats.get("cat_2_pending", 0) + orch_stats.get("cat_3_pending", 0),
-                "rejected_safety": orch_stats.get("cat_1_rejected", 0) + orch_stats.get("cat_2_rejected", 0),
-                "applied": orch_stats.get("cat_1_applied", 0) + orch_stats.get("cat_2_approved", 0)
+
+        return jsonify(
+            {
+                "oracle": {
+                    "status": "TRAINED"
+                    if _oracle_v3.model
+                    and _oracle_v3.model != "placeholder_model_trained"
+                    else "PLACEHOLDER",
+                    "samples": n_samples,
+                    "test_accuracy": metrics.get("test_accuracy", 0.0),
+                    "is_significant": n_samples >= 150,
+                },
+                "market": {
+                    "total_trades": total_trades,
+                    "real_trades": real_trades,
+                    "placeholder_trades": placeholder_trades,
+                    "retests_detected": orch_stats.get("total_proposals", 0),
+                },
+                "evolution": {
+                    "pending": orch_stats.get("cat_2_pending", 0)
+                    + orch_stats.get("cat_3_pending", 0),
+                    "rejected_safety": orch_stats.get("cat_1_rejected", 0)
+                    + orch_stats.get("cat_2_rejected", 0),
+                    "applied": orch_stats.get("cat_1_applied", 0)
+                    + orch_stats.get("cat_2_approved", 0),
+                },
             }
-        })
+        )
     except Exception as e:
         logger.error(f"Vault Status Error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -1601,7 +1734,10 @@ def experiment_propose() -> ResponseReturnValue:
         max_drawdown_impact_pct=float(data.get("max_drawdown_impact_pct", 1.0)),
         position_sizing_impact=str(data.get("position_sizing_impact", "none")),  # type: ignore[arg-type]
         kill_switch_threshold=str(
-            data.get("kill_switch_threshold", "drawdown_session_pct > max_drawdown_session_pct")
+            data.get(
+                "kill_switch_threshold",
+                "drawdown_session_pct > max_drawdown_session_pct",
+            )
         ),
         circuit_breaker_interaction=str(
             data.get("circuit_breaker_interaction", "No bypass de circuit breaker")
@@ -1630,6 +1766,7 @@ def experiment_propose() -> ResponseReturnValue:
     # Register the proposal in the Evolution Orchestrator for tracking.
     try:
         from cgalpha_v3.lila.llm.proposer import TechnicalSpec
+
         spec = TechnicalSpec(
             change_type="feature",
             target_file="cgalpha_v3/application/pipeline.py",
@@ -1725,6 +1862,7 @@ def experiment_run() -> ResponseReturnValue:
     # Closes the feedback loop: ChangeProposer → Experiment → Orchestrator → Sage
     try:
         from cgalpha_v3.lila.llm.proposer import TechnicalSpec
+
         sharpe = result.metrics.get("sharpe_neto", 0.0)
         net_return = result.metrics.get("net_return_pct", 0.0)
         causal_est = min(max(sharpe / 3.0, 0.0), 1.0)  # normalize to 0-1
@@ -1760,7 +1898,7 @@ def promotion_validate() -> ResponseReturnValue:
     """Valida formalmente un experimento para promoción a Producción (Gate P3.3)."""
     data = request.get_json() or {}
     experiment_id = data.get("experiment_id")
-    
+
     # Buscar experimento en el historial reciente
     target = None
     if _latest_experiment and _latest_experiment.experiment_id == experiment_id:
@@ -1770,28 +1908,33 @@ def promotion_validate() -> ResponseReturnValue:
             if exp.experiment_id == experiment_id:
                 target = exp
                 break
-    
+
     if not target:
         return jsonify({"error": "experiment_not_found"}), 404
-        
+
     report = _promotion_validator.validate_experiment(
-        result=target,
-        health=_health_monitor.status_snapshot()
+        result=target, health=_health_monitor.status_snapshot()
     )
-    
+
     _record_control_cycle(
         event=f"PROMOTION: Validación de {experiment_id} -> {report.status}",
         trigger="promotion_validate",
         level="info" if report.status == "approved" else "warning",
-        context={"experiment_id": experiment_id, "status": report.status, "checks": report.checks}
+        context={
+            "experiment_id": experiment_id,
+            "status": report.status,
+            "checks": report.checks,
+        },
     )
-    
-    return jsonify({
-        "status": report.status,
-        "overall_score": report.overall_score,
-        "checks": report.checks,
-        "reasons": report.reasons
-    })
+
+    return jsonify(
+        {
+            "status": report.status,
+            "overall_score": report.overall_score,
+            "checks": report.checks,
+            "reasons": report.reasons,
+        }
+    )
 
 
 @app.route("/api/learning/memory/status", methods=["GET"])
@@ -1815,14 +1958,22 @@ def learning_memory_entries() -> ResponseReturnValue:
             return jsonify({"error": str(exc)}), 400
 
     field = raw_field if raw_field else None
-    if field and field not in ("codigo", "math", "trading", "architect", "memory_librarian"):
+    if field and field not in (
+        "codigo",
+        "math",
+        "trading",
+        "architect",
+        "memory_librarian",
+    ):
         return jsonify({"error": "invalid_field"}), 400
     limit = min(max(int(request.args.get("limit", 50)), 1), 200)
     entries = _memory_engine.list_entries(level=level, field=field, limit=limit)  # type: ignore[arg-type]
-    return jsonify({
-        "count": len(entries),
-        "entries": [_serialize_memory_entry(e) for e in entries],
-    })
+    return jsonify(
+        {
+            "count": len(entries),
+            "entries": [_serialize_memory_entry(e) for e in entries],
+        }
+    )
 
 
 @app.route("/api/learning/memory/ingest", methods=["POST"])
@@ -1838,7 +1989,11 @@ def learning_memory_ingest() -> ResponseReturnValue:
         return jsonify({"error": "invalid_field"}), 400
 
     source_type = data.get("source_type")
-    if source_type is not None and source_type not in ("primary", "secondary", "tertiary"):
+    if source_type is not None and source_type not in (
+        "primary",
+        "secondary",
+        "tertiary",
+    ):
         return jsonify({"error": "invalid_source_type"}), 400
 
     entry = _memory_engine.ingest_raw(
@@ -1856,9 +2011,18 @@ def learning_memory_ingest() -> ResponseReturnValue:
         event=f"LEARNING: memoria ingestada {entry.entry_id} ({entry.field}/{entry.level.value})",
         trigger="learning_memory_ingest",
         level="info",
-        context={"entry_id": entry.entry_id, "field": entry.field, "level": entry.level.value},
+        context={
+            "entry_id": entry.entry_id,
+            "field": entry.field,
+            "level": entry.level.value,
+        },
     )
-    return jsonify({"entry": _serialize_memory_entry(entry), "snapshot": _learning_memory_snapshot_json()})
+    return jsonify(
+        {
+            "entry": _serialize_memory_entry(entry),
+            "snapshot": _learning_memory_snapshot_json(),
+        }
+    )
 
 
 @app.route("/api/learning/memory/promote", methods=["POST"])
@@ -1871,7 +2035,7 @@ def learning_memory_promote() -> ResponseReturnValue:
     approved_by = str(data.get("approved_by") or "Lila")
     experiment_id = data.get("experiment_id")
     identity_confirmation = str(data.get("identity_confirmation") or "").strip()
-    
+
     if not entry_id:
         return jsonify({"error": "entry_id_required"}), 400
     if not target_level_raw:
@@ -1882,14 +2046,16 @@ def learning_memory_promote() -> ResponseReturnValue:
         if target_level == MemoryLevel.IDENTITY:
             expected_confirmation = f"PROMOTE_IDENTITY:{entry_id}"
             if identity_confirmation != expected_confirmation:
-                return jsonify({
-                    "error": "identity_confirmation_required",
-                    "message": (
-                        "Promoción a IDENTITY requiere confirmación explícita. "
-                        f"Envía identity_confirmation='{expected_confirmation}'."
-                    ),
-                }), 403
-        
+                return jsonify(
+                    {
+                        "error": "identity_confirmation_required",
+                        "message": (
+                            "Promoción a IDENTITY requiere confirmación explícita. "
+                            f"Envía identity_confirmation='{expected_confirmation}'."
+                        ),
+                    }
+                ), 403
+
         # --- Production Gate P3.6 Enforcement ---
         if target_level == MemoryLevel.STRATEGY:
             exp = None
@@ -1898,15 +2064,17 @@ def learning_memory_promote() -> ResponseReturnValue:
                     if res.experiment_id == experiment_id:
                         exp = res
                         break
-            
+
             try:
                 _production_gate.verify_promotion_eligibility(
                     target_level=target_level,
                     experiment_result=exp,
-                    health_snapshot=_health_monitor.status_snapshot()
+                    health_snapshot=_health_monitor.status_snapshot(),
                 )
             except ProductionGateError as pge:
-                return jsonify({"error": "production_gate_rejected", "message": str(pge)}), 403
+                return jsonify(
+                    {"error": "production_gate_rejected", "message": str(pge)}
+                ), 403
         # --------------------------------------
 
         entry = _memory_engine.promote(
@@ -1924,7 +2092,12 @@ def learning_memory_promote() -> ResponseReturnValue:
         level="info",
         context={"entry_id": entry.entry_id, "target_level": entry.level.value},
     )
-    return jsonify({"entry": _serialize_memory_entry(entry), "snapshot": _learning_memory_snapshot_json()})
+    return jsonify(
+        {
+            "entry": _serialize_memory_entry(entry),
+            "snapshot": _learning_memory_snapshot_json(),
+        }
+    )
 
 
 @app.route("/api/learning/memory/retention/run", methods=["POST"])
@@ -1938,7 +2111,9 @@ def learning_memory_retention() -> ResponseReturnValue:
         level="info",
         context=retention,  # type: ignore[arg-type]
     )
-    return jsonify({"retention": retention, "snapshot": _learning_memory_snapshot_json()})
+    return jsonify(
+        {"retention": retention, "snapshot": _learning_memory_snapshot_json()}
+    )
 
 
 @app.route("/api/learning/memory/regime/check", methods=["POST"])
@@ -2025,7 +2200,12 @@ def kill_switch_arm() -> ResponseReturnValue:
         trigger="kill_switch_arm",
         context={"kill_switch_status": _system_state["kill_switch"]},
     )
-    return jsonify({"status": "pending_confirmation", "message": "Confirme en /api/kill-switch/confirm"})
+    return jsonify(
+        {
+            "status": "pending_confirmation",
+            "message": "Confirme en /api/kill-switch/confirm",
+        }
+    )
 
 
 @app.route("/api/kill-switch/confirm", methods=["POST"])
@@ -2045,7 +2225,9 @@ def kill_switch_confirm() -> ResponseReturnValue:
             "system_status": _system_state["status"],
         },
     )
-    return jsonify({"status": "triggered", "ts": datetime.now(timezone.utc).isoformat()})
+    return jsonify(
+        {"status": "triggered", "ts": datetime.now(timezone.utc).isoformat()}
+    )
 
 
 @app.route("/api/kill-switch/reset", methods=["POST"])
@@ -2070,14 +2252,16 @@ def kill_switch_reset() -> ResponseReturnValue:
 @require_auth
 def risk_params_get() -> ResponseReturnValue:
     """Leer parámetros de riesgo actuales."""
-    return jsonify({
-        "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
-        "max_position_size_pct": _system_state["max_position_size_pct"],
-        "max_signals_per_hour": _system_state["max_signals_per_hour"],
-        "min_signal_quality_score": _system_state["min_signal_quality_score"],
-        "drawdown_session_pct": _system_state["drawdown_session_pct"],
-        "circuit_breaker": _system_state["circuit_breaker"],
-    })
+    return jsonify(
+        {
+            "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+            "max_position_size_pct": _system_state["max_position_size_pct"],
+            "max_signals_per_hour": _system_state["max_signals_per_hour"],
+            "min_signal_quality_score": _system_state["min_signal_quality_score"],
+            "drawdown_session_pct": _system_state["drawdown_session_pct"],
+            "circuit_breaker": _system_state["circuit_breaker"],
+        }
+    )
 
 
 @app.route("/api/risk/params", methods=["POST"])
@@ -2116,16 +2300,18 @@ def risk_params_set() -> ResponseReturnValue:
             trigger="risk_params_set",
             context={"updated": changed, "risk_parameters": _risk_params_snapshot()},
         )
-    return jsonify({
-        "updated": changed,
-        "current": {k: _system_state[k] for k in changed},
-        "all": {
-            "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
-            "max_position_size_pct": _system_state["max_position_size_pct"],
-            "max_signals_per_hour": _system_state["max_signals_per_hour"],
-            "min_signal_quality_score": _system_state["min_signal_quality_score"],
-        },
-    })
+    return jsonify(
+        {
+            "updated": changed,
+            "current": {k: _system_state[k] for k in changed},
+            "all": {
+                "max_drawdown_session_pct": _system_state["max_drawdown_session_pct"],
+                "max_position_size_pct": _system_state["max_position_size_pct"],
+                "max_signals_per_hour": _system_state["max_signals_per_hour"],
+                "min_signal_quality_score": _system_state["min_signal_quality_score"],
+            },
+        }
+    )
 
 
 @app.route("/api/signal-detector/config", methods=["GET"])
@@ -2188,13 +2374,18 @@ def signal_detector_config_set() -> ResponseReturnValue:
             event=f"Signal Detector config actualizada: {changed}",
             level="info",
             trigger="signal_detector_config_set",
-            context={"updated": changed, "signal_detector": _system_state["signal_detector"]},
+            context={
+                "updated": changed,
+                "signal_detector": _system_state["signal_detector"],
+            },
         )
 
-    return jsonify({
-        "updated": changed,
-        "current": _system_state["signal_detector"],
-    })
+    return jsonify(
+        {
+            "updated": changed,
+            "current": _system_state["signal_detector"],
+        }
+    )
 
 
 @app.route("/api/oracle/config", methods=["GET"])
@@ -2232,7 +2423,12 @@ def oracle_config_set() -> ResponseReturnValue:
         # Validaciones específicas
         if key == "min_confidence" and not (0 <= casted <= 1):
             return jsonify({"error": "invalid_range:min_confidence"}), 400
-        if key == "model_type" and casted not in ["placeholder", "random_forest", "xgboost", "lightgbm"]:
+        if key == "model_type" and casted not in [
+            "placeholder",
+            "random_forest",
+            "xgboost",
+            "lightgbm",
+        ]:
             return jsonify({"error": "invalid_model_type"}), 400
 
         _system_state["oracle"][key] = casted
@@ -2250,10 +2446,12 @@ def oracle_config_set() -> ResponseReturnValue:
             context={"updated": changed, "oracle": _system_state["oracle"]},
         )
 
-    return jsonify({
-        "updated": changed,
-        "current": _system_state["oracle"],
-    })
+    return jsonify(
+        {
+            "updated": changed,
+            "current": _system_state["oracle"],
+        }
+    )
 
 
 @app.route("/api/rollback/list", methods=["GET"])
@@ -2276,7 +2474,12 @@ def rollback_restore() -> ResponseReturnValue:
         restored = _rollback_mgr.restore(path, verify_hash=True)
         # Actualizar estado del sistema con la config restaurada
         cfg = restored.get("config", {})
-        for k in ["max_drawdown_session_pct", "max_position_size_pct", "max_signals_per_hour", "min_signal_quality_score"]:
+        for k in [
+            "max_drawdown_session_pct",
+            "max_position_size_pct",
+            "max_signals_per_hour",
+            "min_signal_quality_score",
+        ]:
             if k in cfg:
                 _system_state[k] = cfg[k]
 
@@ -2284,13 +2487,12 @@ def rollback_restore() -> ResponseReturnValue:
             event=f"ROLLBACK ejecutado desde GUI: {Path(path).name}",
             level="warning",
             trigger="rollback_restore",
-            context={"restored_path": path, "elapsed_ms": restored["elapsed_ms"]}
+            context={"restored_path": path, "elapsed_ms": restored["elapsed_ms"]},
         )
         _health_monitor.record_metric("rollback_sla", restored["elapsed_ms"] / 1000.0)
         return jsonify({"status": "success", "restored": restored})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route("/api/lila/llm/status", methods=["GET"])
@@ -2313,18 +2515,18 @@ def switch_lila_llm_provider():
     """Cambiar el proveedor actual de Lila."""
     data = request.json or {}
     provider_name = data.get("provider")
-    
+
     if not provider_name:
         return jsonify({"error": "Missing provider name"}), 400
-        
+
     success = _assistant.switch_provider(provider_name)
     if success:
-        return jsonify({
-            "status": "success",
-            "active_provider": _assistant.provider.name
-        })
+        return jsonify(
+            {"status": "success", "active_provider": _assistant.provider.name}
+        )
     else:
         return jsonify({"error": f"Failed to switch to {provider_name}"}), 400
+
 
 @app.route("/api/learning/ingest/history", methods=["POST"])
 @require_auth
@@ -2336,11 +2538,12 @@ def learning_ingest_history() -> ResponseReturnValue:
             event=f"DEEP_LEARNING: History ingested - {stats['entries_created']} entries",
             trigger="learning_ingest_history",
             level="success",
-            context=stats
+            context=stats,
         )
         return jsonify(stats)
     except Exception as exc:
         return jsonify({"status": "error", "message": str(exc)}), 500
+
 
 @app.route("/api/assistant/chat", methods=["POST"])
 @require_auth
@@ -2348,7 +2551,7 @@ def assistant_chat() -> ResponseReturnValue:
     """Chat interactivo con Lila (Asistente v3). Capacidad de aprendizaje profundo activa."""
     data = request.get_json() or {}
     message = data.get("message", "").strip()
-    
+
     if not message:
         return jsonify({"error": "empty_message"}), 400
 
@@ -2356,13 +2559,21 @@ def assistant_chat() -> ResponseReturnValue:
         health = _health_monitor.status_snapshot()
         status = health.get("status", "unknown")
         low_msg = message.lower()
-        
+
         # COMANDOS ESPECIALES DE APRENDIZAJE (P4)
-        if any(kw in low_msg for kw in ["aprende de la historia", "learn from history", "revisa lo construido", "deep learning project"]):
+        if any(
+            kw in low_msg
+            for kw in [
+                "aprende de la historia",
+                "learn from history",
+                "revisa lo construido",
+                "deep learning project",
+            ]
+        ):
             # Trigger automatic ingestion
             stats = _history_learner.learn_from_history()
             resp = f"He completado el aprendizaje profundo de v3. He procesado {stats['iterations_found']} iteraciones y {stats['adrs_found']} decisiones arquitectónicas (ADRs). He creado {stats['entries_created']} nuevas entradas en mi memoria a largo plazo (Nivel 2 y 3). Ahora soy consciente de: {', '.join(stats['top_insights'][:3])}."
-        
+
         elif "estatus" in low_msg or "estado" in low_msg:
             resp = f"El sistema reporta un estado {status.upper()}. Tenemos {_health_monitor.total_samples} muestras en el monitor de salud."
         elif "audit" in low_msg or "p3" in low_msg:
@@ -2371,26 +2582,36 @@ def assistant_chat() -> ResponseReturnValue:
             resp = "Hola, soy Lila. Estoy monitoreando la integridad de los datos en tiempo real. ¿Deseas analizar algún experimento o que 'aprenda de la historia' v3?"
         else:
             # Usar el asistente consolidado (respeta el proveedor seleccionado en settings)
-            resp = _assistant.generate(f"Contexto: Trading System v3 Audit (Lila v3 Assistant). Sujeto: {message}")
+            resp = _assistant.generate(
+                f"Contexto: Trading System v3 Audit (Lila v3 Assistant). Sujeto: {message}"
+            )
 
         _record_control_cycle(
             event=f"LILA_CHAT: Interaction - Msg: {message[:30]}...",
             trigger="assistant_chat",
             level="info",
-            context={"message": message, "response": resp}
+            context={"message": message, "response": resp},
         )
-        
+
         return jsonify({"response": resp})
-        
+
     except Exception as exc:
-        return jsonify({"response": f"Hubo un error en mi núcleo de procesamiento v3: {exc}"})
+        return jsonify(
+            {"response": f"Hubo un error en mi núcleo de procesamiento v3: {exc}"}
+        )
+
 
 # ---------------------------------------------------------------------------
 # VAULT EVOLUTION & ACTIVE CONSTRUCTION (North Star 3.0.0)
 # ---------------------------------------------------------------------------
 
-from cgalpha_v3.application.pipeline import TripleCoincidencePipeline, SimpleFoundationPipeline
+from cgalpha_v3.application.pipeline import (
+    SimpleFoundationPipeline,
+    TripleCoincidencePipeline,
+)
+
 pipeline_v3 = TripleCoincidencePipeline(evolution_orchestrator=_evolution_orchestrator)
+
 
 @app.route("/api/vault/status", methods=["GET"])
 @require_auth
@@ -2401,34 +2622,79 @@ def vault_evolution_status():
         "blueprint_version": "v3.0.0-PRO",
         "evolution_phase": "CGAlpha v3 / Construction",
         "layers": {
-            "layer_1_provisional": {"total": 47, "unvalidated": 31, "in_review": 14, "purgeable": 2},
-            "layer_2_permanent_dna": {"total": 7, "active": 7, "avg_delta_causal": 0.84}
+            "layer_1_provisional": {
+                "total": 47,
+                "unvalidated": 31,
+                "in_review": 14,
+                "purgeable": 2,
+            },
+            "layer_2_permanent_dna": {
+                "total": 7,
+                "active": 7,
+                "avg_delta_causal": 0.84,
+            },
         },
         "components": [
-            {"id": "fetcher_v3", "name": "BinanceVisionFetcher_v3", "status": "ACTIVE", "delta": 0.85,
-             "role": "Ingestión OHLCV + datos de microestructura"},
-            {"id": "detector_v3", "name": "TripleCoincidenceDetector", "status": "ACTIVE", "delta": 0.82,
-             "role": "Detección zonas: vela clave + acumulación + mini-tendencia + retest monitoring"},
-            {"id": "monitor_v3", "name": "ZonePhysicsMonitor_v3", "status": "ACTIVE", "delta": 0.81,
-             "role": "Evaluación física del retest: REBOTE vs RUPTURA"},
-            {"id": "shadow_v3", "name": "ShadowTrader", "status": "ACTIVE", "delta": 0.88,
-             "role": "Posiciones virtuales: captura trayectorias MFE/MAE"},
-            {"id": "oracle_v3", "name": "OracleTrainer_v3", "status": "ACTIVE", "delta": 0.92,
-             "role": "Meta-Labeling: predice outcome del retest, entrena con dataset de retests"},
-            {"id": "gate_v3", "name": "NexusGate", "status": "ACTIVE", "delta": 1.0,
-             "role": "Gate binario: PROMOTE_TO_LAYER_2 vs REJECT"},
-            {"id": "proposer_v3", "name": "AutoProposer", "status": "ACTIVE", "delta": 0.75,
-             "role": "Detecta drift y propone ajustes paramétricos con causal_score estimado"}
+            {
+                "id": "fetcher_v3",
+                "name": "BinanceVisionFetcher_v3",
+                "status": "ACTIVE",
+                "delta": 0.85,
+                "role": "Ingestión OHLCV + datos de microestructura",
+            },
+            {
+                "id": "detector_v3",
+                "name": "TripleCoincidenceDetector",
+                "status": "ACTIVE",
+                "delta": 0.82,
+                "role": "Detección zonas: vela clave + acumulación + mini-tendencia + retest monitoring",
+            },
+            {
+                "id": "monitor_v3",
+                "name": "ZonePhysicsMonitor_v3",
+                "status": "ACTIVE",
+                "delta": 0.81,
+                "role": "Evaluación física del retest: REBOTE vs RUPTURA",
+            },
+            {
+                "id": "shadow_v3",
+                "name": "ShadowTrader",
+                "status": "ACTIVE",
+                "delta": 0.88,
+                "role": "Posiciones virtuales: captura trayectorias MFE/MAE",
+            },
+            {
+                "id": "oracle_v3",
+                "name": "OracleTrainer_v3",
+                "status": "ACTIVE",
+                "delta": 0.92,
+                "role": "Meta-Labeling: predice outcome del retest, entrena con dataset de retests",
+            },
+            {
+                "id": "gate_v3",
+                "name": "NexusGate",
+                "status": "ACTIVE",
+                "delta": 1.0,
+                "role": "Gate binario: PROMOTE_TO_LAYER_2 vs REJECT",
+            },
+            {
+                "id": "proposer_v3",
+                "name": "AutoProposer",
+                "status": "ACTIVE",
+                "delta": 0.75,
+                "role": "Detecta drift y propone ajustes paramétricos con causal_score estimado",
+            },
         ],
         "metrics": {
             "hit_rate_oos": "78.4%",
             "blind_test_ratio": "0.12",
-            "last_training": "2026-04-06 22:31:35"
-        }
+            "last_training": "2026-04-06 22:31:35",
+        },
     }
     return jsonify(status)
 
-@app.route('/api/lila/execute-cycle', methods=['POST'])
+
+@app.route("/api/lila/execute-cycle", methods=["POST"])
 @require_auth
 def execute_pipeline_cycle():
     """Iniciando ciclo manual de la estrategia desde la GUI."""
@@ -2446,7 +2712,8 @@ def execute_pipeline_cycle():
         }
     )
 
-@app.route('/api/lila/command', methods=['POST'])
+
+@app.route("/api/lila/command", methods=["POST"])
 @require_auth
 def lila_llm_orchestrator():
     """PUENTE DE ORQUESTACIÓN LLM REAL."""
@@ -2456,7 +2723,8 @@ def lila_llm_orchestrator():
     logger.warning(f"🧠 LLM ORCHESTRATOR -> {action} ON {target}")
     return jsonify({"status": "success", "action_executed": action})
 
-@app.route('/api/vault/promote', methods=['POST'])
+
+@app.route("/api/vault/promote", methods=["POST"])
 @require_auth
 def promote_component():
     """Promover un componente de Capa 1 a Capa 2."""
@@ -2470,10 +2738,12 @@ def promote_component():
 # EVOLUTION & LEARNING V4 ENDPOINTS
 # ───────────────────────────────────────────────────────────────────────────
 
+
 @app.route("/api/evolution/proposals", methods=["GET"])
 def get_evolution_proposals():
     """Lista propuestas de evolución pendientes (Cat.2/3)."""
     return jsonify(_evolution_orchestrator.get_pending_summary())
+
 
 @app.route("/api/evolution/landscape/propose", methods=["POST"])
 def propose_parameter_landscape():
@@ -2483,14 +2753,19 @@ def propose_parameter_landscape():
     """
     data = request.json or {}
     requested_by = data.get("requested_by", "operator")
-    result = _evolution_orchestrator.propose_parameter_landscape(requested_by=requested_by)
-    return jsonify({
-        "status": result.status,
-        "category": result.category,
-        "proposal_id": result.proposal_id,
-        "spec_summary": result.spec_summary,
-        "error": result.error,
-    })
+    result = _evolution_orchestrator.propose_parameter_landscape(
+        requested_by=requested_by
+    )
+    return jsonify(
+        {
+            "status": result.status,
+            "category": result.category,
+            "proposal_id": result.proposal_id,
+            "spec_summary": result.spec_summary,
+            "error": result.error,
+        }
+    )
+
 
 @app.route("/api/evolution/landscape", methods=["GET"])
 def get_parameter_landscape():
@@ -2500,16 +2775,20 @@ def get_parameter_landscape():
         return jsonify({"error": "parameter_landscape_map_not_found"}), 404
     return jsonify(artifact)
 
+
 @app.route("/api/evolution/proposal/<proposal_id>/approve", methods=["POST"])
 def approve_evolution_proposal(proposal_id):
     """Aprueba una propuesta y dispara ejecución via Sage."""
     result = _evolution_orchestrator.approve_proposal(proposal_id, approved_by="human")
-    return jsonify({
-        "status": result.status,
-        "category": result.category,
-        "proposal_id": result.proposal_id,
-        "error": result.error
-    })
+    return jsonify(
+        {
+            "status": result.status,
+            "category": result.category,
+            "proposal_id": result.proposal_id,
+            "error": result.error,
+        }
+    )
+
 
 @app.route("/api/evolution/proposal/<proposal_id>/reject", methods=["POST"])
 def reject_evolution_proposal(proposal_id):
@@ -2517,11 +2796,14 @@ def reject_evolution_proposal(proposal_id):
     data = request.json or {}
     reason = data.get("reason", "No reason provided")
     result = _evolution_orchestrator.reject_proposal(proposal_id, reason=reason)
-    return jsonify({
-        "status": result.status,
-        "category": result.category,
-        "proposal_id": result.proposal_id
-    })
+    return jsonify(
+        {
+            "status": result.status,
+            "category": result.category,
+            "proposal_id": result.proposal_id,
+        }
+    )
+
 
 @app.route("/api/evolution/log", methods=["GET"])
 def get_evolution_log():
@@ -2529,30 +2811,36 @@ def get_evolution_log():
     log_path = project_root / "cgalpha_v3/memory/evolution_log.jsonl"
     if not log_path.exists():
         return jsonify([])
-    
+
     lines = log_path.read_text().strip().split("\n")
     return jsonify([json.loads(line) for line in lines if line.strip()])
+
 
 @app.route("/api/evolution/stats", methods=["GET"])
 def get_evolution_stats():
     """Estadísticas de evolución para el dashboard."""
-    return jsonify({
-        "stats": _evolution_orchestrator.get_stats(),
-        "routing": _llm_switcher.get_routing_table() if _llm_switcher else {}
-    })
+    return jsonify(
+        {
+            "stats": _evolution_orchestrator.get_stats(),
+            "routing": _llm_switcher.get_routing_table() if _llm_switcher else {},
+        }
+    )
+
 
 @app.route("/api/evolution/heartbeat", methods=["GET"])
 def get_evolution_heartbeat():
     """Retorna el pulso de la ejecución continua de 24h desde scripts/run_24h.py."""
     heartbeat_path = project_root / "execution_24h_heartbeat.json"
     if not heartbeat_path.exists():
-        return jsonify({
-            "status": "OFFLINE",
-            "message": "En espera de latido de run_24h.py...",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "cycle": 0
-        })
-    
+        return jsonify(
+            {
+                "status": "OFFLINE",
+                "message": "En espera de latido de run_24h.py...",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "cycle": 0,
+            }
+        )
+
     try:
         with open(heartbeat_path, "r") as f:
             data = json.load(f)
@@ -2561,30 +2849,38 @@ def get_evolution_heartbeat():
         logger.error(f"Error reading heartbeat: {e}")
         return jsonify({"status": "ERROR", "message": str(e)}), 500
 
+
 @app.route("/learning/operator", methods=["GET"])
 def get_whitepaper_html():
     """Renderiza el WHITEPAPER.md como HTML para el operador."""
     wp_path = Path("cgalpha_v4/WHITEPAPER.md")
     if not wp_path.exists():
         return "White Paper not found", 404
-    
+
     content = wp_path.read_text()
     # Simplificación: En producción usaríamos un convertidor markdown -> html
     return f"<html><body style='background:#121212; color:#eee; font-family:sans-serif; padding:40px;'><pre>{content}</pre></body></html>"
+
 
 @app.route("/learning/lila", methods=["GET"])
 def get_lila_insights():
     """Dashboard de reflexiones y sabiduría de Lila."""
     insights = _memory_engine.list_entries(field="memory_librarian", limit=20)
-    return jsonify([{
-        "id": e.entry_id,
-        "content": e.content,
-        "level": e.level.value,
-        "timestamp": e.created_at.isoformat(),
-        "tags": e.tags
-    } for e in insights])
+    return jsonify(
+        [
+            {
+                "id": e.entry_id,
+                "content": e.content,
+                "level": e.level.value,
+                "timestamp": e.created_at.isoformat(),
+                "tags": e.tags,
+            }
+            for e in insights
+        ]
+    )
 
-@app.route('/api/vault/purge', methods=['POST'])
+
+@app.route("/api/vault/purge", methods=["POST"])
 @require_auth
 def purge_legacy_origin():
     """Eliminar origen en Capa 1 tras promoción."""
@@ -2593,11 +2889,13 @@ def purge_legacy_origin():
     logger.warning(f"🔥 PURGA: {component_id}")
     return jsonify({"status": "purged", "component_id": component_id})
 
+
 # ---------------------------------------------------------------------------
 # Training Review — Datos para el gráfico de revisión pre-entrenamiento
 # ---------------------------------------------------------------------------
 
-@app.route('/api/training/review-data', methods=['GET'])
+
+@app.route("/api/training/review-data", methods=["GET"])
 @require_auth
 def get_training_review_data():
     """
@@ -2614,19 +2912,21 @@ def get_training_review_data():
     # 1. Load OHLCV
     ohlcv = []
     if ohlcv_path.exists():
-        with open(ohlcv_path, newline='') as f:
+        with open(ohlcv_path, newline="") as f:
             reader = csv.DictReader(f)
             for i, row in enumerate(reader):
-                ohlcv.append({
-                    "index": i,
-                    "timestamp": int(row.get("close_time", 0)),
-                    "open": float(row["open"]),
-                    "high": float(row["high"]),
-                    "low": float(row["low"]),
-                    "close": float(row["close"]),
-                    "volume": float(row["volume"]),
-                    "regime": row.get("regime", "UNKNOWN"),
-                })
+                ohlcv.append(
+                    {
+                        "index": i,
+                        "timestamp": int(row.get("close_time", 0)),
+                        "open": float(row["open"]),
+                        "high": float(row["high"]),
+                        "low": float(row["low"]),
+                        "close": float(row["close"]),
+                        "volume": float(row["volume"]),
+                        "regime": row.get("regime", "UNKNOWN"),
+                    }
+                )
 
     # 2. Load retests
     retests = []
@@ -2654,9 +2954,9 @@ def get_training_review_data():
         end_idx = min(len(ohlcv) - 1, retest_idx)
 
         zone_top = 0
-        zone_bottom = float('inf')
+        zone_bottom = float("inf")
         if ohlcv and start_idx <= end_idx:
-            zone_candles = ohlcv[start_idx:end_idx + 1]
+            zone_candles = ohlcv[start_idx : end_idx + 1]
             zone_top = max(c["high"] for c in zone_candles) if zone_candles else 0
             zone_bottom = min(c["low"] for c in zone_candles) if zone_candles else 0
 
@@ -2683,29 +2983,35 @@ def get_training_review_data():
         for zid, zone_info in zone_map.items():
             if idx == zone_info["key_candle_index"]:
                 first_retest = zone_info["retests"][0] if zone_info["retests"] else {}
-                annotations.append({
-                    "type": "key_candle",
-                    "zone_id": zid,
-                    "direction": zone_info["direction"],
-                    "quality_score": first_retest.get("quality_score", 0.5),
-                })
+                annotations.append(
+                    {
+                        "type": "key_candle",
+                        "zone_id": zid,
+                        "direction": zone_info["direction"],
+                        "quality_score": first_retest.get("quality_score", 0.5),
+                    }
+                )
 
         # Check if this candle is a retest point
         for rt in retests:
             if rt.get("retest_index") == idx:
-                annotations.append({
-                    "type": "retest",
-                    "zone_id": rt.get("zone_id"),
-                    "retest_price": rt.get("retest_price"),
-                    "outcome": rt.get("outcome"),
-                    "direction": rt.get("direction"),
-                    "regime": rt.get("regime"),
-                    "delta_divergence": rt.get("delta_divergence"),
-                    "vwap_at_retest": rt.get("vwap_at_retest"),
-                    "obi_10_at_retest": rt.get("obi_10_at_retest"),
-                    "cumulative_delta_at_retest": rt.get("cumulative_delta_at_retest"),
-                    "atr_14": rt.get("atr_14"),
-                })
+                annotations.append(
+                    {
+                        "type": "retest",
+                        "zone_id": rt.get("zone_id"),
+                        "retest_price": rt.get("retest_price"),
+                        "outcome": rt.get("outcome"),
+                        "direction": rt.get("direction"),
+                        "regime": rt.get("regime"),
+                        "delta_divergence": rt.get("delta_divergence"),
+                        "vwap_at_retest": rt.get("vwap_at_retest"),
+                        "obi_10_at_retest": rt.get("obi_10_at_retest"),
+                        "cumulative_delta_at_retest": rt.get(
+                            "cumulative_delta_at_retest"
+                        ),
+                        "atr_14": rt.get("atr_14"),
+                    }
+                )
 
         if annotations:
             candle["annotations"] = annotations
@@ -2714,41 +3020,49 @@ def get_training_review_data():
     # 6. Build zone summary list
     zones_summary = []
     for zid, zone_info in zone_map.items():
-        zones_summary.append({
-            "zone_id": zid,
-            "direction": zone_info["direction"],
-            "key_candle_index": zone_info["key_candle_index"],
-            "zone_top": zone_info["zone_top"],
-            "zone_bottom": zone_info["zone_bottom"],
-            "zone_start_idx": zone_info["zone_start_idx"],
-            "zone_end_idx": zone_info["zone_end_idx"],
-            "retest_count": len(zone_info["retests"]),
-            "retest_indices": [rt.get("retest_index") for rt in zone_info["retests"]],
-        })
+        zones_summary.append(
+            {
+                "zone_id": zid,
+                "direction": zone_info["direction"],
+                "key_candle_index": zone_info["key_candle_index"],
+                "zone_top": zone_info["zone_top"],
+                "zone_bottom": zone_info["zone_bottom"],
+                "zone_start_idx": zone_info["zone_start_idx"],
+                "zone_end_idx": zone_info["zone_end_idx"],
+                "retest_count": len(zone_info["retests"]),
+                "retest_indices": [
+                    rt.get("retest_index") for rt in zone_info["retests"]
+                ],
+            }
+        )
 
     # 7. Build summary
     bounce_count = sum(1 for rt in retests if rt.get("outcome") == "BOUNCE")
     breakout_count = sum(1 for rt in retests if rt.get("outcome") == "BREAKOUT")
 
-    return jsonify({
-        "ohlcv": ohlcv,
-        "ohlcv_annotated": ohlcv_annotated,
-        "retests": retests,
-        "zones": list(zone_map.keys()),
-        "zones_summary": zones_summary,
-        "zone_count": len(zone_map),
-        "retest_count": len(retests),
-        "candle_count": len(ohlcv),
-        "outcome_distribution": {
-            "BOUNCE": bounce_count,
-            "BREAKOUT": breakout_count,
-            "bounce_pct": round(bounce_count / len(retests) * 100, 1) if retests else 0,
-        },
-        "training_samples_count": len(training_samples),
-    })
+    return jsonify(
+        {
+            "ohlcv": ohlcv,
+            "ohlcv_annotated": ohlcv_annotated,
+            "retests": retests,
+            "zones": list(zone_map.keys()),
+            "zones_summary": zones_summary,
+            "zone_count": len(zone_map),
+            "retest_count": len(retests),
+            "candle_count": len(ohlcv),
+            "outcome_distribution": {
+                "BOUNCE": bounce_count,
+                "BREAKOUT": breakout_count,
+                "bounce_pct": round(bounce_count / len(retests) * 100, 1)
+                if retests
+                else 0,
+            },
+            "training_samples_count": len(training_samples),
+        }
+    )
 
 
-@app.route('/api/training/retest/<retest_id>/approve', methods=['POST'])
+@app.route("/api/training/retest/<retest_id>/approve", methods=["POST"])
 @require_auth
 def approve_retest(retest_id):
     """Marcar un retest como aprobado para entrenamiento del Oracle."""
@@ -2759,11 +3073,11 @@ def approve_retest(retest_id):
             "ts": datetime.now(timezone.utc).isoformat(),
             "retest_id": retest_id,
             "decision": "APPROVED",
-            "source": "human"
+            "source": "human",
         }
         with open(curation_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
-        
+
         _log_event(f"RETEST_CURATION: Approved {retest_id}", level="info")
         return jsonify({"status": "approved", "retest_id": retest_id})
     except Exception as e:
@@ -2771,7 +3085,7 @@ def approve_retest(retest_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-@app.route('/api/training/retest/<retest_id>/reject', methods=['POST'])
+@app.route("/api/training/retest/<retest_id>/reject", methods=["POST"])
 @require_auth
 def reject_retest(retest_id):
     """Marcar un retest como excluido del entrenamiento del Oracle."""
@@ -2782,16 +3096,17 @@ def reject_retest(retest_id):
             "ts": datetime.now(timezone.utc).isoformat(),
             "retest_id": retest_id,
             "decision": "REJECTED",
-            "source": "human"
+            "source": "human",
         }
         with open(curation_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
-        
+
         _log_event(f"RETEST_CURATION: Rejected {retest_id}", level="warning")
         return jsonify({"status": "rejected", "retest_id": retest_id})
     except Exception as e:
         logger.error(f"Error in reject_retest: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 # ---------------------------------------------------------------------------
 # Arranque
@@ -2799,23 +3114,31 @@ def reject_retest(retest_id):
 
 logger = logging.getLogger("cgalpha_v3")
 
+import random
 import threading
 import time
-import random
 
 
-def _read_live_market_price() -> float:
+def _read_live_market_price(symbol: str = "BTCUSDT") -> float:
     """
     Lee el precio de mercado real persistido por el shadow trader.
     Fallback: Binance REST API si el archivo no existe o es muy antiguo (>5min).
     Retorna 0.0 solo si ambas fuentes fallan.
     """
-    price_path = project_root / "aipha_memory" / "operational" / "market_price.json"
+    safe_symbol = symbol.replace("/", "_").upper()
+    price_path = (
+        project_root
+        / "aipha_memory"
+        / "operational"
+        / f"market_price_{safe_symbol}.json"
+    )
     try:
         if price_path.exists():
             data = json.loads(price_path.read_text())
             price = float(data.get("price", 0.0))
-            if price > 1000:  # Sanity check for BTC
+            # Sanity check: BTC > 1000, ETH > 100 (evita precios corruptos)
+            min_sane = 1000.0 if "BTC" in safe_symbol else 100.0
+            if price > min_sane:
                 return price
     except (json.JSONDecodeError, OSError, TypeError):
         pass
@@ -2823,13 +3146,14 @@ def _read_live_market_price() -> float:
     # Fallback: Binance REST API (one-shot, no dependency)
     try:
         import urllib.request
+
         resp = urllib.request.urlopen(
-            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-            timeout=3
+            f"https://api.binance.com/api/v3/ticker/price?symbol={symbol.upper()}",
+            timeout=3,
         )
         data = json.loads(resp.read().decode())
         price = float(data.get("price", 0.0))
-        if price > 1000:
+        if price > 0:
             return price
     except Exception:
         pass
@@ -2841,25 +3165,40 @@ def _simulation_loop():
     """Bucle de vida para animar la Sala de Mando (CGAlpha v3 Mock)."""
     while True:
         try:
-            # 1. Read real market price from live pipeline
-            live_price = _read_live_market_price()
+            live_price = 0.0
+            try:
+                state = _ws_manager.order_book_state.get(
+                    _system_state.get("market_symbol", "BTCUSDT"), {}
+                )
+                if state and state.get("bids") and state.get("asks"):
+                    best_bid = float(state["bids"][0][0])
+                    best_ask = float(state["asks"][0][0])
+                    live_price = (best_bid + best_ask) / 2
+            except Exception:
+                pass
+
+            if live_price == 0.0:
+                live_price = _read_live_market_price(
+                    _system_state.get("market_symbol", "BTCUSDT")
+                )
+
             if live_price > 0:
                 _system_state["market_price"] = live_price
             _system_state["market_ts"] = datetime.now().isoformat()
-            
+
             # 2. Simular Causal Drift & Trinity (OBI/Delta)
             _system_state["primary_source_gap"] = round(random.uniform(0.01, 1.25), 2)
-            
+
             # 3. Generar Micro-Eventos en el Nexus
             if random.random() > 0.85:
                 _log_event(
                     f"TRINITY UPDATE: OBI/Delta Shift detectado ({random.choice(['Long', 'Short'])})",
-                    level="info"
+                    level="info",
                 )
 
             # 4. Simular Recomendaciones del AutoProposer (NUEVO)
             # El bucle ha sido desactivado a petición para evitar ruido excesivo.
-            
+
             time.sleep(3)
         except Exception as e:
             logger.error(f"❌ Simulation Loop Error: {e}")
@@ -2869,6 +3208,7 @@ def _simulation_loop():
 # ---------------------------------------------------------------------------
 # L2 Forensics API — Observabilidad del pipeline de microestructura
 # ---------------------------------------------------------------------------
+
 
 def _load_pending_labels_from_disk() -> list[dict[str, Any]]:
     """
@@ -2900,15 +3240,17 @@ def _load_pending_labels_from_disk() -> list[dict[str, Any]]:
         except (TypeError, ValueError):
             continue
 
-        summary.append({
-            "sample_id": item.get("sample_id", "unknown"),
-            "direction": item.get("zone_direction", "?"),
-            "entry_price": entry_price,
-            "bars_elapsed": bars_elapsed,
-            "lookahead_bars": lookahead_bars,
-            "mfe": mfe,
-            "mae": mae,
-        })
+        summary.append(
+            {
+                "sample_id": item.get("sample_id", "unknown"),
+                "direction": item.get("zone_direction", "?"),
+                "entry_price": entry_price,
+                "bars_elapsed": bars_elapsed,
+                "lookahead_bars": lookahead_bars,
+                "mfe": mfe,
+                "mae": mae,
+            }
+        )
 
     return summary
 
@@ -2940,10 +3282,17 @@ def api_l2_forensics_status():
             pending_source = "disk_fallback"
 
     # Leer contadores del dataset de entrenamiento v2
-    training_path = project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+    training_path = (
+        project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+    )
     dataset_lines = 0
     full_samples = 0
-    outcome_distribution = {"BOUNCE_STRONG": 0, "BOUNCE_WEAK": 0, "BREAKOUT": 0, "INCONCLUSIVE": 0}
+    outcome_distribution = {
+        "BOUNCE_STRONG": 0,
+        "BOUNCE_WEAK": 0,
+        "BREAKOUT": 0,
+        "INCONCLUSIVE": 0,
+    }
     if training_path.exists():
         try:
             with open(training_path) as f:
@@ -2957,9 +3306,12 @@ def api_l2_forensics_status():
                         label = row.get("outcome", {}).get("label", "UNKNOWN")
                         if label in outcome_distribution:
                             outcome_distribution[label] += 1
-                        
+
                         # Phase Bridge F3/L2 Check
-                        if row.get("l2_temporal_profile", {}).get("l2_data_quality") == "FULL":
+                        if (
+                            row.get("l2_temporal_profile", {}).get("l2_data_quality")
+                            == "FULL"
+                        ):
                             full_samples += 1
                     except json.JSONDecodeError:
                         pass
@@ -2976,16 +3328,18 @@ def api_l2_forensics_status():
         except Exception:
             pass
 
-    return jsonify({
-        "pending_count": pending_count,
-        "resolved_count": resolved_count,
-        "dataset_total": dataset_lines,
-        "full_samples": full_samples,
-        "outcome_distribution": outcome_distribution,
-        "active_monitors": pending_summary,
-        "active_zones": active_zones_disk,
-        "pending_source": pending_source,
-    })
+    return jsonify(
+        {
+            "pending_count": pending_count,
+            "resolved_count": resolved_count,
+            "dataset_total": dataset_lines,
+            "full_samples": full_samples,
+            "outcome_distribution": outcome_distribution,
+            "active_monitors": pending_summary,
+            "active_zones": active_zones_disk,
+            "pending_source": pending_source,
+        }
+    )
 
 
 @app.route("/api/l2-forensics/history", methods=["GET"])
@@ -2997,11 +3351,15 @@ def api_l2_forensics_history():
     """
     limit = min(int(request.args.get("limit", 20)), 100)
 
-    training_path = project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+    training_path = (
+        project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+    )
     entries = []
     if training_path.exists():
         try:
-            for line in _read_last_lines(training_path, limit, max_scan_bytes=8 * 1024 * 1024):
+            for line in _read_last_lines(
+                training_path, limit, max_scan_bytes=8 * 1024 * 1024
+            ):
                 line = line.strip()
                 if not line:
                     continue
@@ -3012,24 +3370,26 @@ def api_l2_forensics_history():
                     zg = row.get("zone_geometry", {})
                     outcome = row.get("outcome", {})
                     l2 = row.get("l2_snapshot_at_touch", {})
-                    entries.append({
-                        "sample_id": meta.get("sample_id", "unknown"),
-                        "capture_ts": meta.get("capture_ts_unix_ms", 0),
-                        "symbol": meta.get("symbol", "BTCUSDT"),
-                        "direction": zg.get("direction", "?"),
-                        "zone_top": zg.get("zone_top"),
-                        "zone_bottom": zg.get("zone_bottom"),
-                        "zone_width_atr": zg.get("zone_width_atr"),
-                        "retest_price": l2.get("retest_price"),
-                        "obi_10": l2.get("obi_10"),
-                        "cum_delta": l2.get("cumulative_delta"),
-                        "label": outcome.get("label", "UNKNOWN"),
-                        "mfe": outcome.get("mfe"),
-                        "mae": outcome.get("mae"),
-                        "mfe_atr": outcome.get("mfe_atr"),
-                        "mae_atr": outcome.get("mae_atr"),
-                        "bars_to_resolution": outcome.get("bars_to_resolution"),
-                    })
+                    entries.append(
+                        {
+                            "sample_id": meta.get("sample_id", "unknown"),
+                            "capture_ts": meta.get("capture_ts_unix_ms", 0),
+                            "symbol": meta.get("symbol", "BTCUSDT"),
+                            "direction": zg.get("direction", "?"),
+                            "zone_top": zg.get("zone_top"),
+                            "zone_bottom": zg.get("zone_bottom"),
+                            "zone_width_atr": zg.get("zone_width_atr"),
+                            "retest_price": l2.get("retest_price"),
+                            "obi_10": l2.get("obi_10"),
+                            "cum_delta": l2.get("cumulative_delta"),
+                            "label": outcome.get("label", "UNKNOWN"),
+                            "mfe": outcome.get("mfe"),
+                            "mae": outcome.get("mae"),
+                            "mfe_atr": outcome.get("mfe_atr"),
+                            "mae_atr": outcome.get("mae_atr"),
+                            "bars_to_resolution": outcome.get("bars_to_resolution"),
+                        }
+                    )
                 except json.JSONDecodeError:
                     pass
         except OSError:
@@ -3065,10 +3425,10 @@ def main():
     print(f"[CGAlpha v3 / Control Room] Auth token activo: {AUTH_TOKEN[:8]}...")
     print("[CGAlpha v3 / Control Room] Active Builder v3.0 iniciado")
     _log_event("CGAlpha v3 / Control Room iniciado")
-    
+
     # Iniciar simulación de vida
     threading.Thread(target=_simulation_loop, daemon=True).start()
-    
+
     # Iniciar pulso de evolución v4 (escalaciones periódicas)
     def _evolution_pulse():
         while True:
@@ -3079,7 +3439,7 @@ def main():
             except Exception as e:
                 logger.error(f"❌ Evolution Pulse Error: {e}")
             time.sleep(60)  # v4: check every 60s
-    
+
     threading.Thread(target=_evolution_pulse, daemon=True).start()
 
     # Arrancar WS Managers en segundo plano (Fase 4.2)
@@ -3095,16 +3455,79 @@ def main():
         try:
             loop.run_forever()
         finally:
+
             async def _shutdown():
                 for ws in _ws_managers.values():
                     await ws.stop()
 
             loop.run_until_complete(_shutdown())
             loop.close()
-    
+
     ws_thread = threading.Thread(target=start_all_ws, daemon=True)
     ws_thread.start()
-    
+
+    @app.route("/api/admin/read-file", methods=["GET"])
+    @require_auth
+    def api_admin_read_file():
+        """
+        Lee un archivo del sistema de forma segura (restringido a root del proyecto).
+        Query params:
+            - path: ruta relativa al root del proyecto
+            - limit: (opcional) últimas N líneas
+        """
+        rel_path = request.args.get("path")
+        if not rel_path:
+            return jsonify({"error": "Falta parámetro 'path'"}), 400
+
+        # Prevenir Directory Traversal
+        full_path = (project_root / rel_path).resolve()
+        if not str(full_path).startswith(str(project_root)):
+            return jsonify(
+                {"error": f"Acceso denegado: {rel_path} está fuera de la raíz"}
+            ), 403
+
+        if not full_path.exists():
+            return jsonify({"error": f"Archivo no encontrado: {rel_path}"}), 404
+
+        limit_arg = request.args.get("limit")
+        if limit_arg:
+            try:
+                limit = int(limit_arg)
+                lines = _read_last_lines(full_path, limit)
+                return jsonify(
+                    {
+                        "content": "\n".join(lines),
+                        "path": rel_path,
+                        "limit": limit,
+                        "lines_read": len(lines),
+                    }
+                )
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        else:
+            try:
+                # Comprobar si es binario (heurística simple)
+                with open(full_path, "rb") as f:
+                    chunk = f.read(1024)
+                    if b"\0" in chunk:
+                        return jsonify(
+                            {"error": "No se pueden leer archivos binarios"}
+                        ), 400
+
+                content = full_path.read_text(encoding="utf-8", errors="ignore")
+                # Cap a 1MB por seguridad
+                if len(content) > 1024 * 1024:
+                    return jsonify(
+                        {
+                            "error": "Archivo demasiado grande (>1MB). Use el parámetro 'limit' para leer solo el final."
+                        }
+                    ), 413
+                return jsonify(
+                    {"content": content, "path": rel_path, "size_bytes": len(content)}
+                )
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
     app.run(host=HOST, port=PORT, debug=False)
 
 
