@@ -243,6 +243,13 @@ VERIFICACIONES COMPLETADAS:
   [x] zone_max_distance_atr marcado PROVISIONAL en código + ticket
   [x] debt_class corregida a CONSOLIDATION_DEBT + calibration_pending
       (ya no CALIBRATION_DEBT, clase no canónica)
+  [x] Despliegue real del fix verificado (Ruta C — Paso 7):
+      - PID viejo 309946 arrancó 2026-06-19 20:12:51, ANTERIOR al fix
+        (commit 2155bdd 2026-06-19 20:21:27).
+      - Proceso detenido, nuevo PID 460712 arrancado 2026-06-20 06:37:54,
+        POSTERIOR al fix.
+      - Archivos operativos (active_zones.json, detector_state.json,
+        market_price_BTCUSDT.json) se actualizan cada ~60s.
 
 COMMITS:
   e984c61 — fix stale active zones after restart
@@ -255,18 +262,25 @@ ejes ortogonales. zone_max_distance_atr sigue sin pasar por análisis
 de percentiles — eso es lo único que puede subir la maturity de este
 ticket, no la calidad de la verificación del fix en sí.
 
-ESTADO POST-REINICIO (verificado 2026-06-14):
+ESTADO POST-REINICIO (verificado 2026-06-20):
   active_zones: 0          → Criterio #1 CUMPLIDO (zonas viejas no
                               reaparecieron)
-  dataset_total: 236        → pipeline no interrumpido durante el
-  full_samples: 94            trabajo (85→92→94 FULL en esta sesión)
-  pending_count: 0
+  dataset_total: 236        → congelado desde 2026-06-19 09:27:02,
+  full_samples: 94            NO por el reinicio; sin zonas no hay
+  pending_count: 0            retests, sin retests no hay samples.
 
-  Criterio #2 (zona nueva detectada en ~50 velas) AÚN NO VERIFICABLE
-  — active_zones=0 es consistente tanto con "fix funcionó, el
-  mercado no ha formado zona válida todavía" como con "el bug
-  persiste". Ticket permanece en EXECUTING, no pasa a IMPLEMENTED,
-  hasta observar al menos una detección real post-fix.
+  Criterio #2 (zona nueva detectada en ~50 velas): NO CUMPLIDO en
+  ~90 velas posteriores al reinicio.
+
+  TEST AISLADO DE CONTROL (misma config que live_adapter.py):
+    - 200 velas 1m de Binance REST → 0 zonas detectadas.
+    - 500 velas 5m de Binance REST → 9 zonas detectadas.
+    - Simulación de velas heartbeat (10% y 50% con volume=0.0) sobre
+      las 200 velas 1m → 0 zonas detectadas.
+  Conclusión del test: el detector funciona y detecta zonas en 5m;
+  en 1m el régimen actual de BTC no genera coincidencias con los
+  thresholds actuales. No es un bug del fix; es deuda de calibración
+  en 1m.
 
 CRITERIOS DE ÉXITO post-reinicio:
   1. Las 2 zonas viejas (66.5k-66.0k) no reaparecen
@@ -275,12 +289,18 @@ CRITERIOS DE ÉXITO post-reinicio:
   3. El dataset sigue creciendo (training_dataset_v2.jsonl)
 
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [ ] RECONSTRUCTION_MAP_UPDATE
+  [ ] RECONSTRUCTION_MAP_UPDATE (incluir lección de despliegue:
+      "verificar siempre que el PID en memoria sea posterior al
+      commit del fix")
   [ ] ADR-EVO-TICKET-0005-1: cleanup por tiempo+distancia vs índice
       (alternativas: índice estable cross-restart vs timestamp+ATR
       — se eligió la segunda, requiere ADR por afectar componente P5)
   [ ] Iniciar CRB de TripleCoincidenceDetector (P5) — este ticket es
       la primera evidencia real de por qué P5 necesita CRB propio
+  [ ] Calibrar thresholds de detección en 1m (KeyCandleDetector,
+      AccumulationZoneDetector, zone_max_distance_atr) usando
+      zscore_calibration_log.jsonl u otra fuente de percentiles
+      reales. Hasta entonces, calibration_pending permanece true.
   [ ] Cuando calibration_pending se resuelva: nuevo EVO-TICKET para
       el valor calibrado de zone_max_distance_atr (no reabrir este)
 ```
@@ -349,7 +369,7 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 | EVO-TICKET-0002 | bloqueado P3/P4 | — | — | EXPANSION | DORMANT |
 | EVO-TICKET-0003 | 2026-06-13 | pendiente formal | ADR-EVO-TICKET-0003-1 ✅ | EMERGENCY | IMPLEMENTED |
 | EVO-TICKET-0004 | pendiente | pendiente | pendiente | EXPANSION | READY_FOR_CODEX |
-| EVO-TICKET-0005 | pendiente (verif. en curso) | pendiente | pendiente | CONSOLIDATION + calibration_pending | EXECUTING |
+| EVO-TICKET-0005 | pendiente (fix desplegado y verificado; falta RMU/ADR/calibración) | pendiente | pendiente | CONSOLIDATION + calibration_pending | EXECUTING |
 
 ---
 
@@ -379,4 +399,8 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 {"event":"verification_completed","ticket":"EVO-TICKET-0005","method":"git checkout <commit>^ -- files + pytest","result":"2 failed 2 passed identical before/after — pre-existing failures, no regression","timestamp":"2026-06-19T20:25:00Z"}
 {"event":"collection_verified","ticket":"EVO-TICKET-0005","method":"pytest --collect-only","result":"4 tests collected, no import errors silencing tests","timestamp":"2026-06-19T20:25:00Z"}
 {"event":"post_restart_check","ticket":"EVO-TICKET-0005","active_zones":0,"dataset_total":236,"full_samples":94,"pending_count":0,"criterion_1":"PASSED (stale zones did not reappear)","criterion_2":"NOT_YET_VERIFIABLE (no new zone formed since restart)","timestamp":"2026-06-19T20:30:00Z"}
+{"event":"deployment_protocol_executed","ticket":"EVO-TICKET-0005","route":"C","step":7,"old_pid":309946,"old_pid_start":"2026-06-19T18:12:51Z","fix_commit":"2155bdd","fix_commit_time":"2026-06-19T18:21:27Z","new_pid":460712,"new_pid_start":"2026-06-20T04:37:54Z","verification":"new_pid_start > fix_commit_time","result":"CONFIRMED","timestamp":"2026-06-20T04:38:00Z"}
+{"event":"isolated_control_test","ticket":"EVO-TICKET-0005","config":"TripleCoincidenceDetector() default (same as live_adapter.py)","data_sources":["Binance REST 1m","Binance REST 5m","1m with synthetic heartbeat volume=0.0"],"results":{"1m_200_bars":0,"5m_500_bars":9,"1m_with_10pct_zero_volume":0,"1m_with_50pct_zero_volume":0},"conclusion":"detector works in 5m; 1m current BTC regime does not produce detections with current thresholds","timestamp":"2026-06-20T06:15:00Z"}
+{"event":"calibration_scope_expanded","ticket":"EVO-TICKET-0005","from_parameter":"zone_max_distance_atr","to_parameters":["zone_max_distance_atr","volume_z_threshold","volume_percentile_threshold","body_percentage_threshold","quality_threshold","r2_min"],"reason":"1m detection silence points to broader 1m threshold calibration, not just zone distance","evidence":"isolated_control_test 1m=0 zones vs 5m=9 zones","timestamp":"2026-06-20T06:15:00Z"}
+{"event":"zscore_log_status","ticket":"EVO-TICKET-0005","file":"aipha_memory/operational/zscore_calibration_log.jsonl","lines":0,"last_modified":"2026-06-17T05:12:00Z","status":"dormant_instrumentation_no_consumer","note":"Existing Cat.1 instrumentation ready to feed percentile calibration once feed_kline_for_zone_detection runs regularly","timestamp":"2026-06-20T06:15:00Z"}
 ```
