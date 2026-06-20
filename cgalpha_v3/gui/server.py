@@ -136,9 +136,11 @@ for symbol in SYMBOLS:
     # Inyectar Oracle y Nexus en cada adaptador
     _adapters[symbol].inject_oracle(_oracle_v3)
     _adapters[symbol].nexus = NexusGate(_oracle_v3.get_causal_signature())
-    # Warm-start: hidratar buffer de klines para evitar cold start de 30+ min.
-    # 200 bars gives the ZigZag trend detector enough history to find valid
-    # segments while still keeping the window recent enough for live zones.
+    # Warm-start: hidratar buffer de klines para evitar cold start.
+    # EVO-TICKET-0006: live_adapter operates at 5m, so 200 bars = 200
+    # 5-minute candles (~16.6h). This gives the ZigZag trend detector
+    # enough history to find valid segments while keeping the window
+    # recent enough for live zones.
     try:
         _adapters[symbol].warm_start(lookback_bars=200)
     except Exception as e:

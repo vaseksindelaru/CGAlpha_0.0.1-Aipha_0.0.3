@@ -70,7 +70,11 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         # Candle aggregation
         self.current_kline: Dict[str, Any] = {}
-        self.interval_s = 60
+        # EVO-TICKET-0006: 5m operation aligns with detector calibration.
+        # The detector's zigzag_threshold (0.0018) was calibrated against
+        # real BTCUSDT 5m candle ranges (P75). Operating at 1m was an
+        # undocumented MVP default (commit aa0190df). See ADR-EVO-TICKET-0006-1.
+        self.interval_s = 300
         self.symbol = "BTCUSDT"
         self._last_kline_close = 0
 
@@ -140,9 +144,12 @@ class LiveDataFeedAdapter(BaseComponentV3):
             logger.warning("⚠️ Detector no soporta seed_history — warm start omitido.")
             return False
 
+        # EVO-TICKET-0006: warm_start must match the live candle interval.
+        # Detector calibration assumes 5m candles; requesting 1m here would
+        # feed 5x denser history and break the lookback/timeout semantics.
         url = (
             "https://api.binance.com/api/v3/klines"
-            f"?symbol={self.symbol.upper()}&interval=1m&limit={lookback_bars}"
+            f"?symbol={self.symbol.upper()}&interval=5m&limit={lookback_bars}"
         )
         try:
             with urllib.request.urlopen(url, timeout=10) as resp:

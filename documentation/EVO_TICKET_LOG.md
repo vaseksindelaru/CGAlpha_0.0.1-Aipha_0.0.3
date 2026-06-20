@@ -279,8 +279,12 @@ ESTADO POST-REINICIO (verificado 2026-06-20):
       las 200 velas 1m → 0 zonas detectadas.
   Conclusión del test: el detector funciona y detecta zonas en 5m;
   en 1m el régimen actual de BTC no genera coincidencias con los
-  thresholds actuales. No es un bug del fix; es deuda de calibración
-  en 1m.
+  thresholds actuales. No es un bug del fix.
+
+  NOTA 2026-06-20: la deuda de timeframe/calibración en 1m se
+  separó en EVO-TICKET-0006. Se decidió Opción A — volver a operar
+  en 5m, alineado con la calibración existente del detector — en
+  lugar de recalibrar thresholds para 1m.
 
 CRITERIOS DE ÉXITO post-reinicio:
   1. Las 2 zonas viejas (66.5k-66.0k) no reaparecen
@@ -297,12 +301,72 @@ ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
       — se eligió la segunda, requiere ADR por afectar componente P5)
   [ ] Iniciar CRB de TripleCoincidenceDetector (P5) — este ticket es
       la primera evidencia real de por qué P5 necesita CRB propio
-  [ ] Calibrar thresholds de detección en 1m (KeyCandleDetector,
-      AccumulationZoneDetector, zone_max_distance_atr) usando
-      zscore_calibration_log.jsonl u otra fuente de percentiles
-      reales. Hasta entonces, calibration_pending permanece true.
+  [x] Decisión de timeframe separada en EVO-TICKET-0006 (Opción A:
+      volver a 5m). Ver ADR-EVO-TICKET-0006-1.
+  [ ] Calibrar zone_max_distance_atr con percentiles reales de
+      distancia zona expirada vs activa (ver EVO-TICKET-0006).
   [ ] Cuando calibration_pending se resuelva: nuevo EVO-TICKET para
       el valor calibrado de zone_max_distance_atr (no reabrir este)
+```
+
+---
+
+## EVO-TICKET-0006 — Live Candle Interval: 1m demo default vs 5m detector calibration
+
+```
+ORIGIN          : Human Investigation + Arqueología de Git
+                  (EVO-TICKET-0005 descubrió que live_adapter.py operaba
+                  en 1m mientras el detector estaba calibrado en 5m)
+
+MATURITY        : MATURITY_5
+                  Decisión arquitectónica deliberada, implementada y
+                  documentada con ADR.
+
+VITALITY        : ACTIVE
+ESTADO EN CICLO : IMPLEMENTED
+
+DECISIÓN        : Opción A — volver a operar en 5m.
+  1. interval_s en LiveDataFeedAdapter: 60 → 300.
+  2. warm_start() en LiveDataFeedAdapter: interval=1m → interval=5m.
+  3. lookback_candles=30 y retest_timeout_bars=50 se mantienen
+     (asumidos como contadores de velas de 5m desde el diseño original).
+  4. warm_start(lookback_bars=200) en server.py se mantiene; ahora
+     representa ~16.6h de historia 5m.
+
+RAZONES PARA OPCIÓN A:
+  - Reutiliza calibración existente (zigzag_threshold=0.0018 en P75
+    de rango real de vela 5m BTCUSDT).
+  - Costo de latencia (~5min vs ~1min) es irrelevante en modo cosecha.
+  - Opción B (recalibrar thresholds para 1m) requeriría estudio de
+    percentiles completo sin evidencia de superioridad.
+  - Opción C (timeframe configurable) es EXPANSION_DEBT prematura.
+
+EVIDENCIA DE GIT:
+  - aa0190df (2026-04-12): interval_s=60 introducido como
+    "Default 1m para el MVP live demo".
+  - 807b772 (2026-05-04): Two-Speed Architecture heredó 1m sin
+    justificación; comentario demo desapareció.
+  - Calibración ZigZag ~29 abr 2026: 0.18% = P75 rango vela 5m.
+
+TESTS DE CONTROL:
+  - 200 velas 1m → 0 zonas; mismas 200 agrupadas a 5m → 0 zonas.
+  - 1000 velas 1m → 0 zonas; mismas 1000 agrupadas a 5m → 0 zonas.
+  - 500 velas 5m reales de Binance → 9 zonas.
+  Conclusión: régimen actual atípicamente quieto (~$600 rango en ~16h),
+  pero el desajuste 1m-vs-5m sigue siendo deuda arquitectónica real.
+
+DEBT CLASS      : CONSOLIDATION_DEBT
+  (elimina inconsistencia heredada de MVP, consolida base existente)
+
+ADR             : ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md
+                  (aipha_memory/identity/)
+
+ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
+  [x] Decisión documentada en ADR-EVO-TICKET-0006-1
+  [x] Código actualizado (live_adapter.py, server.py comentarios)
+  [ ] Verificación post-cambio con 500 velas 5m reales
+  [ ] Actualizar §3/§8 del Nexus si el intervalo live es parámetro
+      protegido (requeriría ADR para futuros cambios)
 ```
 
 ---
@@ -370,6 +434,7 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 | EVO-TICKET-0003 | 2026-06-13 | pendiente formal | ADR-EVO-TICKET-0003-1 ✅ | EMERGENCY | IMPLEMENTED |
 | EVO-TICKET-0004 | pendiente | pendiente | pendiente | EXPANSION | READY_FOR_CODEX |
 | EVO-TICKET-0005 | pendiente (fix desplegado y verificado; falta RMU/ADR/calibración) | pendiente | pendiente | CONSOLIDATION + calibration_pending | EXECUTING |
+| EVO-TICKET-0006 | 2026-06-20 | pendiente | ADR-EVO-TICKET-0006-1 ✅ | CONSOLIDATION | IMPLEMENTED |
 
 ---
 
@@ -403,4 +468,11 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 {"event":"isolated_control_test","ticket":"EVO-TICKET-0005","config":"TripleCoincidenceDetector() default (same as live_adapter.py)","data_sources":["Binance REST 1m","Binance REST 5m","1m with synthetic heartbeat volume=0.0"],"results":{"1m_200_bars":0,"5m_500_bars":9,"1m_with_10pct_zero_volume":0,"1m_with_50pct_zero_volume":0},"conclusion":"detector works in 5m; 1m current BTC regime does not produce detections with current thresholds","timestamp":"2026-06-20T06:15:00Z"}
 {"event":"calibration_scope_expanded","ticket":"EVO-TICKET-0005","from_parameter":"zone_max_distance_atr","to_parameters":["zone_max_distance_atr","volume_z_threshold","volume_percentile_threshold","body_percentage_threshold","quality_threshold","r2_min"],"reason":"1m detection silence points to broader 1m threshold calibration, not just zone distance","evidence":"isolated_control_test 1m=0 zones vs 5m=9 zones","timestamp":"2026-06-20T06:15:00Z"}
 {"event":"zscore_log_status","ticket":"EVO-TICKET-0005","file":"aipha_memory/operational/zscore_calibration_log.jsonl","lines":0,"last_modified":"2026-06-17T05:12:00Z","status":"dormant_instrumentation_no_consumer","note":"Existing Cat.1 instrumentation ready to feed percentile calibration once feed_kline_for_zone_detection runs regularly","timestamp":"2026-06-20T06:15:00Z"}
+{"event":"ticket_created","ticket":"EVO-TICKET-0006","component":"live_adapter","maturity":"MATURITY_5","vitality":"ACTIVE","timestamp":"2026-06-20T13:30:00Z"}
+{"event":"archaeological_evidence","ticket":"EVO-TICKET-0006","commit":"aa0190df","finding":"interval_s=60 introduced with comment 'Default 1m para el MVP live demo'","timestamp":"2026-06-20T13:30:00Z"}
+{"event":"archaeological_evidence","ticket":"EVO-TICKET-0006","commit":"807b772","finding":"Two-Speed Architecture inherited 1m without justification; demo comment removed","timestamp":"2026-06-20T13:30:00Z"}
+{"event":"decision_recorded","ticket":"EVO-TICKET-0006","decision":"Option A — operate live pipeline at 5m to align with detector calibration","alternatives_considered":["B: recalibrate thresholds for 1m","C: make timeframe configurable","status_quo: keep 1m"],"rationale":"reuse existing 5m calibration; latency cost irrelevant in harvest mode; 1m was never validated","timestamp":"2026-06-20T13:30:00Z"}
+{"event":"adr_created","ticket":"EVO-TICKET-0006","adr":"ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md","path":"aipha_memory/identity/","status":"ACCEPTED_AND_IMPLEMENTED","timestamp":"2026-06-20T13:30:00Z"}
+{"event":"code_changed","ticket":"EVO-TICKET-0006","files":["cgalpha_v3/application/live_adapter.py","cgalpha_v3/gui/server.py"],"changes":{"interval_s":"60 -> 300","warm_start_rest_interval":"1m -> 5m","detector_lookback_candles":"unchanged 30 (assumed 5m units)","detector_retest_timeout_bars":"unchanged 50 (assumed 5m units)"},"timestamp":"2026-06-20T13:30:00Z"}
+{"event":"ticket_state_changed","ticket":"EVO-TICKET-0006","field":"lifecycle_state","from":"INCUBATION","to":"IMPLEMENTED","decided_by":"human","timestamp":"2026-06-20T13:30:00Z"}
 ```
