@@ -364,7 +364,10 @@ ADR             : ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
   [x] Decisión documentada en ADR-EVO-TICKET-0006-1
   [x] Código actualizado (live_adapter.py, server.py comentarios)
-  [ ] Verificación post-cambio con 500 velas 5m reales
+  [x] Verificación post-cambio con 500 velas 5m reales → 11 zonas
+  [x] Despliegue verificado: PID 627736 arrancó 2026-06-20 16:02:00,
+      posterior al commit 24ea987 (16:01:33). Primera vela 5m cerrada
+      a las 16:05:01.
   [ ] Actualizar §3/§8 del Nexus si el intervalo live es parámetro
       protegido (requeriría ADR para futuros cambios)
 ```
@@ -474,5 +477,8 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 {"event":"decision_recorded","ticket":"EVO-TICKET-0006","decision":"Option A — operate live pipeline at 5m to align with detector calibration","alternatives_considered":["B: recalibrate thresholds for 1m","C: make timeframe configurable","status_quo: keep 1m"],"rationale":"reuse existing 5m calibration; latency cost irrelevant in harvest mode; 1m was never validated","timestamp":"2026-06-20T13:30:00Z"}
 {"event":"adr_created","ticket":"EVO-TICKET-0006","adr":"ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md","path":"aipha_memory/identity/","status":"ACCEPTED_AND_IMPLEMENTED","timestamp":"2026-06-20T13:30:00Z"}
 {"event":"code_changed","ticket":"EVO-TICKET-0006","files":["cgalpha_v3/application/live_adapter.py","cgalpha_v3/gui/server.py"],"changes":{"interval_s":"60 -> 300","warm_start_rest_interval":"1m -> 5m","detector_lookback_candles":"unchanged 30 (assumed 5m units)","detector_retest_timeout_bars":"unchanged 50 (assumed 5m units)"},"timestamp":"2026-06-20T13:30:00Z"}
+{"event":"deployment_protocol_executed","ticket":"EVO-TICKET-0006","route":"C","step":7,"old_pid":460712,"old_pid_start":"2026-06-20T04:37:54Z","fix_commit":"24ea987","fix_commit_time":"2026-06-20T14:01:33Z","new_pid":627736,"new_pid_start":"2026-06-20T14:02:00Z","verification":"new_pid_start > fix_commit_time","result":"CONFIRMED","timestamp":"2026-06-20T14:02:00Z"}
+{"event":"post_change_verification","ticket":"EVO-TICKET-0006","test":"500 real 5m candles from Binance REST","result":"11 zones detected","status":"PASSED","timestamp":"2026-06-20T14:08:00Z"}
+{"event":"live_observation","ticket":"EVO-TICKET-0006","first_5m_candle_close":"2026-06-20T14:05:01Z","active_zones_after_warm_start":0,"market_price_updated":true,"note":"warm_start with 5m REST completed; no historical zones in recent 16.6h; live 5m candle clock active","timestamp":"2026-06-20T14:08:00Z"}
 {"event":"ticket_state_changed","ticket":"EVO-TICKET-0006","field":"lifecycle_state","from":"INCUBATION","to":"IMPLEMENTED","decided_by":"human","timestamp":"2026-06-20T13:30:00Z"}
 ```
