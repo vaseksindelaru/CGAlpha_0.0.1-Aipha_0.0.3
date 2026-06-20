@@ -34,32 +34,38 @@ ORIGIN          : Operational Anomaly + Epistemic Distillation
                   (cobertura 54.77%, LabelEncoder no-determinista,
                   FEATURE_COLS legacy)
 
-MATURITY        : MATURITY_3  [corregido 2026-06-13 — era MATURITY_5]
-                  MOTIVO: evidencia anterior citaba oracle_v6_skeleton.py
-                  y test_oracle_v6_skeleton.py como existentes. Ambos
-                  verificados en Git: NO EXISTEN. Sin artefactos de
-                  implementación reales el ticket no puede superar
-                  MATURITY_3 (diseño consolidado, sin código todavía).
-                  MATURITY_4 requiere: skeleton creado + ≥1 test de
-                  contrato pasando en pytest.
+MATURITY        : MATURITY_4  [actualizado 2026-06-20]
+                  MOTIVO: oracle_v6_skeleton.py y
+                  test_oracle_v6_skeleton.py fueron verificados como
+                  existentes el 2026-06-20. pytest reporta 4/4 tests
+                  pasando. La justificación previa de MATURITY_3
+                  (phantom files) quedó obsoleta; la divergencia entre
+                  este log y el ledger humano se corrige ahora.
+                  MATURITY_5 requiere: implementación completa de Fase A
+                  (encoding determinista + save/load + observabilidad).
 
 VITALITY        : ACTIVE
                   (desbloqueado tras resolución de EVO-TICKET-0003)
 
-ESTADO EN CICLO : READY_FOR_CODEX
-                  [simulado — revisión humana aprobada, pendiente
-                  sesión de ejecución con LLM avanzado]
+ESTADO EN CICLO : EXECUTING
+                  [sesión de reconstrucción con LLM avanzado autorizada]
 
-PHANTOM FILES RESUELTOS (Causal Closure violation — verificado 2026-06-13):
-  ❌→⏳ RECONSTRUCTION_BRIEF.md v1.1 — NO EXISTE → pendiente creación
-  ❌→⏳ oracle_v6_skeleton.py       — NO EXISTE → pendiente creación
-  ❌→⏳ test_oracle_v6_skeleton.py  — NO EXISTE → pendiente creación
-  Estos archivos no pueden citarse como base de maturity hasta existir.
+PHANTOM FILES RESUELTOS (verificado 2026-06-20):
+  ✅ RECONSTRUCTION_BRIEF.md        — EXISTE (1959 bytes, coherente)
+  ✅ oracle_v6_skeleton.py          — EXISTE (4395 bytes)
+  ✅ test_oracle_v6_skeleton.py     — EXISTE (2455 bytes, 4/4 tests pass)
+  Nota menor para RMU futuro: mtime en disco muestra 16 jun, pero el
+  ledger humano registra creación el 14 jun. Los tests pasan idéntico
+  al registro; sin acción inmediata.
 
-PRÓXIMOS PASOS para MATURITY_4:
-  [ ] Crear oracle_v6_skeleton.py (interfaz pública, sin implementación)
-  [ ] Crear test_oracle_v6_skeleton.py (tests de contrato de interfaz)
-  [ ] pytest pasa → MATURITY_4 confirmada → sesión LLM avanzado
+PRÓXIMOS PASOS para MATURITY_5:
+  [ ] Implementar Fase A: encoding determinista (reemplazar LabelEncoder)
+  [ ] Implementar save/load con sumas de comprobación
+  [ ] Implementar observabilidad (logging estructurado de predicciones)
+  [ ] pytest pasa con cobertura >90% en oracle_v6_skeleton.py
+  [ ] ADR-EVO-TICKET-0001-1-encoding-determinista
+  [ ] Actualización §3 Nexus si se fija ENCODING_MAP
+  [ ] Actualización §7/§8 Nexus
 
 DEBT CLASS (estimado pre-ejecución) : CONSOLIDATION_DEBT
   Razón: consolida base existente con deuda técnica documentada.
@@ -432,7 +438,7 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 
 | Ticket | Fecha cierre | RMU | ADRs | Debt final | Estado |
 |---|---|---|---|---|---|
-| EVO-TICKET-0001 | pendiente | pendiente | pendiente | CONSOLIDATION | READY_FOR_CODEX |
+| EVO-TICKET-0001 | pendiente | pendiente | pendiente | CONSOLIDATION | EXECUTING |
 | EVO-TICKET-0002 | bloqueado P3/P4 | — | — | EXPANSION | DORMANT |
 | EVO-TICKET-0003 | 2026-06-13 | pendiente formal | ADR-EVO-TICKET-0003-1 ✅ | EMERGENCY | IMPLEMENTED |
 | EVO-TICKET-0004 | pendiente | pendiente | pendiente | EXPANSION | READY_FOR_CODEX |
@@ -446,6 +452,10 @@ Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
 ```jsonl
 {"event":"ticket_created","ticket":"EVO-TICKET-0001","component":"Oracle","maturity":"MATURITY_5","vitality":"ACTIVE","timestamp":"2026-06-12T00:00:00Z"}
 {"event":"ticket_state_changed","ticket":"EVO-TICKET-0001","field":"lifecycle_state","from":"READY_FOR_CODEX","to":"EXECUTING","decided_by":"human","timestamp":"2026-06-12T00:00:00Z"}
+{"event":"epistemic_distillation","ticket":"EVO-TICKET-0001","field":"maturity","from":"MATURITY_5","to":"MATURITY_3","decided_by":"human","reason":"oracle_v6_skeleton.py and test_oracle_v6_skeleton.py cited as evidence did not exist in git at 2026-06-13","timestamp":"2026-06-13T21:09:00Z"}
+{"event":"phantom_reference_resolved","ticket":"EVO-TICKET-0001","files":["cgalpha_v4/RECONSTRUCTION_BRIEF.md","cgalpha_v4/oracle_v6_skeleton.py","cgalpha_v4/test_oracle_v6_skeleton.py"],"verified_by":"ls + pytest 4/4 passing","timestamp":"2026-06-20T14:15:00Z"}
+{"event":"epistemic_distillation","ticket":"EVO-TICKET-0001","field":"maturity","from":"MATURITY_3","to":"MATURITY_4","decided_by":"human","reason":"skeleton exists + contract tests pass; divergence between repo log and human ledger corrected","timestamp":"2026-06-20T14:15:00Z"}
+{"event":"ticket_state_changed","ticket":"EVO-TICKET-0001","field":"lifecycle_state","from":"READY_FOR_CODEX","to":"EXECUTING","decided_by":"human","reason":"all prerequisites confirmed: Set A 94 FULL, pipeline 5m calibrated, skeleton 4/4 tests passing, brief coherent","timestamp":"2026-06-20T14:15:00Z"}
 {"event":"ticket_created","ticket":"EVO-TICKET-0002","component":"Oracle","maturity":"MATURITY_3","vitality":"DORMANT","timestamp":"2026-06-12T00:00:00Z"}
 {"event":"ticket_state_changed","ticket":"EVO-TICKET-0002","field":"lifecycle_state","from":"-","to":"INCUBATION","decided_by":"human","timestamp":"2026-06-12T00:00:00Z"}
 {"event":"ticket_created","ticket":"EVO-TICKET-0003","component":"binance_websocket_manager","maturity":"MATURITY_2","vitality":"ACTIVE","timestamp":"2026-06-13T00:00:00Z"}
