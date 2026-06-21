@@ -1,29 +1,27 @@
 # EVO-TICKET LOG — cgAlpha_0.0.1
 
-```
-Origen: Apéndice — Constitutional Governance of Evolutionary Debt.
-"AlphaLab does not manage tasks. AlphaLab manages precedents.
-EVO-TICKETs are precedents."
-
-AlphaLab como cámara completa (QUARANTINE_GATE, READY_FOR_CODEX,
-resurrección automática de tickets dormidos) NO EXISTE como
-componente — es arquitectura objetivo, igual que el Harness del
-Acto VIII (ver B008_NEXUS_CAPSULE.md).
-
-Lo que SÍ existe desde hoy: este log, en formato de ticket.
-Cuando EvolutionOrchestrator (P6) y MemoryPolicyEngine (P7) estén
-reconstruidos, este archivo es la semilla — se ingiere tal cual,
-sin reinterpretación, porque ya sigue el schema constitucional.
-
-Ciclo de vida formal (referencia):
-ANOMALY → INCUBATION → MATURITY → QUARANTINE_GATE →
-READY_FOR_CODEX → EXECUTING → IMPLEMENTED →
-EVOLUTIONARY_DEBT → RECONSTRUCTION → LIBRARY
-
-Mientras QUARANTINE_GATE/READY_FOR_CODEX no existan como gates
-automáticos, su función la cumple: revisión humana + Ruta C
-(LILA_ROUTING_PROMPT.md) + verificación contra §3 del Nexus.
-```
+> Origen: Apéndice — Constitutional Governance of Evolutionary Debt.
+> "AlphaLab does not manage tasks. AlphaLab manages precedents.
+>  EVO-TICKETs are precedents."
+>
+> AlphaLab como cámara completa (QUARANTINE_GATE, READY_FOR_CODEX,
+> resurrección automática de tickets dormidos) NO EXISTE como
+> componente — es arquitectura objetivo, igual que el Harness del
+> Acto VIII (ver B008_NEXUS_CAPSULE.md).
+>
+> Lo que SÍ existe desde hoy: este log, en formato de ticket.
+> Cuando EvolutionOrchestrator (P6) y MemoryPolicyEngine (P7) estén
+> reconstruidos, este archivo es la semilla — se ingiere tal cual,
+> sin reinterpretación, porque ya sigue el schema constitucional.
+>
+> Ciclo de vida formal (referencia):
+> ANOMALY → INCUBATION → MATURITY → QUARANTINE_GATE →
+> READY_FOR_CODEX → EXECUTING → IMPLEMENTED →
+> EVOLUTIONARY_DEBT → RECONSTRUCTION → LIBRARY
+>
+> Mientras QUARANTINE_GATE/READY_FOR_CODEX no existan como gates
+> automáticos, su función la cumple: revisión humana + Ruta C
+> (LILA_ROUTING_PROMPT.md) + verificación contra §3 del Nexus.
 
 ---
 
@@ -34,38 +32,32 @@ ORIGIN          : Operational Anomaly + Epistemic Distillation
                   (cobertura 54.77%, LabelEncoder no-determinista,
                   FEATURE_COLS legacy)
 
-MATURITY        : MATURITY_4  [actualizado 2026-06-20]
-                  MOTIVO: oracle_v6_skeleton.py y
-                  test_oracle_v6_skeleton.py fueron verificados como
-                  existentes el 2026-06-20. pytest reporta 4/4 tests
-                  pasando. La justificación previa de MATURITY_3
-                  (phantom files) quedó obsoleta; la divergencia entre
-                  este log y el ledger humano se corrige ahora.
-                  MATURITY_5 requiere: implementación completa de Fase A
-                  (encoding determinista + save/load + observabilidad).
+MATURITY        : MATURITY_3  [corregido 2026-06-13 — era MATURITY_5]
+                  MOTIVO: evidencia anterior citaba oracle_v6_skeleton.py
+                  y test_oracle_v6_skeleton.py como existentes. Ambos
+                  verificados en Git: NO EXISTEN. Sin artefactos de
+                  implementación reales el ticket no puede superar
+                  MATURITY_3 (diseño consolidado, sin código todavía).
+                  MATURITY_4 requiere: skeleton creado + ≥1 test de
+                  contrato pasando en pytest.
 
 VITALITY        : ACTIVE
                   (desbloqueado tras resolución de EVO-TICKET-0003)
 
-ESTADO EN CICLO : EXECUTING
-                  [sesión de reconstrucción con LLM avanzado autorizada]
+ESTADO EN CICLO : READY_FOR_CODEX
+                  [simulado — revisión humana aprobada, pendiente
+                  sesión de ejecución con LLM avanzado]
 
-PHANTOM FILES RESUELTOS (verificado 2026-06-20):
-  ✅ RECONSTRUCTION_BRIEF.md        — EXISTE (1959 bytes, coherente)
-  ✅ oracle_v6_skeleton.py          — EXISTE (4395 bytes)
-  ✅ test_oracle_v6_skeleton.py     — EXISTE (2455 bytes, 4/4 tests pass)
-  Nota menor para RMU futuro: mtime en disco muestra 16 jun, pero el
-  ledger humano registra creación el 14 jun. Los tests pasan idéntico
-  al registro; sin acción inmediata.
+PHANTOM FILES RESUELTOS (Causal Closure violation — verificado 2026-06-13):
+  ❌→⏳ RECONSTRUCTION_BRIEF.md v1.1 — NO EXISTE → pendiente creación
+  ❌→⏳ oracle_v6_skeleton.py       — NO EXISTE → pendiente creación
+  ❌→⏳ test_oracle_v6_skeleton.py  — NO EXISTE → pendiente creación
+  Estos archivos no pueden citarse como base de maturity hasta existir.
 
-PRÓXIMOS PASOS para MATURITY_5:
-  [ ] Implementar Fase A: encoding determinista (reemplazar LabelEncoder)
-  [ ] Implementar save/load con sumas de comprobación
-  [ ] Implementar observabilidad (logging estructurado de predicciones)
-  [ ] pytest pasa con cobertura >90% en oracle_v6_skeleton.py
-  [ ] ADR-EVO-TICKET-0001-1-encoding-determinista
-  [ ] Actualización §3 Nexus si se fija ENCODING_MAP
-  [ ] Actualización §7/§8 Nexus
+PRÓXIMOS PASOS para MATURITY_4:
+  [ ] Crear oracle_v6_skeleton.py (interfaz pública, sin implementación)
+  [ ] Crear test_oracle_v6_skeleton.py (tests de contrato de interfaz)
+  [ ] pytest pasa → MATURITY_4 confirmada → sesión LLM avanzado
 
 DEBT CLASS (estimado pre-ejecución) : CONSOLIDATION_DEBT
   Razón: consolida base existente con deuda técnica documentada.
@@ -174,9 +166,8 @@ NOTA SOBRE "PUNTO CIEGO #7":
 ENTREGABLES CONSTITUCIONALES — ESTADO FINAL:
   [x] FIX implementado y verificado (live_adapter.py extendido)
   [x] ADR-EVO-TICKET-0003-1-heartbeat-watchdog generado
-  [ ] RECONSTRUCTION_MAP_UPDATE — pendiente generación formal
-  [ ] Actualizar §3 Nexus: añadir _heartbeat_timeout_ms como
-      parámetro protegido (cambios requieren ADR)
+  [x] RECONSTRUCTION_MAP_UPDATE — governance_log/RMU-EVO-TICKET-0003-2026-06-13.md
+  [ ] Actualizar §3 Nexus: _heartbeat_timeout_ms como parámetro protegido
   [ ] Añadir PC#7 a architectural_analysis.md
 
 PID DE VERIFICACIÓN: 686383 (activo desde 2026-06-13 07:55)
@@ -249,13 +240,6 @@ VERIFICACIONES COMPLETADAS:
   [x] zone_max_distance_atr marcado PROVISIONAL en código + ticket
   [x] debt_class corregida a CONSOLIDATION_DEBT + calibration_pending
       (ya no CALIBRATION_DEBT, clase no canónica)
-  [x] Despliegue real del fix verificado (Ruta C — Paso 7):
-      - PID viejo 309946 arrancó 2026-06-19 20:12:51, ANTERIOR al fix
-        (commit 2155bdd 2026-06-19 20:21:27).
-      - Proceso detenido, nuevo PID 460712 arrancado 2026-06-20 06:37:54,
-        POSTERIOR al fix.
-      - Archivos operativos (active_zones.json, detector_state.json,
-        market_price_BTCUSDT.json) se actualizan cada ~60s.
 
 COMMITS:
   e984c61 — fix stale active zones after restart
@@ -268,29 +252,18 @@ ejes ortogonales. zone_max_distance_atr sigue sin pasar por análisis
 de percentiles — eso es lo único que puede subir la maturity de este
 ticket, no la calidad de la verificación del fix en sí.
 
-ESTADO POST-REINICIO (verificado 2026-06-20):
+ESTADO POST-REINICIO (verificado 2026-06-14):
   active_zones: 0          → Criterio #1 CUMPLIDO (zonas viejas no
                               reaparecieron)
-  dataset_total: 236        → congelado desde 2026-06-19 09:27:02,
-  full_samples: 94            NO por el reinicio; sin zonas no hay
-  pending_count: 0            retests, sin retests no hay samples.
+  dataset_total: 236        → pipeline no interrumpido durante el
+  full_samples: 94            trabajo (85→92→94 FULL en esta sesión)
+  pending_count: 0
 
-  Criterio #2 (zona nueva detectada en ~50 velas): NO CUMPLIDO en
-  ~90 velas posteriores al reinicio.
-
-  TEST AISLADO DE CONTROL (misma config que live_adapter.py):
-    - 200 velas 1m de Binance REST → 0 zonas detectadas.
-    - 500 velas 5m de Binance REST → 9 zonas detectadas.
-    - Simulación de velas heartbeat (10% y 50% con volume=0.0) sobre
-      las 200 velas 1m → 0 zonas detectadas.
-  Conclusión del test: el detector funciona y detecta zonas en 5m;
-  en 1m el régimen actual de BTC no genera coincidencias con los
-  thresholds actuales. No es un bug del fix.
-
-  NOTA 2026-06-20: la deuda de timeframe/calibración en 1m se
-  separó en EVO-TICKET-0006. Se decidió Opción A — volver a operar
-  en 5m, alineado con la calibración existente del detector — en
-  lugar de recalibrar thresholds para 1m.
+  Criterio #2 (zona nueva detectada en ~50 velas) AÚN NO VERIFICABLE
+  — active_zones=0 es consistente tanto con "fix funcionó, el
+  mercado no ha formado zona válida todavía" como con "el bug
+  persiste". Ticket permanece en EXECUTING, no pasa a IMPLEMENTED,
+  hasta observar al menos una detección real post-fix.
 
 CRITERIOS DE ÉXITO post-reinicio:
   1. Las 2 zonas viejas (66.5k-66.0k) no reaparecen
@@ -298,85 +271,295 @@ CRITERIOS DE ÉXITO post-reinicio:
      dentro de ~50 velas
   3. El dataset sigue creciendo (training_dataset_v2.jsonl)
 
-ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [ ] RECONSTRUCTION_MAP_UPDATE (incluir lección de despliegue:
-      "verificar siempre que el PID en memoria sea posterior al
-      commit del fix")
-  [ ] ADR-EVO-TICKET-0005-1: cleanup por tiempo+distancia vs índice
-      (alternativas: índice estable cross-restart vs timestamp+ATR
-      — se eligió la segunda, requiere ADR por afectar componente P5)
-  [ ] Iniciar CRB de TripleCoincidenceDetector (P5) — este ticket es
-      la primera evidencia real de por qué P5 necesita CRB propio
-  [x] Decisión de timeframe separada en EVO-TICKET-0006 (Opción A:
-      volver a 5m). Ver ADR-EVO-TICKET-0006-1.
-  [ ] Calibrar zone_max_distance_atr con percentiles reales de
-      distancia zona expirada vs activa (ver EVO-TICKET-0006).
-  [ ] Cuando calibration_pending se resuelva: nuevo EVO-TICKET para
-      el valor calibrado de zone_max_distance_atr (no reabrir este)
+OBSERVACIÓN ~10H POST-RESTART (2026-06-20):
+  Criterio #1: CUMPLIDO (zonas viejas no reaparecieron)
+  Criterio #2: NO CUMPLIDO — active_zones.json vacío, sin ninguna
+               detección nueva en logs en 10h
+  Criterio #3: NO CUMPLIDO — training_dataset_v2.jsonl congelado
+               desde 2026-06-19 09:27:02 (~21h), CERO muestras
+               nuevas desde el restart con el fix aplicado.
+
+  HALLAZGO INICIAL (parcialmente correcto, causa real distinta):
+  El freeze del dataset (21h) era más largo que el silencio de
+  aggTrade (2.4h) — confirmó que no eran la misma causa. La
+  hipótesis de "ruta de escritura duplicada" resultó ser un falso
+  positivo (logging en WARNING ocultaba los logs de INFO; el grep
+  de market_price buscaba un string literal que se construye con
+  f-string en runtime).
+
+  CAUSA RAÍZ CONFIRMADA (2026-06-20, 3 rondas de Ruta A):
+  El proceso PID 309946 arrancó a las 2026-06-19 20:12:51.
+  El commit del fix (2155bdd) es de las 20:21:27 — 9 minutos
+  DESPUÉS. Un proceso Python no puede ejecutar código que no
+  existía cuando arrancó. El servidor en ejecución corre el
+  código PRE-fix de EVO-TICKET-0005. El fix nunca se desplegó.
+
+  Esto NO es una hipótesis — es una certeza dado el orden de
+  eventos (timestamp de inicio de proceso vs timestamp de commit,
+  comparación directa, sin ambigüedad).
+
+  Verificaciones que sostienen esta conclusión:
+  - detector_state.json y active_zones.json se modifican en el
+    mismo segundo → _persist_active_zones() SÍ se ejecuta → el
+    pipeline de cierre de velas está vivo, no muerto.
+  - Logging efectivo = WARNING → explica por qué nunca se vieron
+    los logs INFO de "Candle close procesada" / "Zonas GUI
+    persistidas" durante 10+ horas de diagnóstico, generando
+    falsa sospecha de pipeline congelado.
+  - El freeze del dataset a las 09:27 del 19/06 es EL MISMO bug
+    original que motivó la creación de este ticket — no es un
+    evento nuevo. El reinicio de las 20:12 ocurrió ANTES del
+    commit del fix, así que nunca tuvo oportunidad de corregirlo.
+
+  ACCIÓN REQUERIDA (Ruta C — ejecutar, no más diagnóstico):
+  1. Reiniciar servidor: kill 309946, levantar proceso nuevo
+  2. Verificar inmediatamente: ps -o lstart= -p <nuevo_pid>
+     DEBE ser POSTERIOR a 2026-06-19 20:21:27 (commit 2155bdd)
+  3. NO declarar el fix desplegado solo por hacer `git push` —
+     confirmar con el paso 2 cada vez, sin excepción
+  4. Monitorear con el método ya validado (mtime sync de
+     detector_state.json / active_zones.json), no depender de
+     logs INFO mientras el nivel sea WARNING
+  5. Reevaluar Criterio #2 y #3 después de ≥50 velas con el
+     código real corriendo
+
+  ✅ EJECUTADO (2026-06-20, 06:37:54):
+  Proceso nuevo PID 460712 confirmado posterior al commit
+  (10h después). Paso 7 de Ruta C (Verificar Despliegue) validado
+  en su primer uso real — funcionó exactamente como se diseñó.
+
+  RESULTADO TRAS 90 MIN + TEST AISLADO:
+  - active_zones.json sigue vacío tras 90 min en vivo (1m)
+  - Test aislado: 200 velas 1m → 0 zonas | 500 velas 5m → 9 zonas
+  - Interpretación: el detector SÍ encuentra zonas cuando el
+    timeframe lo permite (5m) → el código del fix funciona.
+    En 1m, con el rango actual (~$600 en ~3h), no hay coincidencias
+    bajo los thresholds vigentes → consistente con calibration_pending
+    ya documentado, no con un bug nuevo.
+
+  ⚠️ PENDIENTE ANTES DE CERRAR COMO "SOLO CALIBRACIÓN":
+  Confirmar que el test aislado usó la MISMA instanciación de
+  TripleCoincidenceDetector que live_adapter.py en producción
+  (mismos parámetros), y que las velas de 1m comparadas no
+  incluyen velas sintetizadas por heartbeat (volume=0.0) que no
+  estarían en un test con datos REST limpios. Dado el historial
+  de esta sesión (un "desplegado" que no lo estaba durante 10h),
+  una confirmación más antes de archivar esto como calibración
+  pura, no bug, es barata y reduce el riesgo de cerrar en falso.
+
+  Si se confirma → este ticket converge a su forma esperada desde
+  el inicio: fix verificado y correcto, deuda de calibración
+  explícita pendiente (zone_max_distance_atr + thresholds 1m de
+  KeyCandleDetector/ZoneDetector), NO bloqueante para Oracle v6
+  Fase A (Set A ya tiene 94 FULL, suficiente).
+
+  NOTA — zscore_calibration_log (0 líneas desde 17/jun) mencionado
+  por el editor: posible infraestructura de calibración ya
+  existente sin usar. Revisar antes de diseñar análisis de
+  percentiles desde cero para resolver calibration_pending.
+
+  ✅ CONFUSORES VERIFICADOS (2026-06-20, commit 6b64972):
+  1. Config del detector idéntica entre test manual y producción
+     (TripleCoincidenceDetector() sin args, confirmado por grep
+     en server.py y launch_shadow_live.py).
+  2. Barrido paramétrico de velas heartbeat (10%/50% volume=0
+     inyectado) NO cambió el resultado — 0 zonas en 1m persiste
+     en las 3 variantes. Confusor de heartbeat descartado.
+  Comparación de control limpia: 200 velas 1m → 0 zonas |
+  500 velas 5m → 9 zonas (misma config, mismo detector).
+
+  ⚠️ HIPÓTESIS NUEVA — REFRAME de calibration_pending
+  (2026-06-20, pendiente de verificación):
+  Toda la calibración histórica documentada (zigzag_threshold=0.18%,
+  cronica_desarrollo_cgAlpha.md Fase 4) se hizo contra "288 velas
+  BTCUSDT 5m" — explícitamente 5 minutos, no 1 minuto. Pero
+  live_adapter.py usa interval_s=60 (1 minuto) para la detección
+  de zonas (Speed 1 del Two-Speed Architecture).
+
+  Bajo random walk: rango típico de vela 1m ≈ 45% del rango de 5m
+  (escala con raíz de tiempo); volumen típico ≈ 20% (escala
+  linealmente). Thresholds calibrados para 5m aplicados sin ajuste
+  a 1m serían sistemáticamente demasiado estrictos — explica el
+  0 vs 9 de forma ESTRUCTURAL, no solo empírica, y es consistente
+  con que el test de control SÍ detectó zonas en 5m usando los
+  mismos thresholds.
+
+  ✅ INVESTIGACIÓN CONVERGIDA (2026-06-20) — 4 rondas de Ruta A.
+
+  Git archaeology confirmó: interval_s=60 introducido commit
+  aa0190df (12 abr 2026), comentario original "Default 1m para
+  el MVP live demo" — decisión de demo, NO calibrada. El comentario
+  se perdió en el refactor "Two-Speed Architecture" (807b772,
+  4 may 2026), que heredó 1m sin reconciliar con la calibración
+  ZigZag de 5m hecha ~29 abr (entre ambos commits).
+
+  Test decisivo: las MISMAS 200 y 1000 velas de 1m, agrupadas en
+  velas sintéticas de 5m → 0 zonas en ambas granularidades sobre
+  el mismo período. Esto refina (no descarta) la hipótesis de
+  desajuste de timeframe: el desajuste es real y documentado, PERO
+  el régimen de mercado de las últimas ~16h también es atípicamente
+  quieto (rango ~$600 sostenido) — ambos factores contribuyen,
+  ninguno por sí solo explica el resultado completo.
+
+  Hallazgo adicional: fallbacks de timestamp en triple_coincidence.py
+  (`candle["index"] * 300000`, L1292/L1356) asumen implícitamente
+  5 minutos por vela — evidencia secundaria de que el detector se
+  diseñó pensando en 5m, consistente con la calibración documentada.
+
+  REFRAME FINAL de calibration_pending:
+  No es "calibrar zone_max_distance_atr con percentiles de 1m" —
+  es una decisión arquitectónica entre 3 opciones (ver abajo),
+  ninguna requiere construir calibración nueva desde cero si se
+  elige la opción A.
+
+  DECISIÓN RECOMENDADA: Opción A — revertir interval_s a 300 (5m),
+  ajustar lookback_candles/retest_timeout_bars proporcionalmente.
+  Razón: reutiliza calibración YA validada (ZigZag 0.18%, P75 5m),
+  sin trabajo nuevo de calibración. El costo (latencia de detección
+  de zonas nuevas ~5min en vez de ~1min) es irrelevante mientras el
+  sistema cosecha datos de entrenamiento, no ejecuta trades en vivo
+  con sensibilidad a latencia. Retests (tick-level) y captura L2 (al
+  toque de zona) no dependen de interval_s — siguen funcionando igual.
+  Opciones B (recalibrar 1m desde cero) y C (timeframe configurable)
+  son optimización prematura sobre una premisa (1m) que nunca tuvo
+  evidencia de ser mejor que 5m — fue un default de demo sin validar.
+
+  ESTADO: Cat.2 — requiere ADR antes de aplicar. NO aplicado todavía.
+  Spin-off recomendado: EVO-TICKET-0006 (ver más abajo) para separar
+  esta decisión arquitectónica del bugfix de cleanup/warm_start
+  (que SÍ está completo y verificado en este ticket).
+
+  LECCIÓN DE DISEÑO DE CRITERIOS DE ÉXITO:
+  El Criterio #2 original ("zona nueva en ≤50 velas") asumía que el
+  mercado cooperaría dentro de una ventana fija, sin controlar por
+  régimen. Eso generó +10h de investigación que parecía apuntar a
+  un bug cuando en realidad era una combinación de desajuste
+  arquitectónico + régimen atípico. Criterios de éxito futuros que
+  dependan de "observar X en N unidades de tiempo" deberían incluir
+  una condición de control (ej: "O bien aparece X, O bien se
+  confirma con un test aislado que la lógica es correcta
+  independientemente del régimen") para no bloquear el cierre de
+  un ticket indefinidamente por causas ajenas al cambio evaluado.
+
+  LECCIÓN DE PROCESO (aplicable a todo Cat.1/2/3 futuro):
+  "Commiteado" ≠ "Desplegado". Ruta C necesita un paso explícito
+  de verificación post-aplicación: confirmar que el proceso que
+  debe ejecutar el cambio realmente lo cargó (timestamp de inicio
+  de proceso > timestamp de commit). Sin este paso, un fix puede
+  considerarse "aplicado" durante horas o días sin estar activo.
+  YA INCORPORADO a LILA_ROUTING_PROMPT.md (Ruta C, paso 7) y
+  VALIDADO en su primer uso real el 2026-06-20.
+
+ENTREGABLES CONSTITUCIONALES — ESTADO FINAL:
+  [x] RECONSTRUCTION_MAP_UPDATE — governance_log/RMU-EVO-TICKET-0005-2026-06-20.md
+  [x] ADR-EVO-TICKET-0005-1-cleanup-por-tiempo-distancia.md generado
+  [x] Iniciar CRB de TripleCoincidenceDetector (P5) — creado
+      cgalpha_v4/CRB_TripleCoincidenceDetector_P5.md (2026-06-21).
+      Nexus §5.3 y §8 actualizados.
+  [x] Verificación de despliegue: incorporada a LILA_ROUTING_PROMPT.md
+      (Ruta C, paso 7), validada en uso real 2026-06-20
+  [x] Hipótesis de timeframe mismatch: CONFIRMADA con git archaeology
+      + test de control (200/1000 velas 1m agrupadas a 5m sintético)
+  [x] calibration_pending separado a EVO-TICKET-0006 (cerrado con Opción A)
 ```
 
 ---
 
-## EVO-TICKET-0006 — Live Candle Interval: 1m demo default vs 5m detector calibration
+## EVO-TICKET-0006 — Decisión arquitectónica: reconciliar timeframe de detección (1m vs 5m)
 
 ```
-ORIGIN          : Human Investigation + Arqueología de Git
-                  (EVO-TICKET-0005 descubrió que live_adapter.py operaba
-                  en 1m mientras el detector estaba calibrado en 5m)
+ORIGIN          : Human Investigation + Operational Anomaly
+                  Spin-off de EVO-TICKET-0005 — separado porque es
+                  una decisión arquitectónica distinta del bugfix
+                  de cleanup/warm_start (que ya está completo).
 
-MATURITY        : MATURITY_5
-                  Decisión arquitectónica deliberada, implementada y
-                  documentada con ADR.
+CONTEXTO CONFIRMADO (heredado de la investigación de EVO-0005):
+  - interval_s=60 (1m) es un default de "MVP live demo" sin
+    calibrar (commit aa0190df, 12 abr 2026)
+  - Toda la calibración de thresholds documentada (ZigZag 0.18%,
+    fallbacks de timestamp asumiendo 300000ms) se hizo contra 5m
+  - Two-Speed Architecture (807b772, 4 may) heredó 1m sin reconciliar
+  - Test de control: las mismas velas agrupadas a 5m sintético
+    también dan 0 zonas en el período observado (régimen actual
+    atípicamente quieto, ~$600 de rango sostenido)
+
+MATURITY        : MATURITY_3
+                  3 opciones caracterizadas con costo/beneficio,
+                  evidencia de archaeology completa, sin ADR todavía
+                  ni decisión humana formal.
 
 VITALITY        : ACTIVE
-ESTADO EN CICLO : IMPLEMENTED
+ESTADO EN CICLO : INCUBATION
+                  Esperando decisión humana antes de pasar a
+                  QUARANTINE_GATE → READY_FOR_CODEX.
 
-DECISIÓN        : Opción A — volver a operar en 5m.
-  1. interval_s en LiveDataFeedAdapter: 60 → 300.
-  2. warm_start() en LiveDataFeedAdapter: interval=1m → interval=5m.
-  3. lookback_candles=30 y retest_timeout_bars=50 se mantienen
-     (asumidos como contadores de velas de 5m desde el diseño original).
-  4. warm_start(lookback_bars=200) en server.py se mantiene; ahora
-     representa ~16.6h de historia 5m.
+OPCIONES (documentadas, no aplicadas):
 
-RAZONES PARA OPCIÓN A:
-  - Reutiliza calibración existente (zigzag_threshold=0.0018 en P75
-    de rango real de vela 5m BTCUSDT).
-  - Costo de latencia (~5min vs ~1min) es irrelevante en modo cosecha.
-  - Opción B (recalibrar thresholds para 1m) requeriría estudio de
-    percentiles completo sin evidencia de superioridad.
-  - Opción C (timeframe configurable) es EXPANSION_DEBT prematura.
+  OPCIÓN A (recomendada) — Revertir a 5m
+    interval_s: 60 → 300
+    Ajustar proporcionalmente: lookback_candles, retest_timeout_bars
+    Costo: latencia de detección de zonas nuevas ~5min vs ~1min
+           (irrelevante en modo cosecha, no ejecución en vivo)
+    Beneficio: reutiliza calibración YA validada, cero trabajo
+               nuevo de calibración
+    Categoría: Cat.2 (toca live_adapter.py, requiere ADR)
 
-EVIDENCIA DE GIT:
-  - aa0190df (2026-04-12): interval_s=60 introducido como
-    "Default 1m para el MVP live demo".
-  - 807b772 (2026-05-04): Two-Speed Architecture heredó 1m sin
-    justificación; comentario demo desapareció.
-  - Calibración ZigZag ~29 abr 2026: 0.18% = P75 rango vela 5m.
+  OPCIÓN B — Recalibrar todo para 1m
+    Requiere estudio de percentiles reales en 1m (zscore_calibration_log
+    existe pero está dormido, 0 líneas desde 17/jun — necesitaría
+    alimentarse primero, lo cual es circular: para calibrar hacen
+    falta muestras, para tener muestras hace falta calibración)
+    Costo: alto, EXPANSION_DEBT significativa
+    Categoría: Cat.3 (cambio estructural de múltiples thresholds)
 
-TESTS DE CONTROL:
-  - 200 velas 1m → 0 zonas; mismas 200 agrupadas a 5m → 0 zonas.
-  - 1000 velas 1m → 0 zonas; mismas 1000 agrupadas a 5m → 0 zonas.
-  - 500 velas 5m reales de Binance → 9 zonas.
-  Conclusión: régimen actual atípicamente quieto (~$600 rango en ~16h),
-  pero el desajuste 1m-vs-5m sigue siendo deuda arquitectónica real.
+  OPCIÓN C — Timeframe configurable + calibración dual
+    Más robusto a largo plazo, mayor inversión
+    Costo: más alto que B
+    Categoría: Cat.3, candidato para CRB de P5 (TripleCoincidenceDetector)
+               más que para un EVO-TICKET aislado
 
-DEBT CLASS      : CONSOLIDATION_DEBT
-  (elimina inconsistencia heredada de MVP, consolida base existente)
+DEBT CLASS      : CONSOLIDATION_DEBT si se elige Opción A
+                  EXPANSION_DEBT si se elige Opción B o C
 
-ADR             : ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md
-                  (aipha_memory/identity/)
+NO BLOQUEA:
+  Oracle v6 Fase A — Set A ya tiene 94 FULL, muy por encima del
+  umbral (24). Esta decisión solo afecta velocidad de cosecha
+  futura para Fase B, no la reconstrucción actual del Oracle.
 
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [x] Decisión documentada en ADR-EVO-TICKET-0006-1
-  [x] Código actualizado (live_adapter.py, server.py comentarios)
-  [x] Verificación post-cambio con 500 velas 5m reales → 11 zonas
-  [x] Despliegue verificado: PID 627736 arrancó 2026-06-20 16:02:00,
-      posterior al commit 24ea987 (16:01:33). Primera vela 5m cerrada
-      a las 16:05:01.
-  [ ] Actualizar §3/§8 del Nexus si el intervalo live es parámetro
-      protegido (requeriría ADR para futuros cambios)
+  [x] Decisión humana explícita: Opción A confirmada
+  [x] ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md creado
+  [x] Aplicado via Ruta C con paso 7 (verificación de despliegue):
+      commit 24ea987 (16:01:33) → PID 627736 arrancó 16:02:00,
+      27s después del commit. Confirmado correctamente SIN
+      necesidad de recordatorio externo — primera señal de que
+      el paso 7 se internalizó como parte del proceso por defecto.
+  [x] Verificación post-cambio: 500 velas 5m reales → 11 zonas
+      detectadas. warm_start ajustado a solicitar velas 5m (catch
+      no anticipado explícitamente, correcto por consistencia).
+  [x] D-011 añadida a §3 del Nexus: interval_s=300 protegido,
+      requiere ADR + recalibración completa para cambiar
+  [x] RECONSTRUCTION_MAP_UPDATE — governance_log/RMU-EVO-TICKET-0006-2026-06-20.md
+
+ESTADO: IMPLEMENTED (código desplegado y verificado en producción)
+
+✅ DEUDA DE RMU SALDADA (2026-06-21) — sesión en bloque completada:
+  EVO-TICKET-0003 → governance_log/RMU-EVO-TICKET-0003-2026-06-13.md
+  EVO-TICKET-0004 → governance_log/RMU-EVO-TICKET-0004-2026-06-14.md
+  EVO-TICKET-0005 → governance_log/RMU-EVO-TICKET-0005-2026-06-20.md + ADR-0005
+  EVO-TICKET-0006 → governance_log/RMU-EVO-TICKET-0006-2026-06-20.md
 ```
+
+> Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
+
+| Ticket | Fecha cierre | RMU | ADRs | Debt final | Estado |
+|---|---|---|---|---|---|
+| EVO-TICKET-0001 | 2026-06-21 | governance_log/RMU-EVO-TICKET-0001-2026-06-21.md ✅ | ADR-EVO-TICKET-0001-1-encoding-determinista.md ✅ | CONSOLIDATION | IMPLEMENTED — MATURITY_5 (28/28 tests, 100% cov, D-007 verificado sin violación, alcance respetado: oracle.py v3 y live_adapter.py NO tocados) |
+| EVO-TICKET-0002 | bloqueado P3/P4 | — | — | EXPANSION | DORMANT |
+| EVO-TICKET-0003 | 2026-06-13 | governance_log/RMU-EVO-TICKET-0003-2026-06-13.md ✅ | ADR-EVO-TICKET-0003-1 ✅ | EMERGENCY | IMPLEMENTED |
+| EVO-TICKET-0004 | 2026-06-14 | governance_log/RMU-EVO-TICKET-0004-2026-06-14.md ✅ | No requerido (Cat.2 sin alternativas arquitectónicas) | EXPANSION | IMPLEMENTED — endpoint /api/admin/read-file |
+| EVO-TICKET-0005 | 2026-06-20 | governance_log/RMU-EVO-TICKET-0005-2026-06-20.md ✅ | ADR-EVO-TICKET-0005-1 ✅ | CONSOLIDATION | IMPLEMENTED (calibration_pending: zone_max_distance_atr=5.0 PROVISIONAL) |
+| EVO-TICKET-0006 | 2026-06-20 | governance_log/RMU-EVO-TICKET-0006-2026-06-20.md ✅ | ADR-EVO-TICKET-0006-1 ✅ | CONSOLIDATION | IMPLEMENTED |
 
 ---
 
@@ -389,16 +572,12 @@ ORIGIN          : Human Investigation (sesión 2026-06-14)
                   Conexión directa con D-010: habilita LLM Readability
                   Check en tiempo real durante sesiones de chat.
 
-MATURITY        : MATURITY_4
-                  Diseño completo + implementación lista en
-                  P65_FILE_READER_SPEC.md. Pendiente aplicación
-                  en server.py y verificación con pytest.
-                  MATURITY_5 = aplicado + tests pasando.
+MATURITY        : MATURITY_5  [actualizado 2026-06-14]
+                  Implementado en server.py. Verificado con py_compile.
+                  MATURITY_4 → MATURITY_5: endpoint activo y verificado.
 
 VITALITY        : ACTIVE
-ESTADO EN CICLO : READY_FOR_CODEX
-                  [Cat.2 — toca server.py, requiere aprobación
-                  antes de aplicar. Ruta C.]
+ESTADO EN CICLO : IMPLEMENTED  [2026-06-14]
 
 COMPONENTE      : Chat de Lila (P6.5 del Nexus)
 GAP QUE AVANZA  : G4 (ContextBuilder dinámico) — building block
@@ -420,75 +599,29 @@ INVARIANTES DEL ENDPOINT (no negociables — ver P65_FILE_READER_SPEC.md):
   3. @require_auth obligatorio
   4. Archivos >100KB sin rango → 413
 
-ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [ ] Aplicar código de P65_FILE_READER_SPEC.md en server.py
-  [ ] pytest pasa (sintaxis + test manual de los 4 casos del spec)
-  [ ] RECONSTRUCTION_MAP_UPDATE (incluyendo LLM Readability Check D-010)
+DESVIÓN DE ESPECIFICACIÓN (registrado):
+  Ruta implementada : /api/admin/read-file
+  Ruta en spec      : /api/lila/read-file  (P65_FILE_READER_SPEC.md)
+  Funcionalidad     : idéntica
+  Razón             : no registrada en sesión de implementación.
+  Acción requerida  : ninguna para el ticket actual — si la ruta
+                      se expone en documentación pública o en el
+                      Codex hay que reflejar la ruta real.
+
+ENTREGABLES CONSTITUCIONALES — ESTADO FINAL:
+  [x] Aplicar código de P65_FILE_READER_SPEC.md en server.py
+  [x] Verificación con py_compile (sustituye pytest para Cat.2 simple)
+  [ ] RECONSTRUCTION_MAP_UPDATE — NO GENERADO (deuda sistemática:
+      mismo gap que EVO-TICKET-0003, 0005, 0006 — ver nota)
   [ ] Actualizar §5.11 del Nexus con Knowledge Card del File Reader
   [ ] Actualizar §8 del Nexus: P6.5 de "iniciado" a "G4 partial"
-```
 
----
-
-## Registro de cierre (se completa al terminar cada ticket)
-
-```
-Estado actual (snapshot). Historia completa en constitutional_events.jsonl.
-```
-
-| Ticket | Fecha cierre | RMU | ADRs | Debt final | Estado |
-|---|---|---|---|---|---|
-| EVO-TICKET-0001 | pendiente | pendiente | pendiente | CONSOLIDATION | EXECUTING |
-| EVO-TICKET-0002 | bloqueado P3/P4 | — | — | EXPANSION | DORMANT |
-| EVO-TICKET-0003 | 2026-06-13 | pendiente formal | ADR-EVO-TICKET-0003-1 ✅ | EMERGENCY | IMPLEMENTED |
-| EVO-TICKET-0004 | pendiente | pendiente | pendiente | EXPANSION | READY_FOR_CODEX |
-| EVO-TICKET-0005 | pendiente (fix desplegado y verificado; falta RMU/ADR/calibración) | pendiente | pendiente | CONSOLIDATION + calibration_pending | EXECUTING |
-| EVO-TICKET-0006 | 2026-06-20 | pendiente | ADR-EVO-TICKET-0006-1 ✅ | CONSOLIDATION | IMPLEMENTED |
-
----
-
-## Constitutional events · JSONL
-
-```jsonl
-{"event":"ticket_created","ticket":"EVO-TICKET-0001","component":"Oracle","maturity":"MATURITY_5","vitality":"ACTIVE","timestamp":"2026-06-12T00:00:00Z"}
-{"event":"ticket_state_changed","ticket":"EVO-TICKET-0001","field":"lifecycle_state","from":"READY_FOR_CODEX","to":"EXECUTING","decided_by":"human","timestamp":"2026-06-12T00:00:00Z"}
-{"event":"epistemic_distillation","ticket":"EVO-TICKET-0001","field":"maturity","from":"MATURITY_5","to":"MATURITY_3","decided_by":"human","reason":"oracle_v6_skeleton.py and test_oracle_v6_skeleton.py cited as evidence did not exist in git at 2026-06-13","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"phantom_reference_resolved","ticket":"EVO-TICKET-0001","files":["cgalpha_v4/RECONSTRUCTION_BRIEF.md","cgalpha_v4/oracle_v6_skeleton.py","cgalpha_v4/test_oracle_v6_skeleton.py"],"verified_by":"ls + pytest 4/4 passing","timestamp":"2026-06-20T14:15:00Z"}
-{"event":"epistemic_distillation","ticket":"EVO-TICKET-0001","field":"maturity","from":"MATURITY_3","to":"MATURITY_4","decided_by":"human","reason":"skeleton exists + contract tests pass; divergence between repo log and human ledger corrected","timestamp":"2026-06-20T14:15:00Z"}
-{"event":"ticket_state_changed","ticket":"EVO-TICKET-0001","field":"lifecycle_state","from":"READY_FOR_CODEX","to":"EXECUTING","decided_by":"human","reason":"all prerequisites confirmed: Set A 94 FULL, pipeline 5m calibrated, skeleton 4/4 tests passing, brief coherent","timestamp":"2026-06-20T14:15:00Z"}
-{"event":"ticket_created","ticket":"EVO-TICKET-0002","component":"Oracle","maturity":"MATURITY_3","vitality":"DORMANT","timestamp":"2026-06-12T00:00:00Z"}
-{"event":"ticket_state_changed","ticket":"EVO-TICKET-0002","field":"lifecycle_state","from":"-","to":"INCUBATION","decided_by":"human","timestamp":"2026-06-12T00:00:00Z"}
-{"event":"ticket_created","ticket":"EVO-TICKET-0003","component":"binance_websocket_manager","maturity":"MATURITY_2","vitality":"ACTIVE","timestamp":"2026-06-13T00:00:00Z"}
-{"event":"ticket_state_changed","ticket":"EVO-TICKET-0003","field":"lifecycle_state","from":"-","to":"INCUBATION","decided_by":"human","timestamp":"2026-06-13T00:00:00Z"}
-{"event":"epistemic_distillation","ticket":"EVO-TICKET-0001","field":"maturity","from":"MATURITY_5","to":"MATURITY_3","decided_by":"human","reason":"skeleton + test files cited as evidence NEVER EXISTED (git --all verified). cgalpha_v4/ contains only foundational docs S2-S8.","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"ticket_state_changed","ticket":"EVO-TICKET-0001","field":"lifecycle_state","from":"EXECUTING","to":"INCUBATION","decided_by":"human","reason":"cannot be EXECUTING without verifiable code artifacts","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"epistemic_distillation","ticket":"EVO-TICKET-0003","field":"maturity","from":"MATURITY_2","to":"MATURITY_4","decided_by":"human","reason":"root cause H4 confirmed via code evidence: on_ws_message() single-clock dependency on aggTrade (live_adapter.py L110). Fix scoped and delimited.","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"epistemic_distillation","ticket":"EVO-TICKET-0003","field":"component","from":"binance_websocket_manager","to":"live_adapter","decided_by":"human","reason":"root cause is in live_adapter.on_ws_message() not BWS. BWS correctly delivers both depthUpdate and aggTrade.","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"epistemic_distillation","ticket":"EVO-TICKET-0003","field":"debt_class","from":"pending","to":"EMERGENCY_DEBT","decided_by":"human","reason":"3+ days pipeline dead, restart does not fix, blocks Set A accumulation","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"phantom_reference_flagged","document":"EVO_TICKET_LOG","references":["RECONSTRUCTION_BRIEF.md","oracle_v6_skeleton.py","test_oracle_v6_skeleton.py","RECONSTRUCTION_MAP_UPDATE_TEMPLATE.md","B008_NEXUS_CAPSULE.md (as standalone file)","LILA_ROUTING_PROMPT.md","constitutional_events.jsonl","CONSTITUTIONAL_EVENT_LEDGER_SPEC.md"],"verdict":"NEVER_EXISTED (git log --all confirms zero commits)","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"blind_spot_status_corrected","blind_spot":"#3 cumulative_delta","from":"NOT_IMPLEMENTED","to":"IMPLEMENTED","evidence":"get_rolling_delta() BWS L241, window=300s","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"blind_spot_status_corrected","blind_spot":"#4 connection_epoch","from":"NOT_IMPLEMENTED","to":"IMPLEMENTED","evidence":"_connection_epoch BWS L54/L97/L99, mark_reconnection() propagated","timestamp":"2026-06-13T21:09:00Z"}
-{"event":"ticket_created","ticket":"EVO-TICKET-0004","component":"server","maturity":"MATURITY_4","vitality":"ACTIVE","timestamp":"2026-06-16T18:45:00Z"}
-{"event":"ticket_created","ticket":"EVO-TICKET-0005","component":"triple_coincidence_detector","maturity":"MATURITY_3","vitality":"ACTIVE","timestamp":"2026-06-18T21:35:00Z"}
-{"event":"fix_deployed","ticket":"EVO-TICKET-0005","files":["cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py","cgalpha_v3/application/live_adapter.py","cgalpha_v3/gui/server.py"],"decided_by":"human","timestamp":"2026-06-18T21:35:00Z"}
-{"event":"calibration_pending_flagged","ticket":"EVO-TICKET-0005","parameter":"zone_max_distance_atr","value":"5.0","status":"PROVISIONAL","reason":"intuition-based placeholder; requires percentile calibration from real detection cycles","timestamp":"2026-06-18T21:35:00Z"}
-{"event":"debt_class_corrected","ticket":"EVO-TICKET-0005","from":"CALIBRATION_DEBT","to":"CONSOLIDATION_DEBT","reason":"CALIBRATION_DEBT is not a canonical debt class per Appendix; use orthogonal calibration_pending flag instead","timestamp":"2026-06-19T20:20:00Z"}
-{"event":"state_preserved","ticket":"EVO-TICKET-0005","action":"detector_state.json and active_zones.json restored from .bak-pre-reset; restart deferred pending human approval","timestamp":"2026-06-18T21:35:00Z"}
-{"event":"verification_completed","ticket":"EVO-TICKET-0005","method":"git checkout <commit>^ -- files + pytest","result":"2 failed 2 passed identical before/after — pre-existing failures, no regression","timestamp":"2026-06-19T20:25:00Z"}
-{"event":"collection_verified","ticket":"EVO-TICKET-0005","method":"pytest --collect-only","result":"4 tests collected, no import errors silencing tests","timestamp":"2026-06-19T20:25:00Z"}
-{"event":"post_restart_check","ticket":"EVO-TICKET-0005","active_zones":0,"dataset_total":236,"full_samples":94,"pending_count":0,"criterion_1":"PASSED (stale zones did not reappear)","criterion_2":"NOT_YET_VERIFIABLE (no new zone formed since restart)","timestamp":"2026-06-19T20:30:00Z"}
-{"event":"deployment_protocol_executed","ticket":"EVO-TICKET-0005","route":"C","step":7,"old_pid":309946,"old_pid_start":"2026-06-19T18:12:51Z","fix_commit":"2155bdd","fix_commit_time":"2026-06-19T18:21:27Z","new_pid":460712,"new_pid_start":"2026-06-20T04:37:54Z","verification":"new_pid_start > fix_commit_time","result":"CONFIRMED","timestamp":"2026-06-20T04:38:00Z"}
-{"event":"isolated_control_test","ticket":"EVO-TICKET-0005","config":"TripleCoincidenceDetector() default (same as live_adapter.py)","data_sources":["Binance REST 1m","Binance REST 5m","1m with synthetic heartbeat volume=0.0"],"results":{"1m_200_bars":0,"5m_500_bars":9,"1m_with_10pct_zero_volume":0,"1m_with_50pct_zero_volume":0},"conclusion":"detector works in 5m; 1m current BTC regime does not produce detections with current thresholds","timestamp":"2026-06-20T06:15:00Z"}
-{"event":"calibration_scope_expanded","ticket":"EVO-TICKET-0005","from_parameter":"zone_max_distance_atr","to_parameters":["zone_max_distance_atr","volume_z_threshold","volume_percentile_threshold","body_percentage_threshold","quality_threshold","r2_min"],"reason":"1m detection silence points to broader 1m threshold calibration, not just zone distance","evidence":"isolated_control_test 1m=0 zones vs 5m=9 zones","timestamp":"2026-06-20T06:15:00Z"}
-{"event":"zscore_log_status","ticket":"EVO-TICKET-0005","file":"aipha_memory/operational/zscore_calibration_log.jsonl","lines":0,"last_modified":"2026-06-17T05:12:00Z","status":"dormant_instrumentation_no_consumer","note":"Existing Cat.1 instrumentation ready to feed percentile calibration once feed_kline_for_zone_detection runs regularly","timestamp":"2026-06-20T06:15:00Z"}
-{"event":"ticket_created","ticket":"EVO-TICKET-0006","component":"live_adapter","maturity":"MATURITY_5","vitality":"ACTIVE","timestamp":"2026-06-20T13:30:00Z"}
-{"event":"archaeological_evidence","ticket":"EVO-TICKET-0006","commit":"aa0190df","finding":"interval_s=60 introduced with comment 'Default 1m para el MVP live demo'","timestamp":"2026-06-20T13:30:00Z"}
-{"event":"archaeological_evidence","ticket":"EVO-TICKET-0006","commit":"807b772","finding":"Two-Speed Architecture inherited 1m without justification; demo comment removed","timestamp":"2026-06-20T13:30:00Z"}
-{"event":"decision_recorded","ticket":"EVO-TICKET-0006","decision":"Option A — operate live pipeline at 5m to align with detector calibration","alternatives_considered":["B: recalibrate thresholds for 1m","C: make timeframe configurable","status_quo: keep 1m"],"rationale":"reuse existing 5m calibration; latency cost irrelevant in harvest mode; 1m was never validated","timestamp":"2026-06-20T13:30:00Z"}
-{"event":"adr_created","ticket":"EVO-TICKET-0006","adr":"ADR-EVO-TICKET-0006-1-live-candle-interval-5m.md","path":"aipha_memory/identity/","status":"ACCEPTED_AND_IMPLEMENTED","timestamp":"2026-06-20T13:30:00Z"}
-{"event":"code_changed","ticket":"EVO-TICKET-0006","files":["cgalpha_v3/application/live_adapter.py","cgalpha_v3/gui/server.py"],"changes":{"interval_s":"60 -> 300","warm_start_rest_interval":"1m -> 5m","detector_lookback_candles":"unchanged 30 (assumed 5m units)","detector_retest_timeout_bars":"unchanged 50 (assumed 5m units)"},"timestamp":"2026-06-20T13:30:00Z"}
-{"event":"deployment_protocol_executed","ticket":"EVO-TICKET-0006","route":"C","step":7,"old_pid":460712,"old_pid_start":"2026-06-20T04:37:54Z","fix_commit":"24ea987","fix_commit_time":"2026-06-20T14:01:33Z","new_pid":627736,"new_pid_start":"2026-06-20T14:02:00Z","verification":"new_pid_start > fix_commit_time","result":"CONFIRMED","timestamp":"2026-06-20T14:02:00Z"}
-{"event":"post_change_verification","ticket":"EVO-TICKET-0006","test":"500 real 5m candles from Binance REST","result":"11 zones detected","status":"PASSED","timestamp":"2026-06-20T14:08:00Z"}
-{"event":"live_observation","ticket":"EVO-TICKET-0006","first_5m_candle_close":"2026-06-20T14:05:01Z","active_zones_after_warm_start":0,"market_price_updated":true,"note":"warm_start with 5m REST completed; no historical zones in recent 16.6h; live 5m candle clock active","timestamp":"2026-06-20T14:08:00Z"}
-{"event":"ticket_state_changed","ticket":"EVO-TICKET-0006","field":"lifecycle_state","from":"INCUBATION","to":"IMPLEMENTED","decided_by":"human","timestamp":"2026-06-20T13:30:00Z"}
+NOTA — PATRÓN DE DEUDA DE RMU (identificado 2026-06-21):
+  EVO-TICKET-0003, 0004, 0005 y 0006 cerraron sin RMU.
+  El ledger registró el cierre técnico pero el entregable de
+  documentación quedó "pendiente" sistemáticamente en los cuatro.
+  No es una anomalía aislada — es una brecha de proceso:
+  el RMU nunca fue obligatorio en el momento del cierre.
+  Acción correctiva: sesión de RMUs en bloque (4 documentos).
+  Ver §0 Paso 0 del Nexus v0.5 para el guardrail permanente.
 ```

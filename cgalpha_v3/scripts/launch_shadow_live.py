@@ -121,6 +121,7 @@ def _generate_synthetic_klines(n: int) -> list[list]:
     return klines
 
 def bootstrap_detector(detector, symbol: str = "BTCUSDT", interval: str = BOOTSTRAP_INTERVAL, limit: int = BOOTSTRAP_LIMIT, dry_run: bool = False) -> dict:
+    market = os.environ.get("CGALPHA_BINANCE_MARKET", "futures").strip().lower()
     t0 = time.monotonic()
     logger.info(f"━━━ BOOTSTRAP START — {symbol} {interval} (limit={limit}) ━━━")
     if dry_run:
@@ -152,7 +153,7 @@ def bootstrap_detector(detector, symbol: str = "BTCUSDT", interval: str = BOOTST
 
     active_zones = getattr(detector, "active_zones", [])
     zones_created = len(active_zones) - zones_before
-    zone_ids = [str(z) for z in active_zones]
+    zone_ids = [f"{market}_{z}" for z in active_zones]
     duration = round(time.monotonic() - t0, 2)
 
     report = {"candles_loaded": len(ohlcv_df), "zones_created": zones_created, "zones_total": len(active_zones), "from_ts": from_ts, "to_ts": to_ts, "duration_s": duration, "active_zone_ids": zone_ids}
@@ -197,9 +198,10 @@ async def shutdown(loop, ws_manager, signal=None):
 
 async def main():
     global ACTIVE_WS_MANAGER
+    MARKET   = os.environ.get("CGALPHA_BINANCE_MARKET", "futures").strip().lower()
     print("=" * 72)
     print("  🌌 CGAlpha v3 — MODO SHADOWTRADER LIVE")
-    print("  Operando sobre: BTCUSDT (Binance Futures)")
+    print(f"  Operando sobre: BTCUSDT (Binance {MARKET.upper()})")
     print("=" * 72)
 
     # 1. Cargar el Oracle entrenado (de Phase 10)

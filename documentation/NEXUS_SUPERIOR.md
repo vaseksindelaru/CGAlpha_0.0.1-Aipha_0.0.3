@@ -24,21 +24,46 @@ Lo que tienes delante NO es una petición de reescritura total.
 Es un mapa que te dice: qué existe, qué funciona, qué está roto,
 en qué orden atacar, y qué no debes tocar bajo ninguna circunstancia.
 
+**Paso 0 — OBLIGATORIO antes de leer nada más:**
+
+```
+Verifica que ESTE archivo es la versión más reciente.
+  grep "Nexus Superior v0\." <esta_ruta>
+Si la versión que estás leyendo es menor a la última conocida por
+el operador humano, DETENTE y pide la versión actualizada antes
+de continuar. NO trabajes sobre una copia desactualizada del Nexus
+— la numeración D-XXX puede colisionar entre versiones (ocurrió:
+sesión Oracle v6 Fase A asignó "D-008" a una decisión nueva sin
+saber que D-008 ya existía en la versión autoritativa, causando
+renumeración posterior a D-012).
+```
+
 **Tu protocolo de lectura antes de actuar:**
 
 ```
 1. Leer §1 (visión del sistema en 2 minutos)
 2. Leer §3 (verdades inmutables — nunca violarlas)
-3. Elegir el componente de mayor prioridad según §4
-4. Leer la ficha de ese componente en §5
-5. Leer el Component Brief (CRB) específico si existe
-6. Solo entonces, comenzar a leer el código de ese componente
+3. Leer §9 (capa de gobernanza constitucional — cómo dejas huellas)
+4. Elegir el componente de mayor prioridad según §4
+5. Leer la ficha de ese componente en §5
+6. Leer el Component Brief (CRB) específico si existe
+   y el EVO-TICKET correspondiente en EVO_TICKET_LOG.md
+   — verificar que el estado del ticket no esté desactualizado
+   (ocurrió: EVO-TICKET-0004 reportado como READY_FOR_CODEX en
+   una copia local cuando ya estaba IMPLEMENTED)
+7. Solo entonces, comenzar a leer el código de ese componente
 ```
 
 No leas oracle.py antes de leer esta guía.
 No propongas nada antes de entender el grafo de dependencias.
 La historia de 8+ meses de decisiones está en este documento y en el Codex.
 No la repitas desde cero.
+
+**Antes de cerrar tu sesión de trabajo**, sin excepción:
+generar el `RECONSTRUCTION_MAP_UPDATE` correspondiente (§9), incluyendo
+el **LLM Readability Check** (§10 / D-010) — tres preguntas respondidas
+como si fueras un modelo con 8k de contexto y sin memoria de la sesión.
+Una fase sin ese artefacto NO está completa.
 
 ---
 
@@ -160,6 +185,11 @@ primero verifica que no hayas pasado por alto el Codex.
 | D-005 | INCONCLUSIVE | excluir del training | DeferredOutcomeMonitor decisión |
 | D-006 | ATR de detección | capturar cuando se forma la zona, NO en el retest | commit 59b87ab |
 | D-007 | OracleRegressor_MAE | MANTENER (no reemplazar en Fase A) | 0% cobertura, decisión conservadora |
+| D-008 | Cierre de fase de reconstrucción | requiere RECONSTRUCTION_MAP_UPDATE | Apéndice — Causal Closure, sesión 2026-06-12 |
+| D-009 | Historia constitucional | requiere entrada en constitutional_events.jsonl (vocabulario reducido a 6 eventos, ver §9) | Propuesta operador, sesión 2026-06-12, aceptada con ajustes |
+| D-010 | Cognitive Portability | toda reconstrucción debe ser inteligible por modelo de capacidad inferior sin acceso a historial de sesión — test de 3 preguntas, ver §10 | Sesión 2026-06-14 |
+| D-011 | live_adapter.py interval_s | =300 (5min) es el timeframe calibrado y operativo. Cambiarlo requiere ADR + recalibración de TODOS los thresholds dependientes (lookback_candles, retest_timeout_bars, zigzag_threshold, key_candle thresholds). NUNCA cambiar como ajuste aislado. | EVO-TICKET-0006, sesión 2026-06-20 — origen: default "MVP demo" sin calibrar (12 abr) causó 4 rondas de investigación |
+| D-012 | Oracle v6 ENCODING_MAPS | Mapeo determinista fijo: `regime`={UNKNOWN:0, LATERAL:1, TREND:2, HIGH_VOL:3}, `direction`={UNKNOWN:0, BULLISH:1, BEARISH:2}, `delta_divergence`={UNKNOWN:0, NEUTRAL:1, BULLISH:2, BEARISH:3}. UNKNOWN=0 en toda categoría (fallback seguro). Valores uppercase antes del lookup. Inmutable — cambiar requiere nuevo D-ID + ADR + re-entrenamiento de todos los modelos. Implementado en `cgalpha_v4/oracle_v6_skeleton.py`. Renumerado desde "D-008" local (colisión con D-008 canónico = requisito de RMU). | ADR-EVO-TICKET-0001-1-encoding-determinista, EVO-TICKET-0001 Fase A, sesión 2026-06-21 |
 
 **Módulos protegidos — Cat.3 obligatorio para cualquier cambio:**
 
@@ -198,6 +228,11 @@ P0 META     Codex (7 entradas)            ✅ INGESTADO        CODEX_ENTRIES_DRA
 P1          Oracle v6                     🔴 EN PROGRESO      RECONSTRUCTION_BRIEF.md
             Razón: mayor impacto medible, OOS 0.68,
                    cobertura 54.77%, bloqueante para P2
+            Ticket: EVO-TICKET-0001 (Fase A) / EVO-TICKET-0002 (Fase B)
+                   en EVO_TICKET_LOG.md
+            Entregable adicional obligatorio al cierre de cada fase:
+                   RECONSTRUCTION_MAP_UPDATE (+ ADRs si hubo
+                   decisiones con alternativas) — ver §9
 
 P2          CodeCraftSage v4              🟡 OPERATIVO        [CRB PENDIENTE]
             Razón: el canal de evolución tiene techo bajo
@@ -357,7 +392,8 @@ ISSUES CONOCIDOS
   #2 zigzag_threshold hardcoded 0.0018         → adaptativo en v6
      (no cambiar sin recalibración con datos frescos)
 
-BRIEF EXISTENTE : NO (pendiente crear CRB)
+BRIEF EXISTENTE : ✅ CRB_TripleCoincidenceDetector_P5.md
+                  (creado 2026-06-21, sesión de mapeo post-EVO-0005/0006)
 PRIORIDAD       : P5 (después de P3 Ring Buffer)
 ```
 
@@ -627,6 +663,17 @@ GAPS FORMALES
 BRIEF EXISTENTE : NO — pendiente crear CRB
 PRIORIDAD       : P6.5
 PREREQUISITO    : Orchestrator v5 estable (P6) antes de tocar el endpoint
+
+KNOWLEDGE CARD — File Reader (G4) [añadida 2026-06-21, EVO-TICKET-0004]
+  Endpoint implementado : /api/admin/read-file  (NO /api/lila/read-file — desviación de spec documentada)
+  Archivo               : cgalpha_v3/gui/server.py
+  Verificación          : py_compile (2026-06-14)
+  Invariantes           : path resuelto contra _PROJECT_ROOT_READER, solo GET,
+                          @require_auth, archivos >100KB sin rango → 413
+  Estado G4             : IMPLEMENTADO — G2/G3/G5 siguen pendientes
+  RMU                   : governance_log/RMU-EVO-TICKET-0004-2026-06-14.md
+  Nota P65_FILE_READER_SPEC.md: ruta en spec (/api/lila/read-file) no actualizada
+                          con la ruta real — pendiente correción menor.
 ```
 
 ---
@@ -707,7 +754,163 @@ Diagnóstico Chat de Lila (GUI)    2026-06-08  §5.11 en este Nexus
   4 gaps confirmados + BUG-7 del chat
   harness_inject_when aspiracional
   (no inyectado en prompts — P6.5)
+
+─── SESIÓN 2026-06-12 ─────────────────────────────────────────
+Capa de Gobernanza Constitucional 2026-06-12  §9 en este Nexus
+  (adaptación del Apéndice — Constitutional
+   Governance of Evolutionary Debt)
+RECONSTRUCTION_MAP_UPDATE_TEMPLATE.md          plantilla obligatoria
+ARCHITECTURAL_DECISION_RECORD_TEMPLATE.md      plantilla obligatoria
+EVO_TICKET_LOG.md                  seed: EVO-TICKET-0001 (Oracle v6
+  Fase A, ACTIVE/EXECUTING) y EVO-TICKET-0002
+  (Oracle v6 Fase B, DORMANT — bloqueado por P3/P4)
+D-008 añadida a §3 (Causal Closure)
+
+─── SESIÓN 2026-06-12 (cont.) ──────────────────────────────────
+D-009 añadida a §3 (Constitutional Event Ledger)
+constitutional_events.jsonl        seed: 2 eventos ticket_created
+  (EVO-TICKET-0001, EVO-TICKET-0002)
+CONSTITUTIONAL_EVENT_LEDGER_SPEC.md  vocabulario de 6 eventos
+  (reducido desde propuesta original de 8 — eventos de gates
+  automáticos eliminados, ver §9)
+Regla operativa (§9) extendida con sub-pasos de ledger
+
+─── SESIÓN 2026-06-14 ─────────────────────────────────────────
+D-010 añadida a §3 (Cognitive Portability)
+§10 añadida a este Nexus (test 3 preguntas + Knowledge Card)
+RECONSTRUCTION_MAP_UPDATE_TEMPLATE.md  campo LLM Readability Check
+EVO-TICKET-0004 creado (P6.5 File Reader — G4 building block)
+P65_FILE_READER_SPEC.md  endpoint + implementación lista para Cat.2
 ```
+
+---
+
+## §10 — Cognitive Portability (D-010)
+
+> "La reconstrucción no debe producir componentes optimizados para el
+> modelo que los reconstruye; debe producir componentes optimizados
+> para los modelos menos capaces que deberán operarlos durante los
+> próximos años."
+
+### El problema que resuelve
+
+Sin D-010, una reconstrucción técnicamente correcta puede ser
+cognitivamente opaca para el modelo que la mantiene. Un modelo con
+8k de contexto que ve `calculate_signal()` y no tiene acceso al
+historial de la sesión que la escribió no sabe:
+- por qué existe esa función
+- qué invariante debe preservar
+- qué se rompe si la modifica
+
+Los governance artifacts (RMU, ADR, Nexus §5) son la única memoria
+que ese modelo tendrá disponible. D-010 convierte eso en un criterio
+de completitud verificable.
+
+### El test de 3 preguntas
+
+Al cerrar cualquier sesión de reconstrucción, el modelo que ejecutó
+el trabajo responde estas tres preguntas **como si fuera Lila con 8k
+de contexto, sin memoria de la sesión, leyendo solo**:
+
+```
+(a) el RMU de la fase
+(b) la sección §5 del Nexus del componente afectado
+(c) las docstrings de las funciones modificadas
+```
+
+Las preguntas:
+
+```
+P1: ¿Qué hace este cambio y por qué existe?
+    (2-3 frases. Sin jerga de sesión. Sin "como discutimos antes...")
+
+P2: ¿Qué invariante debe preservar siempre la función principal?
+    (Ejemplo correcto: "INVARIANTE: _heartbeat_candle_close() nunca
+     debe llamarse para la misma kline_start dos veces — la guarda
+     `if kline_start <= self._last_kline_close: return` es obligatoria.")
+    (Ejemplo incorrecto: "la función debe funcionar bien")
+
+P3: ¿Qué componente aguas abajo se rompe si este cambio se revierte?
+    (Componente específico del §2 del Nexus + síntoma observable.
+     No "algo falla" — qué exactamente y cómo lo detectarías.)
+```
+
+Si el modelo no puede responder las tres con fluidez, la fase
+está incompleta. Las acciones correctoras en orden de prioridad:
+
+1. Mejorar la docstring de la función (invariante explícito)
+2. Ampliar el campo "Logic Introduced" del RMU
+3. Ampliar la ficha del componente en §5 del Nexus
+
+### El Knowledge Card como extensión de §5
+
+Cada ficha de componente en §5 debe tener una subsección
+`### Knowledge Card` que responde las tres preguntas una vez,
+en estado estable, sin depender de ninguna sesión específica.
+
+Formato mínimo:
+```
+### Knowledge Card (D-010)
+
+PROPÓSITO EN UNA FRASE:
+  [qué hace este componente para el sistema, no cómo lo hace]
+
+INVARIANTE CRÍTICO:
+  [qué nunca debe romperse, expresado como condición verificable]
+
+DEPENDIENTE AGUAS ABAJO:
+  [componente del §2 que consume este, y síntoma observable si falla]
+
+PARA MODIFICAR ESTE COMPONENTE, el modelo operativo necesita saber:
+  [1-3 hechos que no están en el código pero sí en los governance artifacts]
+```
+
+Las fichas de §5 existentes (5.1-5.11) no tienen Knowledge Card todavía.
+Se añaden progresivamente al cierre de cada sesión de reconstrucción
+que toque ese componente — no antes, porque el card debe reflejar
+el estado real del código, no el aspiracional.
+
+### Implicación para docstrings de código
+
+Toda función reconstruida bajo D-010 debe tener una docstring que
+incluya el invariante clave. No para los humanos — para el modelo
+operativo con contexto limitado:
+
+```python
+# ANTES (opaco para modelo con 8k de contexto):
+def _heartbeat_candle_close(self, depth_ts_ms: int):
+    """Fallback clock when aggTrade stream is silent."""
+
+# DESPUÉS (D-010 compliant):
+def _heartbeat_candle_close(self, depth_ts_ms: int):
+    """Fallback clock: close candle using depthUpdate timestamp
+    when aggTrade stream has been silent > heartbeat_timeout.
+
+    INVARIANTE: llamar solo cuando kline_start > self._last_kline_close.
+    La guarda al inicio del método es obligatoria — sin ella se generan
+    múltiples cierres de vela para el mismo periodo a 10 calls/segundo.
+
+    AGUAS ABAJO: DeferredOutcomeMonitor.tick() recibe el cierre vía
+    _on_candle_close(). Si este método se elimina, training_dataset_v2.jsonl
+    deja de actualizarse cuando aggTrade falla (EVO-TICKET-0003).
+    """
+```
+
+### Relación con provider switching y censura
+
+D-010 es la respuesta arquitectónica al riesgo de censura de modelos
+(ej: modelo avanzado que reconstruye componente financiero y luego es
+censurado o reemplazado). Si el componente reconstruido cumple D-010,
+un modelo de menor capacidad puede:
+
+- Entender el invariante sin releer la sesión de reconstrucción
+- Hacer cambios puntuales (Cat.1) sin romper la lógica crítica
+- Detectar si una propuesta viola el invariante antes de ejecutarla
+
+El conocimiento institucional no vive en el modelo que reconstruyó.
+Vive en el código (docstrings) + governance artifacts (RMU §10 field
++ Nexus §5 Knowledge Card). Eso es lo que hace el sistema
+independiente de cualquier proveedor específico.
 
 ---
 
@@ -719,12 +922,15 @@ Diagnóstico Chat de Lila (GUI)    2026-06-08  §5.11 en este Nexus
 | Codex/Memory | ✅ CODEX_ENTRIES_DRAFT.md | Ingestado en memoria |
 | Routing (Ruta A/B/C) | ✅ LILA_ROUTING_PROMPT.md + LILA_RUTA_A/B | Operativo (2026-06-08) |
 | B-008 cápsula | ✅ B008_NEXUS_CAPSULE.md | Completo con corrección v2 |
+| Gobernanza constitucional | ✅ §9 + 3 plantillas + EVO_TICKET_LOG.md | Operativo (2026-06-12) |
+| D-010 / Cognitive Portability | ✅ §10 + campo RMU + Knowledge Card | Operativo (2026-06-14) |
+| Chat de Lila — File Reader (P6.5) | ✅ EVO-TICKET-0004 + P65_FILE_READER_SPEC.md + Knowledge Card §5.11 | G4 IMPLEMENTADO (2026-06-14) — /api/admin/read-file activo; G2/G3/G5 pendientes |
 | CodeCraftSage | ❌ Pendiente | P2 |
 | L2 Ring Buffer | 🟡 architectural_analysis.md §1-2 | P3 — parcial |
 | DeferredOutcomeMonitor | ❌ Pendiente | P4 |
-| TripleCoincidenceDetector | ❌ Pendiente | P5 |
+| TripleCoincidenceDetector | ✅ CRB creado — EVO-TICKET-0005 es primera evidencia real | P5 |
 | EvolutionOrchestrator | ❌ Pendiente | P6 |
-| Chat de Lila (GUI) | 🟡 §5.11 en este Nexus — 4 gaps doc. | P6.5 |
+| Chat de Lila (GUI) | 🟡 §5.11 en este Nexus — 4 gaps doc. G4 implementado (2026-06-14) | P6.5 |
 | MemoryPolicyEngine | 🟡 S5_MEMORIA_INTELIGENTE_V4.md | P7 — parcial |
 | LLMSwitcher | ❌ Pendiente | P8 |
 | ShadowTrader | ❌ Pendiente | P9 |
@@ -732,6 +938,241 @@ Diagnóstico Chat de Lila (GUI)    2026-06-08  §5.11 en este Nexus
 
 ---
 
-*Nexus Superior v0.2 — cgAlpha_0.0.1*
-*Creado: 2026-06-08 | Actualizado: 2026-06-08*
-*Actualizar tras cada CRB completado o componente reconstruido.*
+## §9 — Capa de Gobernanza Constitucional
+
+> Adaptación del Apéndice "Constitutional Governance of Evolutionary
+> Debt" a la cgAlpha REAL (no a la cgAlpha aspiracional). Cada
+> concepto del Apéndice se mapea aquí a: existe / no existe / cómo
+> se simula mientras no existe.
+
+### Mapa Apéndice → cgAlpha real
+
+```
+CONCEPTO DEL APÉNDICE       ESTADO EN cgAlpha           CÓMO SE CUMPLE HOY
+──────────────────────────────────────────────────────────────────────────
+AlphaLab (cámara completa,   ❌ NO EXISTE                Arquitectura objetivo,
+QUARANTINE_GATE,                                         mismo nivel que el
+READY_FOR_CODEX,                                         "Eco Eterno" del
+resurrección automática)                                 Harness (Acto VIII,
+                                                          ver B008_NEXUS_CAPSULE)
+
+EVO-TICKET                   ✅ EVO_TICKET_LOG.md         Formato constitucional
+(precedente formal)          (seed: 0001, 0002)          desde 2026-06-12.
+                                                          Todo trabajo en P1+
+                                                          debe tener ticket
+                                                          antes de empezar.
+
+Maturity levels (1-5)        ✅ usado en EVO_TICKET_LOG   Asignado manualmente
+                                                          por quien abre el
+                                                          ticket. Sin gate
+                                                          automático.
+
+Vitality states               ✅ usado en EVO_TICKET_LOG   ACTIVE/DORMANT/
+(ACTIVE/DORMANT/                                          STALLED/ORPHANED.
+STALLED/ORPHANED)                                         Revisión manual al
+                                                          cierre de cada sesión
+                                                          de trabajo (no
+                                                          automática).
+
+QUARANTINE_GATE               🟡 SIMULADO                  Cumplido por: Ruta C
+(verificar no-contradicción)                              (LILA_ROUTING_PROMPT.md)
+                                                          + checklist contra §3
+                                                          (verdades inmutables)
+                                                          antes de aprobar
+                                                          ejecución.
+
+READY_FOR_CODEX                🟡 SIMULADO                  El orden de §4
+(cola de ejecución)                                       (P1→P10) es la cola.
+                                                          No hay colisiones
+                                                          porque solo un
+                                                          componente está
+                                                          "EXECUTING" a la vez
+                                                          (regla de inicio §4).
+
+[RECONSTRUCTION_MAP_UPDATE]    ✅ PLANTILLA LISTA           RECONSTRUCTION_MAP_
+(obligatorio al cerrar                                    UPDATE_TEMPLATE.md.
+implementación)                                           D-008: ninguna fase
+                                                          de P1+ se considera
+                                                          completa sin este
+                                                          artefacto.
+
+[ARCHITECTURAL_DECISION_       ✅ PLANTILLA LISTA           ARCHITECTURAL_
+RECORD]                                                    DECISION_RECORD_
+(decisiones con alternativas)                             TEMPLATE.md. Uno por
+                                                          decisión, no por fase.
+
+Debt classification             ✅ usado en EVO_TICKET_LOG   EXPANSION /
+(EXPANSION/CONSOLIDATION/                                  CONSOLIDATION /
+EMERGENCY/TOXIC)                                          EMERGENCY / TOXIC.
+                                                          Estimado al abrir el
+                                                          ticket, confirmado en
+                                                          el RMU al cerrarlo.
+
+Resurrection Protocol           ✅ documentado en           EVO-TICKET-0002 es
+(tickets dormidos →             EVO_TICKET_LOG              el primer caso real:
+decisión obligatoria)                                      DORMANT, con
+                                                          condición explícita
+                                                          de revisión (P3/P4
+                                                          con CRB).
+
+Principle of Causal Closure     ✅ ESTA SECCIÓN              Gobernanza
+(estado de gobernanza =                                    (EVO_TICKET_LOG +
+estado de implementación)                                  governance_log/) y
+                                                          código deben
+                                                          mencionarse
+                                                          mutuamente: el RMU
+                                                          referencia archivos
+                                                          y líneas; el código
+                                                          puede referenciar
+                                                          el ticket en
+                                                          comentarios si el
+                                                          cambio es no-obvio.
+```
+
+### Por qué EvolutionOrchestrator (P6) NO se adelanta
+
+Es la pregunta que originó esta sección: ¿hay que construir
+EvolutionOrchestrator antes de tocar Oracle, para que documente
+los cambios?
+
+**No**, por dos razones:
+
+1. **Dependencia real (§4):** P6 necesita P1-P5 estables. Adelantarlo
+   invierte el orden que ya está justificado por el grafo de
+   dependencias (§2).
+
+2. **No es lo que se necesita.** EvolutionOrchestrator es el motor
+   que ejecuta y escala propuestas (Cat.1→2→3) — un componente vivo.
+   Lo que pedía la idea original — "huellas claras para seguimiento
+   post-reescritura" — es un **formato de artefacto**, no un motor.
+   Un formato se puede exigir desde HOY, por disciplina de proceso,
+   sin que exista el software que algún día lo consuma.
+
+El patrón es **"escribir ahora, ingerir después"**: los archivos en
+`governance_log/` y `EVO_TICKET_LOG.md` ya están en el schema
+constitucional. Cuando P6 y P7 (MemoryPolicyEngine) se reconstruyan,
+los ingieren tal cual — sin reinterpretación, porque ya son datos
+estructurados, no la crónica de desarrollo que el Apéndice (y D-008)
+buscan evitar.
+
+### Regla operativa para el LLM que reconstruye Oracle v6
+
+```
+1. Abrir/confirmar EVO-TICKET-0001 en EVO_TICKET_LOG.md antes
+   de escribir código (ya está abierto, estado EXECUTING).
+
+2. Trabajar la fase normalmente (Ruta C, LILA_RUTA_B_PROPONER.md
+   si aplica clasificación Cat.1/2/3 dentro de la fase).
+
+3. Al cerrar la sesión:
+   a. Llenar RECONSTRUCTION_MAP_UPDATE_TEMPLATE.md →
+      governance_log/RMU-EVO-TICKET-0001-{fecha}.md
+      → append a constitutional_events.jsonl:
+         {"event":"rmu_generated","ticket":"EVO-TICKET-0001",
+          "artifact":"RMU-EVO-TICKET-0001-{fecha}"}
+   b. Si hubo decisiones con alternativas (ej: esquema de
+      encoding, issue #2 de §5.1) → llenar
+      ARCHITECTURAL_DECISION_RECORD_TEMPLATE.md por cada una →
+      governance_log/ADR-EVO-TICKET-0001-{n}-{slug}.md
+      → append a constitutional_events.jsonl:
+         {"event":"adr_created","ticket":"EVO-TICKET-0001",
+          "adr":"ADR-EVO-TICKET-0001-{n}-{slug}"}
+   c. Si el RMU propone nuevas entradas D-XXX → añadirlas a §3
+      de este Nexus directamente (no esperar a P7).
+   d. Actualizar la tabla "Registro de cierre" en EVO_TICKET_LOG.md
+      → append a constitutional_events.jsonl:
+         {"event":"debt_recorded","ticket":"EVO-TICKET-0001",
+          "component":"Oracle","debt_class":"<de la RMU>"}
+         {"event":"ticket_closed","ticket":"EVO-TICKET-0001",
+          "final_state":"IMPLEMENTED"}
+
+4. Solo entonces, la fase está completa (D-008 + D-009).
+```
+
+### D-009 — Constitutional Event Ledger
+
+> Propuesta del operador, sesión 2026-06-12. Aceptada con ajustes.
+> Archivo: `constitutional_events.jsonl` (especificación completa en
+> `CONSTITUTIONAL_EVENT_LEDGER_SPEC.md`, seed inicial en
+> `constitutional_events.jsonl`).
+
+**Por qué se acepta:** RMU/ADR/EVO_TICKET_LOG responden "¿por qué
+ocurrió?" — son documentos, requieren leer prosa para reconstruir
+una cronología. El ledger responde "¿qué ocurrió y cuándo?" en
+formato append-only de una línea por evento. Es el mismo principio
+de "escribir ahora, ingerir después" que ya aplicamos a RMU/ADR,
+llevado a su forma más estructurada posible: JSON plano, sin
+interpretación necesaria. No introduce componentes, no altera
+P1→P10, no es una base de datos — es un log.
+
+**Ajustes hechos sobre la propuesta original:**
+
+1. **Vocabulario reducido de 8 a 6 tipos de evento.** La propuesta
+   original incluía `ticket_entered_quarantine` y
+   `ticket_ready_for_codex` — eventos que implican que
+   QUARANTINE_GATE y READY_FOR_CODEX son pasos automatizados reales.
+   Pero §9 ya documenta ambos como `🟡 SIMULADO` (revisión manual,
+   no gates). Registrar esos eventos como si hubieran "ocurrido"
+   crearía un falso precedente: un sistema futuro leyendo el ledger
+   asumiría que existió un gate automático en 2026-06, cuando en
+   realidad fue un humano mirando una tabla. Eso es una violación
+   en miniatura del propio Principle of Causal Closure que motiva
+   esta propuesta — el evento afirmaría más automatización de la
+   que hubo.
+
+   Vocabulario final (7 eventos):
+   ```
+   ticket_created        — alta de un EVO-TICKET
+   ticket_state_changed  — cambio de maturity | vitality |
+                            lifecycle_state, con campo
+                            decided_by: "human" | "llm_self_assessment"
+   rmu_generated         — referencia a un RMU ya escrito
+   adr_created           — referencia a un ADR ya escrito
+   crb_created           — referencia a un Component Reconstruction Brief
+                            ya escrito. Justificación: P1-P10 requieren CRB
+                            antes de reconstrucción; registrarlo como evento
+                            separado evita que un ticket de bugfix (ej:
+                            EVO-0005) tenga que absorber la creación del CRB
+                            como si fuera parte de su cierre.
+   debt_recorded         — clasificación de deuda confirmada
+                            (EXPANSION_DEBT | CONSOLIDATION_DEBT |
+                             EMERGENCY_DEBT | TOXIC_DEBT)
+   ticket_closed         — cierre con estado final
+   ```
+
+   El campo `decided_by` es la pieza nueva más valiosa: en lugar de
+   fingir un gate automático, registra HONESTAMENTE quién tomó cada
+   decisión de transición. Esa es información causal real que ni
+   RMU ni ADR capturan por sí solos.
+
+2. **Naming consistente con EVO_TICKET_LOG.md.** La propuesta usaba
+   `EVO-0001`; el log ya usa `EVO-TICKET-0001`. Se mantiene la
+   convención existente en todos los ejemplos.
+
+3. **Ubicación bajo `governance_log/`**, junto a los RMU/ADR — un
+   solo directorio para todo lo que es gobernanza, separado del
+   código.
+
+4. **No es un checklist nuevo y separado.** Se integró como
+   sub-pasos de la "Regla operativa" ya existente (arriba). Misma
+   sesión, mismo cierre, sin ritual adicional que alguien pueda
+   olvidar por estar en otro documento.
+
+5. **Seed retroactivo.** La creación de EVO-TICKET-0001 y
+   EVO-TICKET-0002 (sesión 2026-06-12, anterior a esta) se registra
+   como los dos primeros eventos del ledger — "escribir historia
+   una vez" incluye la historia que ya existe, no solo la futura.
+
+**Relación con `EVO_TICKET_LOG.md`:** no compiten. `EVO_TICKET_LOG.md`
+es el **estado actual** (snapshot mutable: maturity, vitality,
+estado de ciclo de cada ticket). El ledger es la **historia**
+(append-only, nunca se edita). Son la misma relación que entre el
+estado de un fichero y `git log` — no se puede que "diverjan" porque
+responden preguntas distintas.
+
+---
+
+*Nexus Superior v0.5 — cgAlpha_0.0.1*
+*Creado: 2026-06-08 | Actualizado: 2026-06-14*
+*Actualizar tras cada CRB completado, componente reconstruido,
+o EVO-TICKET cerrado.*

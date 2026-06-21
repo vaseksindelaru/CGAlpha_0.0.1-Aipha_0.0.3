@@ -64,3 +64,15 @@ aipha_memory/evolutionary/
 execution_server.log
 execution_24h_heartbeat.json
 .codex
+
+# Datos operativos / runtime — nunca commitear
+.env
+aipha_memory/operational/
+aipha_memory/raw_buffers/
+aipha_memory/snapshots/
+aipha_memory/reports/
+coverage.xml
+coverage_oracle.json
+*.zip
+__pycache__/
+*.pyc
