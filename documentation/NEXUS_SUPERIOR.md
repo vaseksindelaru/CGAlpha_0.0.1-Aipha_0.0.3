@@ -266,7 +266,7 @@ P4          DeferredOutcomeMonitor        🟡 OPERATIVO        [CRB PENDIENTE]
                    Etiquetado terciario + lookahead adaptativo
                    son mejoras de calidad de datos.
 
-P5          TripleCoincidenceDetector     ✅ ESTABLE          [CRB PENDIENTE]
+P5          TripleCoincidenceDetector     ✅ ESTABLE          ✅ CRB creado
             (integración L2)
             Razón: necesita recibir el Ring Buffer de P3.
                    No se toca antes de que P3 esté estable.
@@ -407,7 +407,8 @@ ISSUES CONOCIDOS
   #2 zigzag_threshold hardcoded 0.0018         → adaptativo en v6
      (no cambiar sin recalibración con datos frescos)
 
-BRIEF EXISTENTE : NO (pendiente crear CRB)
+BRIEF EXISTENTE : ✅ CRB_TripleCoincidenceDetector_P5.md
+                  (creado 2026-06-21, commit 3860e56)
 PRIORIDAD       : P5 (después de P3 Ring Buffer)
 ```
 
@@ -931,7 +932,7 @@ independiente de cualquier proveedor específico.
 | CodeCraftSage | ❌ Pendiente | P2 |
 | L2 Ring Buffer | 🟡 architectural_analysis.md §1-2 | P3 — parcial |
 | DeferredOutcomeMonitor | ❌ Pendiente | P4 |
-| TripleCoincidenceDetector | ❌ Pendiente | P5 |
+| TripleCoincidenceDetector | ✅ CRB_TripleCoincidenceDetector_P5.md | P5 |
 | EvolutionOrchestrator | ❌ Pendiente | P6 |
 | Chat de Lila (GUI) | 🟡 §5.11 en este Nexus — 4 gaps doc. | P6.5 |
 | MemoryPolicyEngine | 🟡 S5_MEMORIA_INTELIGENTE_V4.md | P7 — parcial |
