@@ -27,15 +27,29 @@ en qué orden atacar, y qué no debes tocar bajo ninguna circunstancia.
 **Paso 0 — OBLIGATORIO antes de leer nada más:**
 
 ```
-Verifica que ESTE archivo es la versión más reciente.
-  grep "Nexus Superior v0\." <esta_ruta>
-Si la versión que estás leyendo es menor a la última conocida por
-el operador humano, DETENTE y pide la versión actualizada antes
-de continuar. NO trabajes sobre una copia desactualizada del Nexus
-— la numeración D-XXX puede colisionar entre versiones (ocurrió:
-sesión Oracle v6 Fase A asignó "D-008" a una decisión nueva sin
-saber que D-008 ya existía en la versión autoritativa, causando
-renumeración posterior a D-012).
+a) Verifica que ESTE archivo es la versión más reciente.
+   grep "Nexus Superior v0\." <esta_ruta>
+   Si la versión que estás leyendo es menor a la última conocida por
+   el operador humano, DETENTE y pide la versión actualizada antes
+   de continuar. NO trabajes sobre una copia desactualizada del Nexus
+   — la numeración D-XXX puede colisionar entre versiones (ocurrió:
+   sesión Oracle v6 Fase A asignó "D-008" a una decisión nueva sin
+   saber que D-008 ya existía en la versión autoritativa, causando
+   renumeración posterior a D-012).
+
+b) Verifica que el contenido que lees está REALMENTE en git, no
+   solo en el working tree.
+   git fetch origin && git status
+   git log origin/main --oneline -5
+   Si "git status" muestra cambios sin commitear en archivos de
+   gobernanza (NEXUS_SUPERIOR.md, EVO_TICKET_LOG.md,
+   constitutional_events.jsonl) que según el operador humano ya
+   estaban "sincronizados", DETENTE — hay un gap entre lo reportado
+   y lo persistido. No asumas que "reportado como sincronizado" =
+   "verificado con git log". (Ocurrió: 2026-06-21, el ledger
+   constitucional completo vivió semanas solo en working tree,
+   nunca trackeado en git, hasta que una sesión de CRB lo detectó
+   por accidente al revisar git status antes de su propio commit.)
 ```
 
 **Tu protocolo de lectura antes de actuar:**
@@ -189,7 +203,8 @@ primero verifica que no hayas pasado por alto el Codex.
 | D-009 | Historia constitucional | requiere entrada en constitutional_events.jsonl (vocabulario reducido a 6 eventos, ver §9) | Propuesta operador, sesión 2026-06-12, aceptada con ajustes |
 | D-010 | Cognitive Portability | toda reconstrucción debe ser inteligible por modelo de capacidad inferior sin acceso a historial de sesión — test de 3 preguntas, ver §10 | Sesión 2026-06-14 |
 | D-011 | live_adapter.py interval_s | =300 (5min) es el timeframe calibrado y operativo. Cambiarlo requiere ADR + recalibración de TODOS los thresholds dependientes (lookback_candles, retest_timeout_bars, zigzag_threshold, key_candle thresholds). NUNCA cambiar como ajuste aislado. | EVO-TICKET-0006, sesión 2026-06-20 — origen: default "MVP demo" sin calibrar (12 abr) causó 4 rondas de investigación |
-| D-012 | Oracle v6 ENCODING_MAPS | Mapeo determinista fijo: `regime`={UNKNOWN:0, LATERAL:1, TREND:2, HIGH_VOL:3}, `direction`={UNKNOWN:0, BULLISH:1, BEARISH:2}, `delta_divergence`={UNKNOWN:0, NEUTRAL:1, BULLISH:2, BEARISH:3}. UNKNOWN=0 en toda categoría (fallback seguro). Valores uppercase antes del lookup. Inmutable — cambiar requiere nuevo D-ID + ADR + re-entrenamiento de todos los modelos. Implementado en `cgalpha_v4/oracle_v6_skeleton.py`. Renumerado desde "D-008" local (colisión con D-008 canónico = requisito de RMU). | ADR-EVO-TICKET-0001-1-encoding-determinista, EVO-TICKET-0001 Fase A, sesión 2026-06-21 |
+| D-012 | Oracle v6 ENCODING_MAPS | ⚠️ PLACEHOLDER — pendiente texto literal de la sesión Fase A. Reemplaza `sklearn.LabelEncoder` (no-determinista entre reentrenamientos) por mapeo fijo en `cgalpha_v4/oracle_v6_skeleton.py` para `regime`/`direction`/`delta_divergence`. Renumerado desde "D-008" local (colisión con D-008 canónico = requisito de RMU). Corregir con texto exacto al sincronizar. | EVO-TICKET-0001 Fase A, sesión 2026-06-2X — renumerado por colisión de D-008 entre Nexus local (v0.2) y autoritativo (v0.5) |
+| D-013 | Verificación de persistencia de gobernanza | "Reportado como sincronizado/commiteado" NO es evidencia — requiere `git log origin/main` mostrando el commit real. Mismo principio que la verificación de despliegue (ps -o lstart= vs commit timestamp), aplicado a documentación en vez de código. ✅ VERIFICADO 2026-06-21: commit de recuperación `3860e56` confirmado en `origin/main` (padre `0c07184`). | Sesión 2026-06-21 — `constitutional_events.jsonl` vivió semanas solo en working tree, nunca trackeado en git, descubierto por accidente durante CRB de P5 al correr `git status` antes de un commit |
 
 **Módulos protegidos — Cat.3 obligatorio para cualquier cambio:**
 
@@ -392,8 +407,7 @@ ISSUES CONOCIDOS
   #2 zigzag_threshold hardcoded 0.0018         → adaptativo en v6
      (no cambiar sin recalibración con datos frescos)
 
-BRIEF EXISTENTE : ✅ CRB_TripleCoincidenceDetector_P5.md
-                  (creado 2026-06-21, sesión de mapeo post-EVO-0005/0006)
+BRIEF EXISTENTE : NO (pendiente crear CRB)
 PRIORIDAD       : P5 (después de P3 Ring Buffer)
 ```
 
@@ -663,17 +677,6 @@ GAPS FORMALES
 BRIEF EXISTENTE : NO — pendiente crear CRB
 PRIORIDAD       : P6.5
 PREREQUISITO    : Orchestrator v5 estable (P6) antes de tocar el endpoint
-
-KNOWLEDGE CARD — File Reader (G4) [añadida 2026-06-21, EVO-TICKET-0004]
-  Endpoint implementado : /api/admin/read-file  (NO /api/lila/read-file — desviación de spec documentada)
-  Archivo               : cgalpha_v3/gui/server.py
-  Verificación          : py_compile (2026-06-14)
-  Invariantes           : path resuelto contra _PROJECT_ROOT_READER, solo GET,
-                          @require_auth, archivos >100KB sin rango → 413
-  Estado G4             : IMPLEMENTADO — G2/G3/G5 siguen pendientes
-  RMU                   : governance_log/RMU-EVO-TICKET-0004-2026-06-14.md
-  Nota P65_FILE_READER_SPEC.md: ruta en spec (/api/lila/read-file) no actualizada
-                          con la ruta real — pendiente correción menor.
 ```
 
 ---
@@ -924,13 +927,13 @@ independiente de cualquier proveedor específico.
 | B-008 cápsula | ✅ B008_NEXUS_CAPSULE.md | Completo con corrección v2 |
 | Gobernanza constitucional | ✅ §9 + 3 plantillas + EVO_TICKET_LOG.md | Operativo (2026-06-12) |
 | D-010 / Cognitive Portability | ✅ §10 + campo RMU + Knowledge Card | Operativo (2026-06-14) |
-| Chat de Lila — File Reader (P6.5) | ✅ EVO-TICKET-0004 + P65_FILE_READER_SPEC.md + Knowledge Card §5.11 | G4 IMPLEMENTADO (2026-06-14) — /api/admin/read-file activo; G2/G3/G5 pendientes |
+| Chat de Lila — File Reader (P6.5) | ✅ EVO-TICKET-0004 + P65_FILE_READER_SPEC.md | Iniciado (2026-06-14) — G4 building block |
 | CodeCraftSage | ❌ Pendiente | P2 |
 | L2 Ring Buffer | 🟡 architectural_analysis.md §1-2 | P3 — parcial |
 | DeferredOutcomeMonitor | ❌ Pendiente | P4 |
-| TripleCoincidenceDetector | ✅ CRB creado — EVO-TICKET-0005 es primera evidencia real | P5 |
+| TripleCoincidenceDetector | ❌ Pendiente | P5 |
 | EvolutionOrchestrator | ❌ Pendiente | P6 |
-| Chat de Lila (GUI) | 🟡 §5.11 en este Nexus — 4 gaps doc. G4 implementado (2026-06-14) | P6.5 |
+| Chat de Lila (GUI) | 🟡 §5.11 en este Nexus — 4 gaps doc. | P6.5 |
 | MemoryPolicyEngine | 🟡 S5_MEMORIA_INTELIGENTE_V4.md | P7 — parcial |
 | LLMSwitcher | ❌ Pendiente | P8 |
 | ShadowTrader | ❌ Pendiente | P9 |
@@ -1120,7 +1123,7 @@ P1→P10, no es una base de datos — es un log.
    esta propuesta — el evento afirmaría más automatización de la
    que hubo.
 
-   Vocabulario final (7 eventos):
+   Vocabulario final (6 eventos):
    ```
    ticket_created        — alta de un EVO-TICKET
    ticket_state_changed  — cambio de maturity | vitality |
@@ -1128,12 +1131,6 @@ P1→P10, no es una base de datos — es un log.
                             decided_by: "human" | "llm_self_assessment"
    rmu_generated         — referencia a un RMU ya escrito
    adr_created           — referencia a un ADR ya escrito
-   crb_created           — referencia a un Component Reconstruction Brief
-                            ya escrito. Justificación: P1-P10 requieren CRB
-                            antes de reconstrucción; registrarlo como evento
-                            separado evita que un ticket de bugfix (ej:
-                            EVO-0005) tenga que absorber la creación del CRB
-                            como si fuera parte de su cierre.
    debt_recorded         — clasificación de deuda confirmada
                             (EXPANSION_DEBT | CONSOLIDATION_DEBT |
                              EMERGENCY_DEBT | TOXIC_DEBT)
@@ -1172,7 +1169,7 @@ responden preguntas distintas.
 
 ---
 
-*Nexus Superior v0.5 — cgAlpha_0.0.1*
+*Nexus Superior v0.6 — cgAlpha_0.0.1*
 *Creado: 2026-06-08 | Actualizado: 2026-06-14*
 *Actualizar tras cada CRB completado, componente reconstruido,
 o EVO-TICKET cerrado.*
