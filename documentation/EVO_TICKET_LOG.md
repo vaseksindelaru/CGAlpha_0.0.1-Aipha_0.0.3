@@ -78,13 +78,13 @@ ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
 ORIGIN          : Human Investigation + Operational Anomaly
                   ("el Oracle aprende con features estáticas" — §1 Nexus)
 
-MATURITY        : MATURITY_3
-                  (dirección clara, bloqueado por P3/P4 sin CRB)
+MATURITY        : MATURITY_4
+                  (dirección clara + bloqueantes extirpados via deliberación Ruta B)
 
-VITALITY        : DORMANT
-                  (no puede avanzar hasta que P3/P4 tengan CRB)
+VITALITY        : ACTIVE
+                  (reapertura formal 2026-06-23 — ver UPDATE LOG abajo)
 
-ESTADO EN CICLO : INCUBATION
+ESTADO EN CICLO : READY_FOR_CODEX
 
 DEBT CLASS (estimado) : EXPANSION_DEBT
 
@@ -94,11 +94,101 @@ PROTOCOLO DE RESURRECCIÓN:
     (b) terminar formalmente si suposiciones ya no aplican.
   "Permanent abandonment is forbidden."
 
+  ✅ RESURRECCIÓN EJECUTADA 2026-06-23:
+     - CRB P3 creado (CRB_BinanceWebSocketManager_P3.md)
+     - CRB P4 creado (CRB_DeferredOutcomeMonitor_P4.md)
+     - ADR-RECONCILIATION-1 aplicado (Nexus reconciliado con código vivo)
+     - ADR-FRICCION-ECONOMICA-1 aprobado (Opción C: EconomicGate en P9)
+     - ADR-ACOPLAMIENTO-TEMPORAL-1 aprobado (D-014: ε=200ms)
+     - Puerta de Cobertura Base añadida a plantilla RMU
+     - Nexus §5.7 issue #3 y §5.4 issue #5 marcados ✅ RESUELTO via D-014
+
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
   [ ] RECONSTRUCTION_MAP_UPDATE
   [ ] ADR: walk-forward vs split estático
   [ ] ADR: diseño Ring Buffer feed hacia Oracle (interfaz con P3)
+      ✅ PARCIAL: D-014 establece el acoplamiento temporal (t_feature ≤ t_candle_close − 200ms).
+         Falta ADR de interfaz schema (qué features exactas consume el Oracle).
+
+PLAN DE ATAQUE (post-reapertura):
+  Ver sección "PLAN DE ATAQUE — EVO-TICKET-0002" al final de este ticket.
 ```
+
+### UPDATE LOG — EVO-TICKET-0002
+
+**2026-06-23 — Reapertura formal:**
+- **Vitality:** DORMANT → ACTIVE
+- **Maturity:** MATURITY_3 → MATURITY_4
+- **Lifecycle:** INCUBATION → READY_FOR_CODEX
+- **Razón:** Deliberación arquitectónica Ruta B extirpó todos los bloqueantes.
+  El forense de código vivo reveló que P3 y P4 estaban más implementados
+  de lo que el Nexus reportaba (Document Drift). Los verdaderos bloqueos
+  eran: (1) cobertura cero/incompleta, (2) time drift sin caracterizar,
+  (3) fricción económica sin decidir. Los tres están ahora resueltos a
+  nivel de diseño: Puerta de Cobertura Base (RMU template), D-014
+  (acoplamiento temporal), y ADR-FRICCION-ECONOMICA-1 (Opción C).
+- **Artefactos generados:** 2 CRBs, 3 ADRs, 1 D-ID (D-014), Nexus
+  reconciliado, 11 eventos constitucionales registrados.
+
+### PLAN DE ATAQUE — EVO-TICKET-0002
+
+El plan sigue la lógica de dependencias: primero habilitar P3 y P4
+(auditar + testear + caracterizar drift), luego ejecutar Fase B del Oracle.
+
+**Fase 0 — Prerrequisitos (pueden ejecutarse en paralelo):**
+
+  P3-A1. Escribir tests para L2RingBuffer (8 tests, ver CRB P3 §6 Fase A).
+  P3-A2. Escribir tests para BinanceWebSocketManager (7 tests, ver CRB P3 §6 Fase A).
+  P4-A1. Medir cobertura actual de P4 con pytest --cov sobre tests existentes.
+  P4-A2. Escribir tests para _evaluate (10 tests, ver CRB P4 §6 Fase A).
+  P4-A3. Escribir tests para tick (8 tests, ver CRB P4 §6 Fase A).
+  P4-A4. Escribir tests para _flush_resolved (4 tests, ver CRB P4 §6 Fase A).
+
+  Puerta de Cobertura Base: P3 ≥ 50%, P4 ≥ 70% antes de avanzar.
+
+**Fase 1 — Caracterización forense (depende de Fase 0):**
+
+  P3-B1. Estudio forense de Time Drift: medir local_offset_ms sobre ≥1000
+         mensajes en producción. Reportar min/p50/p95/max.
+         Si p95 > 200ms, aumentar ε o mejorar NTP.
+         Si p95 ≤ 100ms, considerar bajar ε a 100ms (requiere nuevo ADR).
+  P3-B2. Implementar D-014 en synthesize_at_retest(): filtrar snapshots
+         con ts > t_candle_close_ms − 200ms. Añadir l2_data_quality="CAUSAL_REJECTED".
+  P3-B3. Fix _empty_profile() schema (issue #5 del CRB P3).
+  P3-B4. Cambiar last_trades a deque(maxlen=10000) (issue #4 del CRB P3).
+  P4-B1. Migrar 4 usos de time.time() en P4 a binance_ts_ms (D-014).
+  P4-B2. Fix docstring de adaptive_lookahead (issue #3 del CRB P4).
+  P4-B3. Fix hours_since_flip para usar binance_ts_ms (issue #10 del CRB P4).
+
+**Fase 2 — Fase B del Oracle (depende de Fase 1):**
+
+  O-B1. Diseñar schema de features dinámicas del Oracle v6: qué features
+         exactas consume del l2_temporal_profile (23 campos del Ring Buffer).
+         ADR de interfaz schema (entregable constitucional pendiente).
+  O-B2. Implementar walk-forward validation (ADR pendiente: walk-forward
+         vs split estático — entregable constitucional pendiente).
+  O-B3. Re-entrenar Oracle v6 con features dinámicas + walk-forward.
+  O-B4. RECONSTRUCTION_MAP_UPDATE + ADRs de cierre.
+
+**Fase 3 — Fricción económica (paralela, no bloquea Fase 2):**
+
+  P9-A1. Redactar CRB de ShadowTrader (P9) con EconomicGate como Fase A.
+  P9-A2. Implementar estimate_slippage(spread_bps, depth, order_size).
+  P9-A3. Añadir economic_gate_decision y friction_atr_est a bridge.jsonl.
+  P9-A4. Métrica de rejection rate en GUI.
+  O-B5. (Feedback loop) Evaluar si economic_gate_decision histórica mejora
+        la predicción como feature de régimen en Fase B del Oracle.
+
+**Dependencias críticas:**
+  - Fase 1 depende de Fase 0 (Puerta de Cobertura Base).
+  - Fase 2 depende de Fase 1 (D-014 implementado + drift caracterizado).
+  - Fase 3 es paralela a Fase 2 (no bloquea al Oracle).
+
+**Entregables constitucionales al cierre:**
+  [ ] RECONSTRUCTION_MAP_UPDATE (Fase 2)
+  [ ] ADR: walk-forward vs split estático (Fase 2, O-B2)
+  [ ] ADR: diseño Ring Buffer feed hacia Oracle (Fase 2, O-B1)
+      ✅ PARCIAL: D-014 establece el acoplamiento temporal.
 
 ---
 

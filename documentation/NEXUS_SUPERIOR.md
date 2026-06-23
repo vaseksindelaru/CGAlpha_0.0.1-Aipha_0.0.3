@@ -205,6 +205,7 @@ primero verifica que no hayas pasado por alto el Codex.
 | D-011 | live_adapter.py interval_s | =300 (5min) es el timeframe calibrado y operativo. Cambiarlo requiere ADR + recalibración de TODOS los thresholds dependientes (lookback_candles, retest_timeout_bars, zigzag_threshold, key_candle thresholds). NUNCA cambiar como ajuste aislado. | EVO-TICKET-0006, sesión 2026-06-20 — origen: default "MVP demo" sin calibrar (12 abr) causó 4 rondas de investigación |
 | D-012 | Oracle v6 ENCODING_MAPS | Mapeo determinista fijo en `cgalpha_v4/oracle_v6_skeleton.py`: `regime`={UNKNOWN:0, LATERAL:1, TREND:2, HIGH_VOL:3}, `direction`={UNKNOWN:0, BULLISH:1, BEARISH:2}, `delta_divergence`={UNKNOWN:0, NEUTRAL:1, BULLISH:2, BEARISH:3}. UNKNOWN=0 en toda categoría (fallback seguro). Valores uppercase antes del lookup. Reemplaza `sklearn.LabelEncoder` (no-determinista entre reentrenamientos). Inmutable — cambiar requiere nuevo D-ID + ADR + re-entrenamiento de todos los modelos. Renumerado desde "D-008" local (colisión con D-008 canónico = requisito de RMU). | EVO-TICKET-0001 Fase A, sesión 2026-06-21 — renumerado por colisión de D-008 entre Nexus local (v0.2) y autoritativo (v0.5) |
 | D-013 | Verificación de persistencia de gobernanza | "Reportado como sincronizado/commiteado" NO es evidencia — requiere `git log origin/main` mostrando el commit real. Mismo principio que la verificación de despliegue (ps -o lstart= vs commit timestamp), aplicado a documentación en vez de código. ✅ VERIFICADO 2026-06-21: commit de recuperación `3860e56` confirmado en `origin/main` (padre `0c07184`). | Sesión 2026-06-21 — `constitutional_events.jsonl` vivió semanas solo en working tree, nunca trackeado en git, descubierto por accidente durante CRB de P5 al correr `git status` antes de un commit |
+| D-014 | Acoplamiento Temporal Causal | Toda feature L2 consumida por el Oracle debe satisfacer `t_feature ≤ t_candle_close − ε` donde `t_feature` = timestamp del snapshot L2 más reciente en el perfil sintetizado, `t_candle_close` = timestamp de cierre de la vela de detección (Binance event time), `ε` = 200ms (2× sample rate del Ring Buffer de 100ms). Sacrificio asimétrico de 0.6% de la ventana L2 de 30s = 100% de tolerancia frente al lag típico antes de descartar con CAUSAL_REJECTED. Cierra el Punto Ciego #1 (clock drift). Cuando el estudio forense de drift valide p95 ≤ 100ms, se considerará bajar ε a 100ms. Inmutable — cambiar requiere ADR + re-entrenamiento. | ADR-ACOPLAMIENTO-TEMPORAL-1, sesión 2026-06-23 — alerta #3 de la deliberación Ruta B; ε=100ms propuesto por modelo, elevado a 200ms por operador y Tech Lead como mitigación conservadora frente a network jitter y micro-stutters de Binance |
 
 **Módulos protegidos — Cat.3 obligatorio para cualquier cambio:**
 
@@ -459,10 +460,11 @@ ISSUES CONOCIDOS — POST-RECONCILIACIÓN (ADR-RECONCILIATION-1)
      (alerta #4 deliberación Ruta B). Labels teóricamente puros,
      sin slippage/costo/latencia. Opción A descartada por operador;
      se trabajará Opción B (post-procesador) o C (ShadowTrader P9).
-  #5 🆕 Acoplamiento temporal con P3           → ADR de diseño PENDIENTE
-     (alerta #3 deliberación Ruta B). capture_ts y hours_since_flip
-     usan time.time() en algunos paths. Requiere t_feature ≤
-     t_candle_close - ε como nuevo D-ID.
+  #5 ✅ Acoplamiento temporal con P3           → ✅ D-014 establecido (pendiente implementación)
+     (alerta #3 deliberación Ruta B). capture_ts y    D-014: t_feature ≤ t_candle_close − 200ms.
+     hours_since_flip usan time.time() en algunos   ε=200ms (2× sample rate del Ring Buffer).
+     paths. D-014: t_feature ≤ t_candle_close −      Migrar 4 usos de time.time() en P4 a binance_ts_ms.
+     ε con ε=200ms (aprobado por operador).
   #6 🆕 _evaluate/tick/_flush_resolved          → Puerta de Cobertura Base
      sin tests directos                          bloqueante (CRB P4 §6 Fase A)
   #7 🆕 Shadow Harvesting no documentado        → Introducido por patches
@@ -584,12 +586,13 @@ ISSUES CONOCIDOS — POST-RECONCILIACIÓN (ADR-RECONCILIATION-1)
      (30s, 300 slots, push cada 100ms)
   #2 ✅ CumDelta rolling IMPLEMENTADO           → RESUELTO (WS L264-280)
      (get_rolling_delta, window_seconds=300)
-  #3 ⚠️ Timestamps: mitigación existe pero      → PARCIAL — drift no caracterizado
-     sin caracterizar                            binance_ts_ms + local_offset_ms
+  #3 ✅ Timestamps: mitigación existe y              → ✅ RESUELTO via D-014 (pendiente implementación)
+     caracterización establecida                    binance_ts_ms + local_offset_ms
      (binance_ts_ms = data.get("E", data.get("T", time.time()*1000)))  (WS L145-148, L183)
-     Fallback a time.time() si no hay E/T.       ADR de acoplamiento temporal
-     Requiere estudio forense de drift (≥1000    PENDIENTE (alerta #3 Ruta B).
-     mensajes) y umbral de rechazo.
+     Fallback a time.time() si no hay E/T.       D-014: t_feature ≤ t_candle_close − ε,
+     D-014: t_feature ≤ t_candle_close − 200ms.    ε=200ms (2× sample rate). Cierra Punto
+     Estudio forense de drift pendiente (≥1000      Ciego #1. Estudio forense de drift
+     mensajes) para validar si p95 ≤ 100ms.         pendiente para considerar bajar ε a 100ms.
   #4 ✅ Reconexiones marcadas como PARTIAL      → RESUELTO (WS L99-102, L17-18,
      (mark_reconnection + epoch tracking)         L60-62)
   #5 🆕 synthesize_at_retest() no invocado     → Conexión existe vía
