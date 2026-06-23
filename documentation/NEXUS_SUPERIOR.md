@@ -254,17 +254,22 @@ P2          CodeCraftSage v4              🟡 OPERATIVO        [CRB PENDIENTE]
                    mientras solo pueda parchear con regex.
                    AST-based patching desbloquea mejoras complejas.
 
-P3          L2 Ring Buffer                🟡 PARCIAL          [CRB PENDIENTE]
-            (BinanceWebSocketManager)
-            Razón: prerrequisito directo para Oracle Fase B.
-                   Sin Ring Buffer de 30s, las features dinámicas
-                   del Oracle son imposibles.
+P3          L2 Ring Buffer                🟡 OPERATIVO —      ✅ CRB creado
+            (BinanceWebSocketManager)       AUDIT PENDIENTE    (CRB_BinanceWebSocketManager_P3.md)
+            Razón: Ring Buffer IMPLEMENTADO en código (push, synthesize,
+                   clock drift mitigation, CumDelta rolling, epoch tracking).
+                   Conectado al flujo vía live_adapter._on_retest_detected.
+                   Bloqueo real: 0 tests + time drift sin caracterizar.
+                   Ver ADR-RECONCILIATION-1 y CRB_BinanceWebSocketManager_P3.md.
 
-P4          DeferredOutcomeMonitor        🟡 OPERATIVO        [CRB PENDIENTE]
-            Fase Bridge (etiquetado enriquecido)
-            Razón: prerrequisito para Oracle Fase B.
-                   Etiquetado terciario + lookahead adaptativo
-                   son mejoras de calidad de datos.
+P4          DeferredOutcomeMonitor        🟡 OPERATIVO —      ✅ CRB creado
+            Fase Bridge IMPLEMENTADA         AUDIT PENDIENTE    (CRB_DeferredOutcomeMonitor_P4.md)
+            Razón: Etiquetado terciario + lookahead adaptativo + Shadow
+                   Harvesting IMPLEMENTADOS en código. Bloqueo real:
+                   fricción económica sin decidir (ADR pendiente) +
+                   cobertura incompleta (_evaluate/tick/_flush_resolved
+                   sin tests) + acoplamiento temporal con P3.
+                   Ver ADR-RECONCILIATION-1 y CRB_DeferredOutcomeMonitor_P4.md.
 
 P5          TripleCoincidenceDetector     ✅ ESTABLE          ✅ CRB creado
             (integración L2)
@@ -418,30 +423,67 @@ PRIORIDAD       : P5 (después de P3 Ring Buffer)
 
 ```
 PROPÓSITO   : Asigna labels diferidos a los retests capturados.
-              Espera outcome_lookahead_bars antes de clasificar.
+              Espera outcome_lookahead_bars (adaptativo) antes de clasificar.
               Produce BOUNCE_STRONG / BOUNCE_WEAK / BREAKOUT / INCONCLUSIVE.
               Elimina el fallback "return BOUNCE" por defecto (BUG-5 ✅).
+              Persiste samples en training_dataset_v2.jsonl con snapshot
+              completo + l2_temporal_profile + touch_context (Shadow Harvesting).
 
-ESTADO      : 🟡 OPERATIVO — PROTEGIDO — PENDIENTE FASE BRIDGE
-COBERTURA   : [NO MEDIDA AÚN — pendiente]
+ESTADO      : 🟡 OPERATIVO — PROTEGIDO — FASE BRIDGE IMPLEMENTADA
+              (AUDIT PENDIENTE: tests + fricción económica + acoplamiento temporal)
+COBERTURA   : [PARCIAL — tests existen para dedup (register_retest),
+               pero _evaluate/tick/_flush_resolved SIN tests directos.
+               No se ha medido con pytest --cov.]
 
 MÓDULO PROTEGIDO: cambios = Cat.3 obligatorio
 
 FUNCIONES CRÍTICAS QUE VIVEN AQUÍ (NO mover al Oracle):
-  adaptive_lookahead(zone_width_atr)  → lookahead adaptativo
+  adaptive_lookahead(zone_width_atr)  → lookahead adaptativo IMPLEMENTADO
   _causal_fingerprint()               → sin zone_direction (B-008 v2 ✅)
   register_retest()                   → registra para etiquetado diferido
   tick(price, bar_closed)             → evalúa resolución en cada tick
+  _evaluate()                         → etiquetado terciario IMPLEMENTADO
+  _flush_resolved()                   → inyecta outcome + touch_context
 
-ISSUES CONOCIDOS / FASE BRIDGE PENDIENTE
-  #1 Sin buffer temporal L2 (Ring Buffer)       → P3 prerequisito
-  #2 lookahead fijo = 10 velas todavía          → adaptativo en Fase Bridge
-     (max(5, min(20, int(5 + zone_width_atr*3))))
-  #3 Etiquetado terciario implementado pero     → Fase Bridge valida
-     sin datos suficientes para calibrar
+ISSUES CONOCIDOS — POST-RECONCILIACIÓN (ADR-RECONCILIATION-1)
+  #1 ✅ Buffer temporal L2 conectado vía     → RESUELTO (live_adapter.py L631-635)
+     live_adapter._on_retest_detected;          raw_buffer persistido en
+     aipha_memory/raw_buffers/{sample_id}.json.gz
+  #2 ✅ Lookahead adaptativo IMPLEMENTADO      → RESUELTO (DOM L34-43)
+     adaptive_lookahead(zone_width_atr) =
+     max(5, min(20, int(5 + zone_width_atr*3)))
+  #3 ✅ Etiquetado terciario IMPLEMENTADO      → RESUELTO (DOM L337-376)
+     BOUNCE_STRONG (>0.5 ATR), BOUNCE_WEAK (>0.3 ATR MFE),
+     BREAKOUT, INCONCLUSIVE
+  #4 🆕 Fricción económica ausente             → ADR de diseño PENDIENTE
+     (alerta #4 deliberación Ruta B). Labels teóricamente puros,
+     sin slippage/costo/latencia. Opción A descartada por operador;
+     se trabajará Opción B (post-procesador) o C (ShadowTrader P9).
+  #5 🆕 Acoplamiento temporal con P3           → ADR de diseño PENDIENTE
+     (alerta #3 deliberación Ruta B). capture_ts y hours_since_flip
+     usan time.time() en algunos paths. Requiere t_feature ≤
+     t_candle_close - ε como nuevo D-ID.
+  #6 🆕 _evaluate/tick/_flush_resolved          → Puerta de Cobertura Base
+     sin tests directos                          bloqueante (CRB P4 §6 Fase A)
+  #7 🆕 Shadow Harvesting no documentado        → Introducido por patches
+     (touch_sequence, polarity_flipped,           en rebound/ sin ADR previo.
+     prior_touch_outcomes, hours_since_flip,     Deuda de gobernanza.
+     effective_direction, is_secondary/tertiary_retest)
+  #8 adaptive_lookahead docstring desfasado     → Mención a "1min live"
+                                                 post-EVO-0006 (D-011).
+  #9 _load_pending no valida schema             → PendingLabel(**item) puede
+                                                 fallar con TypeError.
+  #10 Asimetría serialización                   → prior_touch_outcomes:
+      prior_touch_outcomes                       asdict condicional en persist,
+                                                 no reconstruido en load.
 
-BRIEF EXISTENTE : NO (pendiente crear CRB)
-PRIORIDAD       : P4 (después de P3 Ring Buffer)
+TESTS EXISTENTES (no reportados previamente en el Nexus)
+  tests/test_dataset_deduplication.py — 1 test (Triple Barrera dedup)
+  tests/test_spatial_multitouch.py — 3 tests (B-008 v2 huella causal)
+  test_hits3.py (raíz) — script ad-hoc, no test formal de pytest
+
+BRIEF EXISTENTE : ✅ CRB_DeferredOutcomeMonitor_P4.md (creado 2026-06-23)
+PRIORIDAD       : P4 (bloqueo real: fricción económica + cobertura + acoplamiento)
 ```
 
 ---
@@ -518,32 +560,64 @@ PRIORIDAD       : P7 (estable, no urgente)
 
 ```
 PROPÓSITO   : Conexión a Binance. Ingesta de velas 5m + book depth
-              @depth20@100ms. Calcula OBI y CumDelta en tiempo real.
+              @depth20@100ms + @trade. Calcula OBI y CumDelta en tiempo real.
+              Empuja micro-snapshots L2 a L2RingBuffer (30s, 300 slots).
 
-ESTADO      : 🟡 OPERATIVO — RING BUFFER PENDIENTE
-COBERTURA   : [NO MEDIDA AÚN — pendiente]
+ESTADO      : 🟡 OPERATIVO — RING BUFFER IMPLEMENTADO (AUDIT PENDIENTE)
+COBERTURA   : [NO MEDIDA AÚN — 0 tests sobre WS Manager y L2RingBuffer.
+               Puerta de Cobertura Base bloqueante (CRB P3 §6 Fase A).]
 
 IMPLEMENTADO
   ✅ Stream @depth20@100ms activo
+  ✅ Stream @trade (no @aggTrade — decisión operacional, ADR pendiente)
   ✅ OBI multi-nivel (obi_1, obi_5, obi_10, obi_20)
-  ✅ CumDelta acumulado (⚠️ global, no rolling)
+  ✅ CumDelta rolling window (get_rolling_delta, window_seconds=300)
+  ✅ L2RingBuffer integrado (self.l2_buffers, uno por símbolo)
+  ✅ push() en cada depth update (~10hz, 15 campos)
+  ✅ synthesize_at_retest() condensa 300 slots → 23 features
+  ✅ Conectado al flujo vía live_adapter._on_retest_detected (L631-635)
+  ✅ binance_ts_ms con local_offset_ms para clock drift
+  ✅ mark_reconnection(epoch) + l2_data_quality FULL/PARTIAL
 
-ISSUES CONOCIDOS — CRÍTICOS PARA ORACLE FASE B
-  #1 Sin L2RingBuffer (30s, 300 slots)         → P3 — bloquea Oracle Fase B
-  #2 CumDelta es acumulado global, no rolling  → contamina feature causal
-     (Codex D-pendiente — Punto Ciego #3)
-  #3 Timestamps usan time.time() no Binance   → clock drift posible
-     event time                                (Punto Ciego #1)
-  #4 Reconexiones generan huecos sin marcar   → l2_data_quality="PARTIAL"
-     como PARTIAL                              no implementado aún
+ISSUES CONOCIDOS — POST-RECONCILIACIÓN (ADR-RECONCILIATION-1)
+  #1 ✅ L2RingBuffer IMPLEMENTADO              → RESUELTO (WS L57-59, L20)
+     (30s, 300 slots, push cada 100ms)
+  #2 ✅ CumDelta rolling IMPLEMENTADO           → RESUELTO (WS L264-280)
+     (get_rolling_delta, window_seconds=300)
+  #3 ⚠️ Timestamps: mitigación existe pero      → PARCIAL — drift no caracterizado
+     sin caracterizar                            binance_ts_ms + local_offset_ms
+     (binance_ts_ms = data.get("E", data.get("T", time.time()*1000)))  (WS L145-148, L183)
+     Fallback a time.time() si no hay E/T.       ADR de acoplamiento temporal
+     Requiere estudio forense de drift (≥1000    PENDIENTE (alerta #3 Ruta B).
+     mensajes) y umbral de rechazo.
+  #4 ✅ Reconexiones marcadas como PARTIAL      → RESUELTO (WS L99-102, L17-18,
+     (mark_reconnection + epoch tracking)         L60-62)
+  #5 🆕 synthesize_at_retest() no invocado     → Conexión existe vía
+     directamente por TripleCoincidenceDetector  live_adapter._on_retest_detected
+     (L631-635), no vía el detector. Falta test  (live_adapter.py L631-635).
+     de integración end-to-end.                  CRB P3 §6 Fase B punto 1.
+  #6 🆕 0 tests sobre WS Manager y L2RingBuffer → Puerta de Cobertura Base
+                                                   bloqueante (CRB P3 §6 Fase A).
+  #7 🆕 last_trades con pop(0) O(n)             → Deuda de performance.
+                                                   Cambiar a deque(maxlen=10000).
+  #8 🆕 _empty_profile() schema inconsistente   → 21 ceros vs 23 campos de
+                                                   synthesize_at_retest.
+  #9 🆕 @trade sin ADR                           → Decisión operacional no
+                                                   documentada (WS L92-93).
+  #10 🆕 Spot normalization sin test             → Path no cubierto (WS L132-143).
+  #11 🆕 binance_websocket_manager.py NO está   → Omisión de gobernanza.
+      en PROTECTED_MODULES                       Recomendación: añadir en
+                                                   próxima actualización del Nexus.
 
-RING BUFFER A IMPLEMENTAR (P3)
-  L2RingBuffer: deque(maxlen=300), push cada 100ms
-  synthesize_at_retest(): condensa 300 slots → 25 features
+RING BUFFER IMPLEMENTADO (P3) — ver L2RingBuffer en l2_ring_buffer.py
+  L2RingBuffer: deque(maxlen=300), push cada 100ms (15 campos)
+  synthesize_at_retest(): condensa 300 slots → 23 features
   Costo en memoria: ~19KB por símbolo. Despreciable.
+  Schema de salida: ver CRB_BinanceWebSocketManager_P3.md §3.
 
-BRIEF EXISTENTE : architectural_analysis.md (§1.4 Ring Buffer)
-PRIORIDAD       : P3 (prerrequisito directo para Oracle Fase B)
+BRIEF EXISTENTE : ✅ CRB_BinanceWebSocketManager_P3.md (creado 2026-06-23)
+                   (architectural_analysis.md §1.4 es referencia histórica)
+PRIORIDAD       : P3 (bloqueo real: 0 tests + drift sin caracterizar)
 ```
 
 ---

@@ -12,6 +12,16 @@
 | `ruta/al/archivo.py` | [breve descripción] | [por qué] |
 
 ## 2. Tests
+
+### 2.a — Puerta de Cobertura Base (PRE-RECONSTRUCCIÓN)
+Antes de aprobar el CRB de cualquier componente, debe existir una línea de tests que congela el comportamiento actual. Sin esta puerta, el CRB no puede ser aprobado y la Fase de reconstrucción no puede iniciar.
+
+- Cobertura medida sobre el componente ANTES de tocar código: **X%** (umbral mínimo recomendado: 50%, o justificación explícita de impedimento de entorno)
+- Tests pasando pre-cambio: **N/N**
+- Fecha de medición: [YYYY-MM-DD]
+- Si la medición fue bloqueada por entorno (ej. `ImportError` numpy), documentar el error exacto y la sesión de entorno requerida. El bloqueo de entorno **no exime** de la puerta; la aprueba solo tras resolución.
+
+### 2.b — Tests post-cambio
 ```
 [pegar salida de pytest con cobertura]
 ```
@@ -41,3 +51,10 @@ Responde con SÍ/NO y una frase de justificación:
 
 ## 6. Próximo paso recomendado
 [una línea concreta]
+
+## 7. Puerta de Cobertura Base — verificación de cumplimiento
+- [ ] La Puerta de Cobertura Base (sección 2.a) fue medida y reportada ANTES de iniciar la Fase de reconstrucción.
+- [ ] Si fue bloqueada por entorno, el bloqueo está documentado y la sesión de entorno está agendada antes de cualquier cambio de código.
+- [ ] No se aprobó el CRB sin esta puerta.
+
+**Razón de esta puerta:** Exigir un CRB que solo mapea flujos documentados, pero procede a reescribir pipelines sin matriz de tests preexistente, viola la heurística de seguridad (D-008 Causal Closure + D-010 Cognitive Portability). La cobertura post-cambio no detecta regresiones introducidas durante la reconstrucción; solo la línea pre-cambio las hace visibles.
