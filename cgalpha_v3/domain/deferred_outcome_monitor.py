@@ -18,16 +18,20 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List
 from pathlib import Path
+from typing import Dict, List, Optional
 
 logger = logging.getLogger("deferred_labeler")
 
 # __file__ = cgalpha_v3/domain/deferred_outcome_monitor.py
 # parent = domain/, parent.parent = cgalpha_v3/, parent.parent.parent = project_root/
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-PENDING_LABELS_PATH = str(_PROJECT_ROOT / "aipha_memory" / "operational" / "pending_labels.json")
-COMPLETED_SAMPLES_PATH = str(_PROJECT_ROOT / "aipha_memory" / "operational" / "training_dataset_v2.jsonl")
+PENDING_LABELS_PATH = str(
+    _PROJECT_ROOT / "aipha_memory" / "operational" / "pending_labels.json"
+)
+COMPLETED_SAMPLES_PATH = str(
+    _PROJECT_ROOT / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+)
 RAW_BUFFERS_DIR = str(_PROJECT_ROOT / "aipha_memory" / "raw_buffers")
 
 
@@ -46,23 +50,24 @@ def adaptive_lookahead(zone_width_atr: float) -> int:
 @dataclass
 class PendingLabel:
     """Un sample esperando resolución de su outcome."""
+
     sample_id: str
-    capture_ts: float            # Unix seconds
+    capture_ts: float  # Unix seconds
     zone_top: float
     zone_bottom: float
-    zone_direction: str          # 'bullish' | 'bearish'
+    zone_direction: str  # 'bullish' | 'bearish'
     zone_width_atr: float
     atr_at_detection: float
     lookahead_bars: int
     entry_price: float
-    snapshot_path: str = ""      # Path al ReentrySnapshot JSON completo
+    snapshot_path: str = ""  # Path al ReentrySnapshot JSON completo
     bars_elapsed: int = 0
-    mfe: float = 0.0            # Max favorable excursion (abs price)
-    mae: float = 0.0            # Max adverse excursion (abs price)
+    mfe: float = 0.0  # Max favorable excursion (abs price)
+    mae: float = 0.0  # Max adverse excursion (abs price)
     resolved: bool = False
     outcome: Optional[str] = None
     resolution_ts: Optional[float] = None
-    
+
     # ── Shadow Harvesting: Secuencialidad multi-toque ──────────────────────
     touch_sequence: int = 1
     polarity_flipped: bool = False
@@ -106,19 +111,20 @@ class DeferredOutcomeMonitor:
         if not path.exists():
             return
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 for line in f:
-                    if not line.strip(): continue
+                    if not line.strip():
+                        continue
                     try:
                         data = json.loads(line)
-                        meta = data.get('_meta', {})
-                        if 'sample_id' in meta:
-                            self._seen_ids.add(meta['sample_id'])
+                        meta = data.get("_meta", {})
+                        if "sample_id" in meta:
+                            self._seen_ids.add(meta["sample_id"])
                         # Reconstruir huella causal para proteger contra reinicios
                         fp = self._causal_fingerprint(
                             meta,
-                            data.get('l2_snapshot_at_touch', {}),
-                            data.get('zone_geometry', {}),
+                            data.get("l2_snapshot_at_touch", {}),
+                            data.get("zone_geometry", {}),
                         )
                         self._seen_fingerprints.add(fp)
                     except json.JSONDecodeError:
@@ -173,21 +179,27 @@ class DeferredOutcomeMonitor:
 
         # 2. Chequeo contra dataset persistido (por sample_id)
         if sample_id in self._seen_ids:
-            logger.warning(f"⚠️ Intento de registrar ID ya persistido ignorado: {sample_id}")
+            logger.warning(
+                f"⚠️ Intento de registrar ID ya persistido ignorado: {sample_id}"
+            )
             return sample_id
-        
+
         # 3. Chequeo contra cola actual de pending (por sample_id)
         if any(p.sample_id == sample_id for p in self.pending):
-            logger.warning(f"⚠️ Intento de registrar ID ya en cola pending ignorado: {sample_id}")
+            logger.warning(
+                f"⚠️ Intento de registrar ID ya en cola pending ignorado: {sample_id}"
+            )
             return sample_id
-            
+
         # ----------------------------------
 
         zone_width_atr = zg.get("zone_width_atr", 1.0)
         lookahead = adaptive_lookahead(zone_width_atr)
 
         # Path para el snapshot completo
-        snap_path = str(_PROJECT_ROOT / "aipha_memory" / "snapshots" / f"{sample_id}.json")
+        snap_path = str(
+            _PROJECT_ROOT / "aipha_memory" / "snapshots" / f"{sample_id}.json"
+        )
         snap_file = Path(snap_path)
         snap_file.parent.mkdir(parents=True, exist_ok=True)
         snap_file.write_text(json.dumps(snapshot, indent=2, default=str))
@@ -196,15 +208,21 @@ class DeferredOutcomeMonitor:
         if raw_buffer is not None:
             raw_path = Path(RAW_BUFFERS_DIR) / f"{sample_id}.json.gz"
             raw_path.parent.mkdir(parents=True, exist_ok=True)
-            with gzip.open(raw_path, 'wt') as f:
+            with gzip.open(raw_path, "wt") as f:
                 json.dump(raw_buffer, f, default=str)
 
         hours_since = 0.0
         if flip_ts is not None:
-            hours_since = (time.time() - flip_ts) / 3600.0
+            # D-014: Usar capture_ts_unix_ms del snapshot si está disponible
+            # para que hours_since_flip se calcule con el mismo reloj (Binance
+            # event time) que el resto del sample. Si no está, fallback a time.time().
+            capture_ts_s = meta.get("capture_ts_unix_ms", time.time() * 1000) / 1000.0
+            hours_since = (capture_ts_s - flip_ts) / 3600.0
 
         label = PendingLabel(
             sample_id=sample_id,
+            # D-014: Usar capture_ts_unix_ms del snapshot (Binance event time).
+            # Si no está, fallback a time.time() con warning (deuda D-014).
             capture_ts=meta.get("capture_ts_unix_ms", time.time() * 1000) / 1000.0,
             zone_top=zg.get("zone_top", 0.0),
             zone_bottom=zg.get("zone_bottom", 0.0),
@@ -217,7 +235,8 @@ class DeferredOutcomeMonitor:
             touch_sequence=touch_sequence,
             polarity_flipped=polarity_flipped,
             prior_touch_outcomes=list(prior_touch_outcomes or []),
-            zone_original_direction=zone_original_direction or zg.get("direction", "bullish"),
+            zone_original_direction=zone_original_direction
+            or zg.get("direction", "bullish"),
             hours_since_flip=round(hours_since, 2),
         )
 
@@ -233,7 +252,12 @@ class DeferredOutcomeMonitor:
         )
         return sample_id
 
-    def tick(self, current_price: float, bar_closed: bool = False) -> List[dict]:
+    def tick(
+        self,
+        current_price: float,
+        bar_closed: bool = False,
+        binance_ts_ms: float = None,
+    ) -> List[dict]:
         """
         Llamar en cada update de precio (o al cierre de cada vela).
         Evalúa si algún pending label se resolvió.
@@ -241,6 +265,8 @@ class DeferredOutcomeMonitor:
         Args:
             current_price: precio actual (close de la vela o tick price)
             bar_closed: True si una vela acaba de cerrar (incrementa bars_elapsed)
+            binance_ts_ms: timestamp de Binance event time en ms (D-014). Si se
+                          provee, se usa para resolution_ts en lugar de time.time().
 
         Returns:
             Lista de samples resueltos en este tick (para logging/GUI)
@@ -263,7 +289,7 @@ class DeferredOutcomeMonitor:
             if favorable > label.mfe:
                 label.mfe = favorable
                 mfe_updated = True
-            
+
             if adverse > label.mae:
                 label.mae = adverse
                 mfe_updated = True
@@ -280,7 +306,10 @@ class DeferredOutcomeMonitor:
             if outcome is not None:
                 label.resolved = True
                 label.outcome = outcome
-                label.resolution_ts = time.time()
+                # D-014: Usar binance_ts_ms si se provee, sino fallback a time.time()
+                label.resolution_ts = (
+                    binance_ts_ms / 1000.0 if binance_ts_ms is not None else time.time()
+                )
                 newly_resolved.append(label)
                 logger.info(
                     f"🏷️ Label resolved: {label.sample_id} → {outcome} "
@@ -396,8 +425,12 @@ class DeferredOutcomeMonitor:
                     "label": label.outcome,
                     "mfe": round(label.mfe, 4),
                     "mae": round(label.mae, 4),
-                    "mfe_atr": round(label.mfe / label.atr_at_detection, 4) if label.atr_at_detection > 0 else 0.0,
-                    "mae_atr": round(label.mae / label.atr_at_detection, 4) if label.atr_at_detection > 0 else 0.0,
+                    "mfe_atr": round(label.mfe / label.atr_at_detection, 4)
+                    if label.atr_at_detection > 0
+                    else 0.0,
+                    "mae_atr": round(label.mae / label.atr_at_detection, 4)
+                    if label.atr_at_detection > 0
+                    else 0.0,
                     "bars_to_resolution": label.bars_elapsed,
                     "resolution_ts": label.resolution_ts,
                     "lookahead_bars_used": label.lookahead_bars,
@@ -408,7 +441,11 @@ class DeferredOutcomeMonitor:
                     "polarity_flipped": label.polarity_flipped,
                     "zone_original_direction": label.zone_original_direction,
                     "effective_direction": (
-                        ("bearish" if label.zone_original_direction == "bullish" else "bullish")
+                        (
+                            "bearish"
+                            if label.zone_original_direction == "bullish"
+                            else "bullish"
+                        )
                         if label.polarity_flipped
                         else label.zone_original_direction
                     ),
@@ -421,45 +458,57 @@ class DeferredOutcomeMonitor:
                 f.write(json.dumps(snapshot, default=str) + "\n")
                 flushed_ids.append(label.sample_id)
 
-        logger.info(f"💾 Flushed {len(flushed_ids)} resolved samples to {COMPLETED_SAMPLES_PATH}")
+        logger.info(
+            f"💾 Flushed {len(flushed_ids)} resolved samples to {COMPLETED_SAMPLES_PATH}"
+        )
         return flushed_ids
 
     def _persist_pending(self):
         """Guarda estado de pending labels para sobrevivir reinicios."""
         import dataclasses
+
         path = Path(PENDING_LABELS_PATH)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         pending_data = []
         for label in self.pending:
             if not label.resolved:
-                pending_data.append({
-                    "sample_id": label.sample_id,
-                    "capture_ts": label.capture_ts,
-                    "zone_top": label.zone_top,
-                    "zone_bottom": label.zone_bottom,
-                    "zone_direction": label.zone_direction,
-                    "zone_width_atr": label.zone_width_atr,
-                    "atr_at_detection": label.atr_at_detection,
-                    "lookahead_bars": label.lookahead_bars,
-                    "bars_elapsed": label.bars_elapsed,
-                    "mfe": label.mfe,
-                    "mae": label.mae,
-                    "entry_price": label.entry_price,
-                    "snapshot_path": label.snapshot_path,
-                    # ── Shadow Harvesting ──────────────────────────────────
-                    "touch_sequence": label.touch_sequence,
-                    "polarity_flipped": label.polarity_flipped,
-                    "prior_touch_outcomes": [dataclasses.asdict(tr) if hasattr(tr, '__dataclass_fields__') else tr for tr in label.prior_touch_outcomes],
-                    "zone_original_direction": label.zone_original_direction,
-                    "hours_since_flip": label.hours_since_flip,
-                })
+                pending_data.append(
+                    {
+                        "sample_id": label.sample_id,
+                        "capture_ts": label.capture_ts,
+                        "zone_top": label.zone_top,
+                        "zone_bottom": label.zone_bottom,
+                        "zone_direction": label.zone_direction,
+                        "zone_width_atr": label.zone_width_atr,
+                        "atr_at_detection": label.atr_at_detection,
+                        "lookahead_bars": label.lookahead_bars,
+                        "bars_elapsed": label.bars_elapsed,
+                        "mfe": label.mfe,
+                        "mae": label.mae,
+                        "entry_price": label.entry_price,
+                        "snapshot_path": label.snapshot_path,
+                        # ── Shadow Harvesting ──────────────────────────────────
+                        "touch_sequence": label.touch_sequence,
+                        "polarity_flipped": label.polarity_flipped,
+                        "prior_touch_outcomes": [
+                            dataclasses.asdict(tr)
+                            if hasattr(tr, "__dataclass_fields__")
+                            else tr
+                            for tr in label.prior_touch_outcomes
+                        ],
+                        "zone_original_direction": label.zone_original_direction,
+                        "hours_since_flip": label.hours_since_flip,
+                    }
+                )
 
         try:
             path.write_text(json.dumps(pending_data, indent=2))
             logger.debug(f"✅ Persistido: {path}")
         except TypeError as e:
-            logger.critical(f"🔴 SERIALIZACIÓN FALLIDA en {path}: {e} — datos: {type(pending_data)}")
+            logger.critical(
+                f"🔴 SERIALIZACIÓN FALLIDA en {path}: {e} — datos: {type(pending_data)}"
+            )
             raise
         except IOError as e:
             logger.critical(f"🔴 ESCRITURA FALLIDA en {path}: {e}")
@@ -478,11 +527,15 @@ class DeferredOutcomeMonitor:
                 item.setdefault("touch_sequence", 1)
                 item.setdefault("polarity_flipped", False)
                 item.setdefault("prior_touch_outcomes", [])
-                item.setdefault("zone_original_direction", item.get("zone_direction", ""))
+                item.setdefault(
+                    "zone_original_direction", item.get("zone_direction", "")
+                )
                 item.setdefault("hours_since_flip", 0.0)
                 self.pending.append(PendingLabel(**item))
 
             if self.pending:
-                logger.info(f"📋 Recovered {len(self.pending)} pending labels from disk.")
+                logger.info(
+                    f"📋 Recovered {len(self.pending)} pending labels from disk."
+                )
         except (json.JSONDecodeError, TypeError) as e:
             logger.warning(f"⚠️ Could not load pending labels: {e}")
