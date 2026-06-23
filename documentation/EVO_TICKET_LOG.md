@@ -144,7 +144,13 @@ El plan sigue la lógica de dependencias: primero habilitar P3 y P4
   P4-A3. Escribir tests para tick (8 tests, ver CRB P4 §6 Fase A).
   P4-A4. Escribir tests para _flush_resolved (4 tests, ver CRB P4 §6 Fase A).
 
-  Puerta de Cobertura Base: P3 ≥ 50%, P4 ≥ 70% antes de avanzar.
+  Puerta de Cobertura Base (umbrales diferenciados por CRB):
+    L2RingBuffer                          ≥ 80%  (determinista, prerrequisito de D-014)
+    BinanceWebSocketManager               ≥ 50%  (async/red, difícil de mockear)
+    DeferredOutcomeMonitor._evaluate      ≥ 90%  (etiquetado — corazón del componente)
+    DeferredOutcomeMonitor.tick           ≥ 80%
+    DeferredOutcomeMonitor._flush_resolved ≥ 80%
+    DeferredOutcomeMonitor total          ≥ 70%
 
 **Fase 1 — Caracterización forense (depende de Fase 0):**
 
