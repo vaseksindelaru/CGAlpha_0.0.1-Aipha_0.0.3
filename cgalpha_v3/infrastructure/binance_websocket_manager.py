@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import time
+from collections import deque
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional
 
@@ -49,7 +50,7 @@ class BinanceWebSocketManager(BaseComponentV3):
 
         # Buffers de tiempo real
         self.order_book_state: Dict[str, Dict] = {}
-        self.last_trades: List[Dict] = []
+        self.last_trades: deque = deque(maxlen=10000)
         self.last_known_binance_ts_ms: float = 0.0
 
         # Integración L2RingBuffer (P0)
@@ -167,11 +168,8 @@ class BinanceWebSocketManager(BaseComponentV3):
                 "timestamp": binance_ts_ms,
             }
             self.last_trades.append(trade_data)
-
-            # Limitar a los trades de los últimos 15 min aprox a 10tps (10000 limit)
-            # para no saturar memoria y permitir ventanas rolling correctas
-            if len(self.last_trades) > 10000:
-                self.last_trades.pop(0)
+            # deque(maxlen=10000) auto-evicta el más viejo cuando se llena.
+            # No necesita pop(0) manual (P3-B4: fix O(n) → O(1)).
 
         # Inyectar L2RingBuffer micro-snapshot (P0)
         # Solo empujar en eventos del order book (depth20/bookTicker) para mantener ~10hz y ventana de 30s

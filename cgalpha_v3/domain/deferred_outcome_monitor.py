@@ -38,9 +38,9 @@ RAW_BUFFERS_DIR = str(_PROJECT_ROOT / "aipha_memory" / "raw_buffers")
 def adaptive_lookahead(zone_width_atr: float) -> int:
     """
     Zonas estrechas se resuelven rápido. Zonas amplias necesitan más tiempo.
-    Retorna número de barras de 5min (o 1min live) a esperar.
+    Retorna número de barras de 5min a esperar (D-011: interval_s=300).
 
-    zone_width_atr=0.3 → 6 bars
+    zone_width_atr=0.3 → 5 bars
     zone_width_atr=1.0 → 8 bars
     zone_width_atr=2.0 → 11 bars
     """
