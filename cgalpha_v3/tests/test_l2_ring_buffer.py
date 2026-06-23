@@ -337,3 +337,105 @@ class TestL2RingBufferEmptyProfile:
         full_profile = buf.synthesize_at_retest()
         # Las keys deben coincidir
         assert set(empty_profile.keys()) == set(full_profile.keys())
+
+
+class TestL2RingBufferD014CausalFilter:
+    """Tests del filtrado causal D-014 en synthesize_at_retest().
+
+    D-014: t_feature <= t_candle_close - epsilon (epsilon=200ms).
+    Los snapshots con ts > (t_candle_close_ms - epsilon_ms) / 1000
+    deben ser excluidos del perfil sintetizado.
+    """
+
+    def test_d014_no_filter_when_t_candle_close_none(self):
+        """Si t_candle_close_ms es None, no se filtra (compatibilidad)."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        for i in range(15):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # Sin t_candle_close_ms → comportamiento pre-D-014
+        profile = buf.synthesize_at_retest(t_candle_close_ms=None)
+        assert profile["l2_data_quality"] == "FULL"
+        assert profile["n_snapshots"] == 15
+
+    def test_d014_filters_snapshots_after_candle_close(self):
+        """Snapshots posteriores a t_candle_close - epsilon se excluyen."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        # 20 snapshots: ts de 0 a 1900ms (cada 100ms)
+        for i in range(20):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # t_candle_close = 1500ms, epsilon = 200ms
+        # cutoff = (1500 - 200) / 1000 = 1.3s = 1300ms
+        # Snapshots con ts <= 1.3s: ts=0,100,...,1300 → 14 snapshots
+        profile = buf.synthesize_at_retest(t_candle_close_ms=1500, epsilon_ms=200)
+        assert profile["l2_data_quality"] == "FULL"
+        assert profile["n_snapshots"] == 14  # 0-1300ms
+
+    def test_d014_causal_rejected_when_too_few_snapshots_after_filter(self):
+        """Si el filtrado deja <10 snapshots, retorna CAUSAL_REJECTED."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        # 15 snapshots: ts de 0 a 1400ms
+        for i in range(15):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # t_candle_close = 800ms, epsilon = 200ms
+        # cutoff = (800 - 200) / 1000 = 0.6s = 600ms
+        # Snapshots con ts <= 0.6s: ts=0,100,200,300,400,500,600 → 7 snapshots
+        # 7 < 10 → CAUSAL_REJECTED
+        profile = buf.synthesize_at_retest(t_candle_close_ms=800, epsilon_ms=200)
+        assert profile["l2_data_quality"] == "CAUSAL_REJECTED"
+        assert profile["n_snapshots"] == 0
+
+    def test_d014_custom_epsilon(self):
+        """epsilon_ms personalizable."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        for i in range(20):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # t_candle_close = 1500ms, epsilon = 500ms
+        # cutoff = (1500 - 500) / 1000 = 1.0s = 1000ms
+        # Snapshots con ts <= 1.0s: ts=0,100,...,1000 → 11 snapshots
+        profile = buf.synthesize_at_retest(t_candle_close_ms=1500, epsilon_ms=500)
+        assert profile["l2_data_quality"] == "FULL"
+        assert profile["n_snapshots"] == 11
+
+    def test_d014_causal_rejected_profile_has_same_schema(self):
+        """CAUSAL_REJECTED profile tiene las mismas keys que FULL profile."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        for i in range(15):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # Forzar CAUSAL_REJECTED
+        rejected = buf.synthesize_at_retest(t_candle_close_ms=100, epsilon_ms=200)
+        # Profile FULL
+        full = buf.synthesize_at_retest()
+        assert set(rejected.keys()) == set(full.keys())
+        assert rejected["l2_data_quality"] == "CAUSAL_REJECTED"
+
+    def test_d014_all_snapshots_within_window_passes(self):
+        """Si todos los snapshots están antes del cutoff, no se filtra nada."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        # 15 snapshots: ts de 0 a 1400ms
+        for i in range(15):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # t_candle_close = 10000ms (muy futuro), epsilon = 200ms
+        # cutoff = (10000 - 200) / 1000 = 9.8s
+        # Todos los snapshots (ts <= 1.4s) pasan
+        profile = buf.synthesize_at_retest(t_candle_close_ms=10000, epsilon_ms=200)
+        assert profile["l2_data_quality"] == "FULL"
+        assert profile["n_snapshots"] == 15
+
+    def test_d014_epsilon_zero_filters_exactly_at_candle_close(self):
+        """Con epsilon=0, filtra snapshots con ts > t_candle_close."""
+        buf = L2RingBuffer()
+        buf.mark_reconnection(1)
+        for i in range(20):
+            _push_snapshot(buf, ts_ms=i * 100, epoch=1)
+        # t_candle_close = 1000ms, epsilon = 0
+        # cutoff = 1000 / 1000 = 1.0s
+        # Snapshots con ts <= 1.0s: ts=0,100,...,1000 → 11 snapshots
+        profile = buf.synthesize_at_retest(t_candle_close_ms=1000, epsilon_ms=0)
+        assert profile["l2_data_quality"] == "FULL"
+        assert profile["n_snapshots"] == 11
