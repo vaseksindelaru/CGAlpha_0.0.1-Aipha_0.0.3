@@ -1,15 +1,15 @@
-from dataclasses import dataclass
 import json
-from typing import Any, List, Dict, Tuple
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.utils import resample
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import brier_score_loss
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.utils import resample
 
 try:
     from sklearn.frozen import FrozenEstimator  # sklearn >= 1.6
@@ -18,6 +18,43 @@ except ImportError:
 
 from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
 from cgalpha_v3.domain.records import MicrostructureRecord
+
+# D-014 / ADR-ORACLE-FASE-B-1: 12 features dinámicas del l2_temporal_profile.
+# Prefijo l2tp_ para evitar colisiones con features estáticas.
+DYNAMIC_FEATURES = [
+    "l2tp_obi_10_gradient_5s",
+    "l2tp_obi_10_gradient_15s",
+    "l2tp_obi_10_gradient_30s",
+    "l2tp_obi_10_std_30s",
+    "l2tp_delta_rate_5s",
+    "l2tp_delta_rate_15s",
+    "l2tp_delta_acceleration_5s",
+    "l2tp_depth_ratio_1_10",
+    "l2tp_depth_ratio_1_10_gradient_5s",
+    "l2tp_trade_intensity_5s",
+    "l2tp_aggressive_buy_pct_5s",
+    "l2tp_aggressive_buy_pct_15s",
+]
+
+
+def _extract_dynamic_features(l2_temporal_profile: dict) -> dict:
+    """Extrae las 12 features dinámicas del l2_temporal_profile con prefijo l2tp_.
+
+    Si el profile no existe o está vacío, retorna 0.0 para todas las features
+    (imputación neutral). El caller decide si filtra samples sin profile o los
+    incluye con imputación.
+    """
+    profile = l2_temporal_profile or {}
+    result = {}
+    for feat in DYNAMIC_FEATURES:
+        # Quitar prefijo l2tp_ para lookup en el profile
+        original_key = feat.replace("l2tp_", "")
+        val = profile.get(original_key, 0.0)
+        try:
+            result[feat] = float(val)
+        except (TypeError, ValueError):
+            result[feat] = 0.0
+    return result
 
 
 def _to_binary_features(regime, direction, delta_div) -> dict:
@@ -37,17 +74,20 @@ def _to_binary_features(regime, direction, delta_div) -> dict:
         "is_bullish": int("bull" in d),
         "is_div_bullish": int(dd in ("BULLISH", "BULLISH_ABSORPTION")),
         "is_div_bearish": int(dd in ("BEARISH", "BEARISH_EXHAUSTION")),
-        "is_div_neutral": int(dd not in ("BULLISH", "BULLISH_ABSORPTION", "BEARISH", "BEARISH_EXHAUSTION")),
+        "is_div_neutral": int(
+            dd not in ("BULLISH", "BULLISH_ABSORPTION", "BEARISH", "BEARISH_EXHAUSTION")
+        ),
     }
 
 
 @dataclass
 class OraclePrediction:
     trade_id: str
-    confidence: float        # 0-1 (predict_proba del modelo)
-    suggested_action: str    # "EXECUTE" | "IGNORE"
+    confidence: float  # 0-1 (predict_proba del modelo)
+    suggested_action: str  # "EXECUTE" | "IGNORE"
     estimated_delta_causal: float
     is_placeholder: bool = False  # True cuando no hay modelo entrenado
+
 
 class OracleTrainer_v3(BaseComponentV3):
     """
@@ -67,7 +107,7 @@ class OracleTrainer_v3(BaseComponentV3):
 
     def __init__(self, manifest: ComponentManifest):
         super().__init__(manifest)
-        self.min_confidence = 0.65# Umbral canónico
+        self.min_confidence = 0.65  # Umbral canónico
         self.model: RandomForestClassifier | str | None = None
         self.training_data: List[Dict[str, Any]] = []
         self._encoders: Dict[str, Dict[str, int]] = {}
@@ -85,12 +125,19 @@ class OracleTrainer_v3(BaseComponentV3):
             "is_div_bullish",
             "is_div_bearish",
             "is_div_neutral",
+            # Dynamic features (ADR-ORACLE-FASE-B-1) — l2_temporal_profile
+            *DYNAMIC_FEATURES,
         ]
 
     @staticmethod
     def _deterministic_encoders() -> Dict[str, Dict[str, int]]:
         return {
-            "delta_divergence": {"UNKNOWN": 0, "NEUTRAL": 1, "BULLISH": 2, "BEARISH": 3},
+            "delta_divergence": {
+                "UNKNOWN": 0,
+                "NEUTRAL": 1,
+                "BULLISH": 2,
+                "BEARISH": 3,
+            },
             "regime": {"UNKNOWN": 0, "LATERAL": 1, "TREND": 2, "HIGH_VOL": 3},
             "direction": {"UNKNOWN": 0, "BULLISH": 1, "BEARISH": 2},
         }
@@ -109,22 +156,30 @@ class OracleTrainer_v3(BaseComponentV3):
         Entrena el modelo con el dataset cargado previo paso por el Data Quality Gate.
         """
         if not self.training_data:
-            raise ValueError("No training data loaded. Call load_training_dataset() first.")
+            raise ValueError(
+                "No training data loaded. Call load_training_dataset() first."
+            )
 
         # --- DATA QUALITY GATE (#2) ---
         quality_passed, quality_report = self._run_quality_gate()
-        
+
         # Guardar reporte para trazabilidad
         _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
         report_path = _PROJECT_ROOT / "aipha_memory/reports/oracle_quality_latest.json"
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(quality_report, indent=2))
-        
+
         if not quality_passed:
             import logging
-            logging.getLogger(__name__).warning(f"❌ DATA QUALITY GATE FAILED: {quality_report['reason']}")
+
+            logging.getLogger(__name__).warning(
+                f"❌ DATA QUALITY GATE FAILED: {quality_report['reason']}"
+            )
             # Retornamos sin entrenar para mantener el modelo anterior (o el placeholder)
-            self._training_metrics = {"quality_gate": "FAILED", "reason": quality_report['reason']}
+            self._training_metrics = {
+                "quality_gate": "FAILED",
+                "reason": quality_report["reason"],
+            }
             return False
 
         records = [self._normalize_sample(sample) for sample in self.training_data]
@@ -146,11 +201,7 @@ class OracleTrainer_v3(BaseComponentV3):
         # Preserve deterministic encoders for backward compat (save_to_disk)
         self._encoders = self._deterministic_encoders()
 
-        X = (
-            df[self._feature_cols]
-            .apply(pd.to_numeric, errors="coerce")
-            .fillna(0.0)
-        )
+        X = df[self._feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
         y = (
             df["outcome"]
             .astype(str)
@@ -162,7 +213,9 @@ class OracleTrainer_v3(BaseComponentV3):
         X = X.loc[valid_mask]
         y = y.loc[valid_mask].astype(int)
         if X.empty:
-            raise ValueError("No valid rows with outcome BOUNCE_STRONG/BREAKOUT were found.")
+            raise ValueError(
+                "No valid rows with outcome BOUNCE_STRONG/BREAKOUT were found."
+            )
 
         # BUG-1 fix: separar train/test para métricas OOS reales
         if len(X) >= 10:
@@ -185,7 +238,8 @@ class OracleTrainer_v3(BaseComponentV3):
             X_majority = X_train[~minority_mask]
             y_majority = y_train[~minority_mask]
             X_min_resampled, y_min_resampled = resample(
-                X_minority, y_minority,
+                X_minority,
+                y_minority,
                 replace=True,
                 n_samples=len(X_majority),
                 random_state=42,
@@ -194,6 +248,7 @@ class OracleTrainer_v3(BaseComponentV3):
             y_train = pd.concat([y_majority, y_min_resampled])
             rebalance_applied = True
             import logging
+
             logging.getLogger(__name__).info(
                 f"🔄 BUG-3 rebalance: {minority_count} minority → {len(X_majority)} "
                 f"(oversampled to match majority)"
@@ -206,14 +261,16 @@ class OracleTrainer_v3(BaseComponentV3):
             random_state=42,
             class_weight="balanced",
         )
-        
+
         # Calibración Platt Scaling (sigmoid) — ideal para datasets < 1000 samples
         self.model = (
-            CalibratedClassifierCV(FrozenEstimator(base_model), method='sigmoid', cv='prefit')
+            CalibratedClassifierCV(
+                FrozenEstimator(base_model), method="sigmoid", cv="prefit"
+            )
             if FrozenEstimator is not None
-            else CalibratedClassifierCV(base_model, method='sigmoid', cv='prefit')
+            else CalibratedClassifierCV(base_model, method="sigmoid", cv="prefit")
         )
-        
+
         # Primero entrenar base con training set
         base_model.fit(X_train, y_train)
         # Luego calibrar (usando el mismo training set ya que cv='prefit')
@@ -223,14 +280,14 @@ class OracleTrainer_v3(BaseComponentV3):
         y_test_probs = self.model.predict_proba(X_test)[:, 1]
         test_accuracy = float(self.model.score(X_test, y_test))
         brier_score = float(brier_score_loss(y_test, y_test_probs))
-        
-        cv_scores = cross_val_score(base_model, X_train, y_train, cv=5, scoring='accuracy')
+
+        cv_scores = cross_val_score(
+            base_model, X_train, y_train, cv=5, scoring="accuracy"
+        )
         cv_mean = float(cv_scores.mean())
         cv_std = float(cv_scores.std())
         class_distribution = (
-            y.map({1: "BOUNCE_STRONG", 0: "BREAKOUT"})
-            .value_counts()
-            .to_dict()
+            y.map({1: "BOUNCE_STRONG", 0: "BREAKOUT"}).value_counts().to_dict()
         )
         importances = dict(
             zip(
@@ -251,83 +308,116 @@ class OracleTrainer_v3(BaseComponentV3):
             "rebalance_applied": rebalance_applied,
             "feature_importances": importances,
             "calibration_method": "platt_sigmoid",
-            "is_calibrated": True
+            "is_calibrated": True,
         }
         # Inyectar firma causal basada en este dataset
         self._causal_signature = {
             "obi_mean": float(X["obi_10_at_retest"].mean()),
             "obi_std": float(X["obi_10_at_retest"].std()),
             "delta_mean": float(X["cumulative_delta_at_retest"].mean()),
-            "delta_std": float(X["cumulative_delta_at_retest"].std())
+            "delta_std": float(X["cumulative_delta_at_retest"].std()),
         }
 
     def get_causal_signature(self) -> Dict[str, float]:
         """Retorna la firma estadística del dataset de entrenamiento (Baseline)."""
-        return getattr(self, "_causal_signature", {
-            "obi_mean": 0.05, "obi_std": 0.35,
-            "delta_mean": 0.0, "delta_std": 100.0
-        })
+        return getattr(
+            self,
+            "_causal_signature",
+            {"obi_mean": 0.05, "obi_std": 0.35, "delta_mean": 0.0, "delta_std": 100.0},
+        )
 
     def save_to_disk(self, path: str):
         """Guarda modelo y metadatos."""
         import joblib
+
         data = {
             "model": self.model,
             "encoders": self._encoders,
             "metrics": self._training_metrics,
-            "causal_signature": self.get_causal_signature()
+            "causal_signature": self.get_causal_signature(),
         }
         joblib.dump(data, path)
 
     def _run_quality_gate(self) -> Tuple[bool, Dict]:
         """
-        Verifica: 
+        Verifica:
         1. Volumen de datos (min 50 samples)
         2. Desbalance de clases (> 15% por clase)
         3. Integridad (NaN ratio < 5%)
         """
         if not self.training_data:
             return False, {"reason": "No data", "passed": False}
-        
+
         df = pd.DataFrame([self._normalize_sample(s) for s in self.training_data])
-        
+
+        # Asegurar que todas las feature_cols existan en el DataFrame
+        # (las dynamic features l2tp_* pueden no estar si los samples no
+        # tienen l2_temporal_profile — se imputan a 0.0 aquí, coherente
+        # con el ADR-ORACLE-FASE-B-1: imputación neutral para samples legacy)
+        for col in self._feature_cols:
+            if col not in df.columns:
+                df[col] = 0.0
+            elif col.startswith("l2tp_"):
+                # Dynamic features: imputar NaN a 0.0 (imputación neutral)
+                df[col] = df[col].fillna(0.0)
+
         # 1. Volumen
         n_samples = len(df)
         if n_samples < 50:
-            return False, {"reason": f"Insufficient samples ({n_samples} < 50)", "passed": False, "n": n_samples}
-            
+            return False, {
+                "reason": f"Insufficient samples ({n_samples} < 50)",
+                "passed": False,
+                "n": n_samples,
+            }
+
         # 2. Desbalance
-        if 'outcome' not in df.columns:
+        if "outcome" not in df.columns:
             return False, {"reason": "Missing outcome column", "passed": False}
-        
+
         # Filtrar muestras INCONCLUSIVE/BOUNCE_WEAK
-        valid_df = df[df['outcome'].astype(str).str.upper().isin(["BOUNCE_STRONG", "BREAKOUT"])]
+        valid_df = df[
+            df["outcome"].astype(str).str.upper().isin(["BOUNCE_STRONG", "BREAKOUT"])
+        ]
         if len(valid_df) < 10:
-            return False, {"reason": f"Insufficient valid samples ({len(valid_df)} < 10)", "passed": False}
-            
-        counts = valid_df['outcome'].astype(str).str.upper().value_counts(normalize=True)
+            return False, {
+                "reason": f"Insufficient valid samples ({len(valid_df)} < 10)",
+                "passed": False,
+            }
+
+        counts = (
+            valid_df["outcome"].astype(str).str.upper().value_counts(normalize=True)
+        )
         min_class_pct = counts.min()
         if min_class_pct < 0.15:
-            return False, {"reason": f"Extreme class imbalance ({min_class_pct:.1%})", "passed": False, "counts": counts.to_dict()}
-            
+            return False, {
+                "reason": f"Extreme class imbalance ({min_class_pct:.1%})",
+                "passed": False,
+                "counts": counts.to_dict(),
+            }
+
         # 3. Integridad (NaNs en features críticas)
         nan_counts = df[self._feature_cols].isna().sum().sum()
         total_cells = n_samples * len(self._feature_cols)
         nan_ratio = nan_counts / total_cells if total_cells > 0 else 0
         if nan_ratio > 0.05:
-            return False, {"reason": f"Too many NaNs ({nan_ratio:.1%})", "passed": False, "nan_ratio": nan_ratio}
-            
+            return False, {
+                "reason": f"Too many NaNs ({nan_ratio:.1%})",
+                "passed": False,
+                "nan_ratio": nan_ratio,
+            }
+
         return True, {
             "passed": True,
             "n_samples": n_samples,
             "class_balance": counts.to_dict(),
             "nan_ratio": nan_ratio,
-            "timestamp": str(pd.Timestamp.now())
+            "timestamp": str(pd.Timestamp.now()),
         }
 
     def load_from_disk(self, path: str):
         """Carga modelo y metadatos."""
         import joblib
+
         data = joblib.load(path)
         self.model = data["model"]
         self._encoders = data["encoders"]
@@ -340,12 +430,11 @@ class OracleTrainer_v3(BaseComponentV3):
         Fix BUG-4: el sistema puede distinguir predicciones reales
         de confidence=0.85 hardcoded.
         """
-        return (
-            self.model is None
-            or self.model == "placeholder_model_trained"
-        )
+        return self.model is None or self.model == "placeholder_model_trained"
 
-    def predict(self, micro: MicrostructureRecord, signal_data: Dict) -> OraclePrediction:
+    def predict(
+        self, micro: MicrostructureRecord, signal_data: Dict
+    ) -> OraclePrediction:
         """
         Evalua una señal detectada antes de su ejecucion.
         Predice si el retest resultará en BOUNCE o BREAKOUT.
@@ -368,20 +457,38 @@ class OracleTrainer_v3(BaseComponentV3):
 
         # Numerical features
         row = {
-            "vwap_at_retest": float(self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))),
-            "obi_10_at_retest": float(self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))),
-            "cumulative_delta_at_retest": float(
-                self._pick(micro, "cumulative_delta", signal_data.get("cumulative_delta_at_retest", 0.0))
+            "vwap_at_retest": float(
+                self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))
             ),
-            "atr_14": float(self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))),
+            "obi_10_at_retest": float(
+                self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))
+            ),
+            "cumulative_delta_at_retest": float(
+                self._pick(
+                    micro,
+                    "cumulative_delta",
+                    signal_data.get("cumulative_delta_at_retest", 0.0),
+                )
+            ),
+            "atr_14": float(
+                self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))
+            ),
         }
         # Binary features (one-hot) — Phase Bridge [F3]
         binary = _to_binary_features(
             self._pick(micro, "regime", signal_data.get("regime", "LATERAL")),
             signal_data.get("direction", self._pick(micro, "direction", "bullish")),
-            self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")),
+            self._pick(
+                micro,
+                "delta_divergence",
+                signal_data.get("delta_divergence", "NEUTRAL"),
+            ),
         )
         row.update(binary)
+        # Dynamic features (ADR-ORACLE-FASE-B-1) — l2_temporal_profile
+        row.update(
+            _extract_dynamic_features(signal_data.get("l2_temporal_profile", {}))
+        )
 
         features = pd.DataFrame([row], columns=self._feature_cols).fillna(0.0)
         proba = self.model.predict_proba(features)[0]
@@ -454,7 +561,9 @@ class OracleTrainer_v3(BaseComponentV3):
             elif isinstance(loaded.get("dataset"), list):
                 loaded = loaded["dataset"]
             else:
-                raise ValueError("training_data_path does not contain a list-like dataset.")
+                raise ValueError(
+                    "training_data_path does not contain a list-like dataset."
+                )
 
         if not isinstance(loaded, list):
             raise ValueError("training_data_path must point to a JSON list.")
@@ -464,14 +573,14 @@ class OracleTrainer_v3(BaseComponentV3):
 
     def _normalize_sample(self, sample: Dict[str, Any]) -> Dict[str, Any]:
         normalized: Dict[str, Any] = {}
-        
+
         # Schema v2.0 support (ReentrySnapshot)
         if "_meta" in sample and "schema_version" in sample.get("_meta", {}):
             l2 = sample.get("l2_snapshot_at_touch", {})
             zg = sample.get("zone_geometry", {})
             cl = sample.get("clearance", {})
             out = sample.get("outcome", {})
-            
+
             normalized["vwap_at_retest"] = (
                 l2.get("vwap_at_retest")
                 or l2.get("vwap_session")
@@ -482,9 +591,15 @@ class OracleTrainer_v3(BaseComponentV3):
             normalized["atr_14"] = cl.get("atr_at_detection")
             normalized["outcome"] = out.get("label")
             # Binary columns — Phase Bridge [F3]
-            normalized.update(_to_binary_features(
-                cl.get("regime"), zg.get("direction"), l2.get("delta_divergence")
-            ))
+            normalized.update(
+                _to_binary_features(
+                    cl.get("regime"), zg.get("direction"), l2.get("delta_divergence")
+                )
+            )
+            # Dynamic features (ADR-ORACLE-FASE-B-1) — l2_temporal_profile
+            normalized.update(
+                _extract_dynamic_features(sample.get("l2_temporal_profile", {}))
+            )
             return normalized
 
         # Legacy support
@@ -495,10 +610,13 @@ class OracleTrainer_v3(BaseComponentV3):
             if col in sample:
                 normalized[col] = sample[col]
         # Derive binary columns from raw categoricals
-        normalized.update(_to_binary_features(
-            normalized.get("regime"), normalized.get("direction"),
-            normalized.get("delta_divergence")
-        ))
+        normalized.update(
+            _to_binary_features(
+                normalized.get("regime"),
+                normalized.get("direction"),
+                normalized.get("delta_divergence"),
+            )
+        )
         normalized["outcome"] = sample.get("outcome")
         return normalized
 
@@ -533,9 +651,10 @@ class OracleTrainer_v3(BaseComponentV3):
             heritage_source="legacy_vault/v1/cgalpha/labs/execution_optimizer_lab.py",
             heritage_contribution="Meta-Labeling principle and feature selection logic.",
             v3_adaptations="Training with retest dataset and trinity-based features.",
-            causal_score=0.92 # El componente más confiable de v2 (83% acc)
+            causal_score=0.92,  # El componente más confiable de v2 (83% acc)
         )
         return cls(manifest)
+
 
 @dataclass
 class MAEPrediction:
@@ -545,6 +664,7 @@ class MAEPrediction:
     is_safe: bool
     reason: str = ""
 
+
 class OracleRegressor_MAE(BaseComponentV3):
     """
     ╔═══════════════════════════════════════════════════════╗
@@ -553,6 +673,7 @@ class OracleRegressor_MAE(BaseComponentV3):
     ║  izado por ATR para colocar órdenes Limit dinámicas.  ║
     ╚═══════════════════════════════════════════════════════╝
     """
+
     def __init__(self, manifest: ComponentManifest):
         super().__init__(manifest)
         self.model: RandomForestRegressor | None = None
@@ -573,13 +694,20 @@ class OracleRegressor_MAE(BaseComponentV3):
             "is_div_bearish",
             "is_div_neutral",
             "zone_width_atr",  # Extra feature available in v2.0
+            # Dynamic features (ADR-ORACLE-FASE-B-1) — l2_temporal_profile
+            *DYNAMIC_FEATURES,
         ]
-        self.max_allowable_mae_ratio = 0.90 # 90% of zone width
+        self.max_allowable_mae_ratio = 0.90  # 90% of zone width
 
     @staticmethod
     def _deterministic_encoders() -> Dict[str, Dict[str, int]]:
         return {
-            "delta_divergence": {"UNKNOWN": 0, "NEUTRAL": 1, "BULLISH": 2, "BEARISH": 3},
+            "delta_divergence": {
+                "UNKNOWN": 0,
+                "NEUTRAL": 1,
+                "BULLISH": 2,
+                "BEARISH": 3,
+            },
             "regime": {"UNKNOWN": 0, "LATERAL": 1, "TREND": 2, "HIGH_VOL": 3},
             "direction": {"UNKNOWN": 0, "BULLISH": 1, "BEARISH": 2},
         }
@@ -590,17 +718,25 @@ class OracleRegressor_MAE(BaseComponentV3):
 
     def train_model(self):
         if not self.training_data:
-            raise ValueError("No training data loaded. Call load_training_dataset() first.")
+            raise ValueError(
+                "No training data loaded. Call load_training_dataset() first."
+            )
 
         # Filtrar solo BOUNCE_STRONG para la regresión (donde MAE tiene sentido)
         valid_samples = []
         for sample in self.training_data:
-            if sample.get("outcome", {}).get("label") in ["BOUNCE_STRONG", "BOUNCE_WEAK"]:
+            if sample.get("outcome", {}).get("label") in [
+                "BOUNCE_STRONG",
+                "BOUNCE_WEAK",
+            ]:
                 valid_samples.append(sample)
-                
+
         if len(valid_samples) < 10:
             import logging
-            logging.getLogger(__name__).warning("❌ Insufficient BOUNCE samples for MAE Regression (< 10).")
+
+            logging.getLogger(__name__).warning(
+                "❌ Insufficient BOUNCE samples for MAE Regression (< 10)."
+            )
             return False
 
         records = [self._normalize_sample(s) for s in valid_samples]
@@ -628,31 +764,36 @@ class OracleRegressor_MAE(BaseComponentV3):
             return False
 
         if len(X) >= 15:
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
         else:
             X_train, X_test, y_train, y_test = X, X, y, y
 
         self.model = RandomForestRegressor(
-            n_estimators=100,
-            max_depth=5,
-            min_samples_leaf=2,
-            random_state=42
+            n_estimators=100, max_depth=5, min_samples_leaf=2, random_state=42
         )
         self.model.fit(X_train, y_train)
 
         from sklearn.metrics import mean_absolute_error, r2_score
+
         y_pred = self.model.predict(X_test)
         mae_metric = float(mean_absolute_error(y_test, y_pred))
         r2_metric = float(r2_score(y_test, y_pred))
 
-        importances = dict(zip(self._feature_cols, [round(float(v), 4) for v in self.model.feature_importances_]))
-        
+        importances = dict(
+            zip(
+                self._feature_cols,
+                [round(float(v), 4) for v in self.model.feature_importances_],
+            )
+        )
+
         self._training_metrics = {
             "n_train": len(X_train),
             "n_test": len(X_test),
             "test_mae_atr": mae_metric,
             "test_r2": r2_metric,
-            "feature_importances": importances
+            "feature_importances": importances,
         }
         return True
 
@@ -663,7 +804,7 @@ class OracleRegressor_MAE(BaseComponentV3):
             zg = sample.get("zone_geometry", {})
             cl = sample.get("clearance", {})
             out = sample.get("outcome", {})
-            
+
             normalized["vwap_at_retest"] = l2.get("vwap_at_retest")
             normalized["obi_10_at_retest"] = l2.get("obi_10")
             normalized["cumulative_delta_at_retest"] = l2.get("cumulative_delta")
@@ -671,52 +812,86 @@ class OracleRegressor_MAE(BaseComponentV3):
             normalized["zone_width_atr"] = zg.get("zone_width_atr", 0.5)
             normalized["mae_atr"] = out.get("mae_atr")
             # Binary columns — Phase Bridge [F3]
-            normalized.update(_to_binary_features(
-                cl.get("regime"), zg.get("direction"), l2.get("delta_divergence")
-            ))
+            normalized.update(
+                _to_binary_features(
+                    cl.get("regime"), zg.get("direction"), l2.get("delta_divergence")
+                )
+            )
         return normalized
 
-    def predict_mae(self, micro: MicrostructureRecord, signal_data: Dict) -> MAEPrediction:
+    def predict_mae(
+        self, micro: MicrostructureRecord, signal_data: Dict
+    ) -> MAEPrediction:
         if self.model is None:
             # Fallback a penetración moderada (e.g. 0.2 ATR)
-            return MAEPrediction(str(signal_data.get("index", "unknown")), 0.2, 0.0, True, "Placeholder model")
+            return MAEPrediction(
+                str(signal_data.get("index", "unknown")),
+                0.2,
+                0.0,
+                True,
+                "Placeholder model",
+            )
 
         # Numerical features
         row = {
-            "vwap_at_retest": float(self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))),
-            "obi_10_at_retest": float(self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))),
-            "cumulative_delta_at_retest": float(self._pick(micro, "cumulative_delta", signal_data.get("cumulative_delta_at_retest", 0.0))),
-            "atr_14": float(self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))),
+            "vwap_at_retest": float(
+                self._pick(micro, "vwap", signal_data.get("vwap_at_retest", 0.0))
+            ),
+            "obi_10_at_retest": float(
+                self._pick(micro, "obi_10", signal_data.get("obi_10_at_retest", 0.0))
+            ),
+            "cumulative_delta_at_retest": float(
+                self._pick(
+                    micro,
+                    "cumulative_delta",
+                    signal_data.get("cumulative_delta_at_retest", 0.0),
+                )
+            ),
+            "atr_14": float(
+                self._pick(micro, "atr_14", signal_data.get("atr_14", 0.0))
+            ),
             "zone_width_atr": float(signal_data.get("zone_width_atr", 0.5)),
         }
         # Binary features (one-hot) — Phase Bridge [F3]
         binary = _to_binary_features(
             self._pick(micro, "regime", signal_data.get("regime", "LATERAL")),
             signal_data.get("direction", self._pick(micro, "direction", "bullish")),
-            self._pick(micro, "delta_divergence", signal_data.get("delta_divergence", "NEUTRAL")),
+            self._pick(
+                micro,
+                "delta_divergence",
+                signal_data.get("delta_divergence", "NEUTRAL"),
+            ),
         )
         row.update(binary)
+        # Dynamic features (ADR-ORACLE-FASE-B-1) — l2_temporal_profile
+        row.update(
+            _extract_dynamic_features(signal_data.get("l2_temporal_profile", {}))
+        )
 
         features = pd.DataFrame([row], columns=self._feature_cols).fillna(0.0)
         predicted_mae_atr = float(self.model.predict(features)[0])
-        
-        retest_price = signal_data.get("zone_top", 0) if row["direction"] == self._safe_encode("direction", "bullish") else signal_data.get("zone_bottom", 0)
+
+        retest_price = (
+            signal_data.get("zone_top", 0)
+            if row["direction"] == self._safe_encode("direction", "bullish")
+            else signal_data.get("zone_bottom", 0)
+        )
         atr_val = row["atr_14"]
-        
+
         # bullish = rebota en zone_top y cae hasta (zone_top - mae_atr*atr) antes de subir
         # bearish = rebota en zone_bottom y sube hasta (zone_bottom + mae_atr*atr) antes de caer
         direction_str = signal_data.get("direction", "bullish")
-        
+
         if direction_str == "bullish":
             limit_price = retest_price - (predicted_mae_atr * atr_val)
         else:
             limit_price = retest_price + (predicted_mae_atr * atr_val)
-            
+
         # Safety check: ¿el MAE predicho es mayor a lo que la zona puede aguantar?
         zone_width_atr = row["zone_width_atr"]
         if predicted_mae_atr > (zone_width_atr * self.max_allowable_mae_ratio):
             is_safe = False
-            reason = f"Predicted MAE ({predicted_mae_atr:.2f} ATR) exceeds {self.max_allowable_mae_ratio*100:.0f}% of zone width ({zone_width_atr:.2f} ATR)"
+            reason = f"Predicted MAE ({predicted_mae_atr:.2f} ATR) exceeds {self.max_allowable_mae_ratio * 100:.0f}% of zone width ({zone_width_atr:.2f} ATR)"
         else:
             is_safe = True
             reason = "OK"
@@ -726,7 +901,7 @@ class OracleRegressor_MAE(BaseComponentV3):
             predicted_mae_atr=predicted_mae_atr,
             limit_price=limit_price,
             is_safe=is_safe,
-            reason=reason
+            reason=reason,
         )
 
     def get_training_metrics(self) -> Dict[str, Any] | None:
@@ -772,16 +947,27 @@ class OracleRegressor_MAE(BaseComponentV3):
         return mapping.get(value_str, mapping.get("UNKNOWN", 0))
 
     def _pick(self, record: Any, field: str, fallback: Any) -> Any:
-        if record is None: return fallback
-        if isinstance(record, dict): return record.get(field, fallback)
+        if record is None:
+            return fallback
+        if isinstance(record, dict):
+            return record.get(field, fallback)
         return getattr(record, field, fallback)
 
     def save_to_disk(self, path: str):
         import joblib
-        joblib.dump({"model": self.model, "encoders": self._encoders, "metrics": self._training_metrics}, path)
+
+        joblib.dump(
+            {
+                "model": self.model,
+                "encoders": self._encoders,
+                "metrics": self._training_metrics,
+            },
+            path,
+        )
 
     def load_from_disk(self, path: str):
         import joblib
+
         data = joblib.load(path)
         self.model = data["model"]
         self._encoders = data["encoders"]
@@ -798,6 +984,6 @@ class OracleRegressor_MAE(BaseComponentV3):
             heritage_source="Capa 2 / Fase 13",
             heritage_contribution="Limit Order Targeting",
             v3_adaptations="",
-            causal_score=0.90
+            causal_score=0.90,
         )
         return cls(manifest)
