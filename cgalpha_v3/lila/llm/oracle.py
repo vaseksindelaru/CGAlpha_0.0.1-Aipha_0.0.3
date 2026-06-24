@@ -218,7 +218,22 @@ class OracleTrainer_v3(BaseComponentV3):
             )
 
         # BUG-1 fix: separar train/test para métricas OOS reales
-        if len(X) >= 10:
+        # ADR-ORACLE-FASE-B-2: Walk-Forward Validation cuando hay timestamps
+        walk_forward_metrics = None
+        has_timestamps = any(
+            isinstance(s, dict)
+            and isinstance(s.get("_meta"), dict)
+            and s["_meta"].get("capture_ts_unix_ms")
+            for s in self.training_data
+        )
+
+        if has_timestamps and len(X) >= 60:
+            # Walk-Forward Validation (ADR-ORACLE-FASE-B-2)
+            walk_forward_metrics = self._walk_forward_cv(X, y, n_folds=4)
+            # Para el modelo final, entrenar con todos los datos
+            X_train, X_test, y_train, y_test = X, X, y, y
+            rebalance_applied = False
+        elif len(X) >= 10:
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=0.2, random_state=42, stratify=y
             )
@@ -263,29 +278,35 @@ class OracleTrainer_v3(BaseComponentV3):
         )
 
         # Calibración Platt Scaling (sigmoid) — ideal para datasets < 1000 samples
-        self.model = (
-            CalibratedClassifierCV(
-                FrozenEstimator(base_model), method="sigmoid", cv="prefit"
+        # Fix sklearn 1.8.0: cv='prefit' deprecado. Usar FrozenEstimator con cv=3
+        # cuando hay suficientes samples, o sin calibración cuando hay pocas.
+        if FrozenEstimator is not None and len(X_train) >= 30:
+            base_model.fit(X_train, y_train)
+            self.model = CalibratedClassifierCV(
+                FrozenEstimator(base_model), method="sigmoid", cv=3
             )
-            if FrozenEstimator is not None
-            else CalibratedClassifierCV(base_model, method="sigmoid", cv="prefit")
-        )
-
-        # Primero entrenar base con training set
-        base_model.fit(X_train, y_train)
-        # Luego calibrar (usando el mismo training set ya que cv='prefit')
-        self.model.fit(X_train, y_train)
+            self.model.fit(X_train, y_train)
+        else:
+            # Sin FrozenEstimator o dataset muy pequeño: sin calibración
+            self.model = base_model
+            self.model.fit(X_train, y_train)
 
         # Métricas OOS Reales
-        y_test_probs = self.model.predict_proba(X_test)[:, 1]
-        test_accuracy = float(self.model.score(X_test, y_test))
-        brier_score = float(brier_score_loss(y_test, y_test_probs))
-
-        cv_scores = cross_val_score(
-            base_model, X_train, y_train, cv=5, scoring="accuracy"
-        )
-        cv_mean = float(cv_scores.mean())
-        cv_std = float(cv_scores.std())
+        if walk_forward_metrics is not None:
+            # Walk-Forward: usar métricas agregadas
+            test_accuracy = walk_forward_metrics["mean_accuracy"]
+            brier_score = walk_forward_metrics["mean_brier"]
+            cv_mean = test_accuracy  # Walk-forward es el CV
+            cv_std = walk_forward_metrics["std_accuracy"]
+        else:
+            y_test_probs = self.model.predict_proba(X_test)[:, 1]
+            test_accuracy = float(self.model.score(X_test, y_test))
+            brier_score = float(brier_score_loss(y_test, y_test_probs))
+            cv_scores = cross_val_score(
+                base_model, X_train, y_train, cv=5, scoring="accuracy"
+            )
+            cv_mean = float(cv_scores.mean())
+            cv_std = float(cv_scores.std())
         class_distribution = (
             y.map({1: "BOUNCE_STRONG", 0: "BREAKOUT"}).value_counts().to_dict()
         )
@@ -307,9 +328,17 @@ class OracleTrainer_v3(BaseComponentV3):
             "n_features": len(self._feature_cols),
             "rebalance_applied": rebalance_applied,
             "feature_importances": importances,
-            "calibration_method": "platt_sigmoid",
-            "is_calibrated": True,
+            "calibration_method": "platt_sigmoid"
+            if FrozenEstimator is not None and len(X_train) >= 30
+            else "none",
+            "is_calibrated": FrozenEstimator is not None and len(X_train) >= 30,
         }
+        # ADR-ORACLE-FASE-B-2: añadir métricas walk-forward si están disponibles
+        if walk_forward_metrics is not None:
+            self._training_metrics["walk_forward"] = walk_forward_metrics
+            self._training_metrics["validation_method"] = "walk_forward"
+        else:
+            self._training_metrics["validation_method"] = "static_split"
         # Inyectar firma causal basada en este dataset
         self._causal_signature = {
             "obi_mean": float(X["obi_10_at_retest"].mean()),
@@ -412,6 +441,131 @@ class OracleTrainer_v3(BaseComponentV3):
             "class_balance": counts.to_dict(),
             "nan_ratio": nan_ratio,
             "timestamp": str(pd.Timestamp.now()),
+        }
+
+    def _walk_forward_cv(self, X: pd.DataFrame, y: pd.Series, n_folds: int = 4) -> dict:
+        """Walk-Forward Validation (ADR-ORACLE-FASE-B-2).
+
+        Ordena los samples por timestamp, divide en n_folds temporales
+        secuenciales, y para cada fold i entrena en folds 0..i-1 y evalúa
+        en fold i. Cada fold de test es temporalmente posterior al fold
+        de train — sin data leakage temporal.
+
+        Args:
+            X: DataFrame de features (debe estar alineado con y y con
+               self.training_data para preservar el orden de timestamps).
+            y: Series de labels (0=BREAKOUT, 1=BOUNCE_STRONG).
+            n_folds: número de folds temporales (default 4).
+
+        Returns:
+            dict con métricas por fold y agregadas:
+            - folds: lista de dict con accuracy, brier, n_train, n_test por fold
+            - mean_accuracy, std_accuracy, mean_brier, std_brier
+            - worst_fold_accuracy, best_fold_accuracy
+        """
+        # Obtener timestamps de los samples originales (alineados con X, y)
+        timestamps = []
+        for s in self.training_data:
+            ts = (
+                s.get("_meta", {}).get("capture_ts_unix_ms", 0)
+                if isinstance(s, dict)
+                else 0
+            )
+            timestamps.append(float(ts) if ts else 0.0)
+
+        # Crear DataFrame con timestamp para ordenar
+        df_wf = pd.DataFrame({"ts": timestamps, "idx": range(len(timestamps))})
+        df_wf = df_wf.sort_values("ts").reset_index(drop=True)
+
+        # Filtrar samples sin timestamp (ts=0) — van al final del orden
+        n = len(df_wf)
+        fold_size = n // n_folds
+
+        folds_results = []
+        for i in range(1, n_folds):
+            train_idx = df_wf["idx"].iloc[: i * fold_size].values
+            test_idx = df_wf["idx"].iloc[i * fold_size : (i + 1) * fold_size].values
+
+            X_train_fold = X.iloc[train_idx]
+            y_train_fold = y.iloc[train_idx]
+            X_test_fold = X.iloc[test_idx]
+            y_test_fold = y.iloc[test_idx]
+
+            # Verificar que hay ambas clases en train y test
+            if y_train_fold.nunique() < 2 or y_test_fold.nunique() < 2:
+                folds_results.append(
+                    {
+                        "fold": i,
+                        "n_train": int(len(X_train_fold)),
+                        "n_test": int(len(X_test_fold)),
+                        "accuracy": 0.0,
+                        "brier": 1.0,
+                        "skipped": True,
+                        "reason": "single_class_in_fold",
+                    }
+                )
+                continue
+
+            # Entrenar modelo fold
+            fold_model = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=5,
+                min_samples_leaf=2,
+                random_state=42,
+                class_weight="balanced",
+            )
+            fold_model.fit(X_train_fold, y_train_fold)
+
+            # Evaluar
+            y_pred = fold_model.predict(X_test_fold)
+            y_probs = fold_model.predict_proba(X_test_fold)[:, 1]
+            accuracy = float(fold_model.score(X_test_fold, y_test_fold))
+            brier = float(brier_score_loss(y_test_fold, y_probs))
+
+            folds_results.append(
+                {
+                    "fold": i,
+                    "n_train": int(len(X_train_fold)),
+                    "n_test": int(len(X_test_fold)),
+                    "accuracy": round(accuracy, 4),
+                    "brier": round(brier, 6),
+                    "train_accuracy": round(
+                        float(fold_model.score(X_train_fold, y_train_fold)), 4
+                    ),
+                    "class_distribution": y_test_fold.map(
+                        {1: "BOUNCE_STRONG", 0: "BREAKOUT"}
+                    )
+                    .value_counts()
+                    .to_dict(),
+                }
+            )
+
+        # Métricas agregadas (excluir folds skipped)
+        valid_folds = [f for f in folds_results if not f.get("skipped")]
+        if not valid_folds:
+            return {
+                "folds": folds_results,
+                "mean_accuracy": 0.0,
+                "std_accuracy": 0.0,
+                "mean_brier": 1.0,
+                "std_brier": 0.0,
+                "worst_fold_accuracy": 0.0,
+                "best_fold_accuracy": 0.0,
+                "n_valid_folds": 0,
+            }
+
+        accuracies = [f["accuracy"] for f in valid_folds]
+        briers = [f["brier"] for f in valid_folds]
+
+        return {
+            "folds": folds_results,
+            "mean_accuracy": round(float(np.mean(accuracies)), 4),
+            "std_accuracy": round(float(np.std(accuracies)), 4),
+            "mean_brier": round(float(np.mean(briers)), 6),
+            "std_brier": round(float(np.std(briers)), 6),
+            "worst_fold_accuracy": round(float(min(accuracies)), 4),
+            "best_fold_accuracy": round(float(max(accuracies)), 4),
+            "n_valid_folds": len(valid_folds),
         }
 
     def load_from_disk(self, path: str):
