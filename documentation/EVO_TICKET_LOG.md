@@ -78,13 +78,13 @@ ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
 ORIGIN          : Human Investigation + Operational Anomaly
                   ("el Oracle aprende con features estáticas" — §1 Nexus)
 
-MATURITY        : MATURITY_4
-                  (dirección clara + bloqueantes extirpados via deliberación Ruta B)
+MATURITY        : MATURITY_5
+                  (Fase B completada — features dinámicas + walk-forward implementados)
 
 VITALITY        : ACTIVE
                   (reapertura formal 2026-06-23 — ver UPDATE LOG abajo)
 
-ESTADO EN CICLO : READY_FOR_CODEX
+ESTADO EN CICLO : IMPLEMENTED
 
 DEBT CLASS (estimado) : EXPANSION_DEBT
 
@@ -104,11 +104,11 @@ PROTOCOLO DE RESURRECCIÓN:
      - Nexus §5.7 issue #3 y §5.4 issue #5 marcados ✅ RESUELTO via D-014
 
 ENTREGABLES CONSTITUCIONALES REQUERIDOS AL CIERRE:
-  [ ] RECONSTRUCTION_MAP_UPDATE
-  [ ] ADR: walk-forward vs split estático
-  [ ] ADR: diseño Ring Buffer feed hacia Oracle (interfaz con P3)
-      ✅ PARCIAL: D-014 establece el acoplamiento temporal (t_feature ≤ t_candle_close − 200ms).
-         Falta ADR de interfaz schema (qué features exactas consume el Oracle).
+  [x] RECONSTRUCTION_MAP_UPDATE — governance_log/RMU-EVO-TICKET-0002-2026-06-24.md
+  [x] ADR: walk-forward vs split estático — ADR-ORACLE-FASE-B-2
+  [x] ADR: diseño Ring Buffer feed hacia Oracle (interfaz con P3)
+      ✅ ADR-ORACLE-FASE-B-1 (schema de 12 features dinámicas)
+      ✅ D-014 (acoplamiento temporal causal, ε=200ms)
 
 PLAN DE ATAQUE (post-reapertura):
   Ver sección "PLAN DE ATAQUE — EVO-TICKET-0002" al final de este ticket.
@@ -129,6 +129,18 @@ PLAN DE ATAQUE (post-reapertura):
   (acoplamiento temporal), y ADR-FRICCION-ECONOMICA-1 (Opción C).
 - **Artefactos generados:** 2 CRBs, 3 ADRs, 1 D-ID (D-014), Nexus
   reconciliado, 11 eventos constitucionales registrados.
+
+**2026-06-24 — Cierre formal (IMPLEMENTED):**
+- **Maturity:** MATURITY_4 → MATURITY_5
+- **Lifecycle:** READY_FOR_CODEX → IMPLEMENTED
+- **Razón:** Fase 0 (94 tests), Fase 1 (D-014 + drift forense), y Fase 2
+  (12 features dinámicas + walk-forward + re-entrenamiento) completadas.
+  111/111 tests pasando. 5 ADRs generados. D-014 establecido. Oracle v6
+  re-entrenado con features dinámicas (todas con importancia >0) y
+  walk-forward (std_accuracy 0.057 < 0.15).
+- **Entregables constitucionales:** RMU + 2 ADRs de diseño + D-014.
+- **Deuda restante:** Set A necesita ≥150 samples para promoción A/B.
+  Fase 3 (EconomicGate P9) no iniciada. 2 bugs pre-existentes documentados.
 
 ### PLAN DE ATAQUE — EVO-TICKET-0002
 
