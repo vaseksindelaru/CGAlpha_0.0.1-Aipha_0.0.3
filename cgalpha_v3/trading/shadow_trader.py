@@ -1,16 +1,26 @@
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict
-from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
-from cgalpha_v3.domain.records import OutcomeOrdinal, MicrostructureRecord
-from cgalpha_v3.risk.order_manager import DryRunOrderManager, LivePosition
 import json
 import logging
-from pathlib import Path
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from cgalpha_v3.domain.base_component import BaseComponentV3, ComponentManifest
+from cgalpha_v3.domain.records import MicrostructureRecord, OutcomeOrdinal
+from cgalpha_v3.risk.order_manager import DryRunOrderManager, LivePosition
 
 logger = logging.getLogger(__name__)
 
 BRIDGE_JSONL_PATH = "aipha_memory/evolutionary/bridge.jsonl"
+
+# ADR-FRICCION-ECONOMICA-1 (Opción C): EconomicGate
+# Tarifa TAKER Binance Futures: 0.06% por lado = 0.12% ida y vuelta (0.0012 decimal)
+TAKER_FEE_ROUND_TRIP = 0.0012
+# Umbrales de operabilidad por label (coherentes con _evaluate de P4)
+REQUIRED_EDGE_BY_LABEL = {
+    "BOUNCE_STRONG": 0.5,  # P4 usa 0.5*atr
+    "BOUNCE_WEAK": 0.3,  # P4 usa 0.3*atr
+}
 
 
 @dataclass
@@ -19,14 +29,16 @@ class ShadowPosition:
     entry_price: float
     entry_time: int
     direction: int
-    status: str              # "OPEN" | "CLOSED"
-    mfe: float              # Max Favorable Excursion (Precio)
-    mae: float              # Max Adverse Excursion (Precio)
-    entry_atr: float        # ATR en el momento de la entrada
-    tp_targets: List[float] # Niveles de TP (unidades de ATR)
-    sl_target: float        # Nivel de SL (unidades de ATR)
-    config_snapshot: Optional[Dict] = None  # Snapshot de la config al momento de entrada
-    signal_data: Optional[Dict] = None      # Features completas de la señal
+    status: str  # "OPEN" | "CLOSED"
+    mfe: float  # Max Favorable Excursion (Precio)
+    mae: float  # Max Adverse Excursion (Precio)
+    entry_atr: float  # ATR en el momento de la entrada
+    tp_targets: List[float]  # Niveles de TP (unidades de ATR)
+    sl_target: float  # Nivel de SL (unidades de ATR)
+    config_snapshot: Optional[Dict] = (
+        None  # Snapshot de la config al momento de entrada
+    )
+    signal_data: Optional[Dict] = None  # Features completas de la señal
     causal_tags: Optional[List[str]] = None  # Tags para análisis causal
 
 
@@ -68,7 +80,50 @@ class ShadowTrader(BaseComponentV3):
         Abre una posición ficticia para estudio causal.
         Delega en DryRunOrderManager para la ejecución real con PnL, SL/TP.
         Registra el trade en bridge.jsonl para auditoría persistente.
+
+        ADR-FRICCION-ECONOMICA-1 (Opción C): EconomicGate evalúa la fricción
+        económica antes de abrir el trade. Si la fricción excede el umbral
+        del label predicho, el trade se rechaza y se registra en bridge.jsonl
+        con economic_gate_decision="REJECTED".
         """
+        sd = signal_data or {}
+
+        # ── EconomicGate (ADR-FRICCION-ECONOMICA-1) ──────────────────
+        predicted_label = sd.get("prediction", "UNKNOWN")
+        spread_bps = sd.get("spread_bps", 0.0)
+        bid_depth = sd.get("bid_wall_depth_10_btc", 0.0)
+        ask_depth = sd.get("ask_wall_depth_10_btc", 0.0)
+
+        slippage_est = self.estimate_slippage(
+            entry_price=entry_price,
+            spread_bps=spread_bps,
+            bid_depth=bid_depth,
+            ask_depth=ask_depth,
+            order_size=0.1,  # 0.1 BTC default para paper trading
+        )
+        cost_est = entry_price * TAKER_FEE_ROUND_TRIP
+        friction_atr = (slippage_est + cost_est) / atr if atr > 0 else float("inf")
+
+        required_edge = REQUIRED_EDGE_BY_LABEL.get(predicted_label, 1.0)
+
+        if friction_atr >= required_edge:
+            logger.info(
+                f"🚫 EconomicGate: {predicted_label} rechazado "
+                f"(friction={friction_atr:.3f} ATR >= edge={required_edge} ATR)"
+            )
+            self._write_rejected_bridge_entry(
+                signal_data=sd,
+                entry_price=entry_price,
+                direction=direction,
+                atr=atr,
+                friction_atr=friction_atr,
+                required_edge=required_edge,
+                slippage_est=slippage_est,
+                cost_est=cost_est,
+            )
+            return ""
+
+        # ── Si pasa el gate, proceder con el trade ───────────────────
         # 1. Crear Signal dict compatible con DryRunOrderManager
         direction_str = "bullish" if direction > 0 else "bearish"
         signal = {
@@ -76,15 +131,17 @@ class ShadowTrader(BaseComponentV3):
             "price": entry_price,
             "direction": direction_str,
             "atr": atr,
-            "obi": (signal_data or {}).get("obi_10_at_retest", 0.0),
+            "obi": sd.get("obi_10_at_retest", 0.0),
         }
-        if signal_data and "symbol" in signal_data:
-            signal["symbol"] = signal_data["symbol"]
+        if "symbol" in sd:
+            signal["symbol"] = sd["symbol"]
 
         # 2. Ejecutar via DryRunOrderManager
         live_pos = self.order_manager.execute_signal(signal)
         if live_pos is None:
-            logger.warning("⚠️ ShadowTrader: DryRunOrderManager rechazó la señal (risk limits).")
+            logger.warning(
+                "⚠️ ShadowTrader: DryRunOrderManager rechazó la señal (risk limits)."
+            )
             return ""
 
         # 3. Crear ShadowPosition wrapper para tracking interno
@@ -109,14 +166,58 @@ class ShadowTrader(BaseComponentV3):
         self.active_positions.append(shadow_pos)
         self._shadow_map[live_pos.pos_id] = shadow_pos
 
-        # 4. Registrar en bridge.jsonl
-        self._write_bridge_entry(live_pos, shadow_pos, exit_reason="OPEN")
+        # 4. Registrar en bridge.jsonl (con economic_gate_decision=ACCEPTED)
+        self._write_bridge_entry(
+            live_pos,
+            shadow_pos,
+            exit_reason="OPEN",
+            economic_gate_decision="ACCEPTED",
+            friction_atr_est=friction_atr,
+        )
 
         logger.info(
             f"📈 Shadow Trade Abierto: {live_pos.pos_id} "
             f"(direction={direction_str}, price={entry_price:.2f}, ATR={atr:.4f})"
         )
         return live_pos.pos_id
+
+    def estimate_slippage(
+        self,
+        entry_price: float,
+        spread_bps: float,
+        bid_depth: float,
+        ask_depth: float,
+        order_size: float = 0.1,
+    ) -> float:
+        """Estima el slippage conservador en precio absoluto.
+
+        ADR-FRICCION-ECONOMICA-1: estimación heurística basada en el spread
+        real y la profundidad del libro. No es un modelo de market impact
+        sofisticado — es una cota conservadora para paper trading.
+
+        Args:
+            entry_price: precio de entrada del retest.
+            spread_bps: spread bid-ask en basis points.
+            bid_depth: profundidad bid en los primeros 10 niveles (BTC).
+            ask_depth: profundidad ask en los primeros 10 niveles (BTC).
+            order_size: tamaño de la orden en BTC (default 0.1).
+
+        Returns:
+            Slippage estimado en precio absoluto.
+        """
+        # Componente 1: half-spread (asumimos orden taker que cruza el spread)
+        half_spread = (spread_bps / 10000.0) * entry_price / 2.0
+
+        # Componente 2: market impact estimado
+        # Si el order_size es significativo relativo al depth, hay impact adicional.
+        # Usamos una fórmula conservadora: impact = (order_size / depth) * half_spread
+        avg_depth = (
+            (bid_depth + ask_depth) / 2.0 if (bid_depth + ask_depth) > 0 else 1.0
+        )
+        depth_ratio = min(order_size / avg_depth, 1.0) if avg_depth > 0 else 1.0
+        market_impact = depth_ratio * half_spread
+
+        return half_spread + market_impact
 
     def update_shadow_traces(
         self, current_price: float, current_time: int
@@ -157,7 +258,7 @@ class ShadowTrader(BaseComponentV3):
                     mfe_atr=round(mfe_atr, 4),
                     mae_atr=round(mae_atr, 4),
                     outcome=outcome,
-                    exit_reason=getattr(hist_pos, 'status', 'UNKNOWN'),
+                    exit_reason=getattr(hist_pos, "status", "UNKNOWN"),
                 )
                 closed_outcomes.append(outcome_ordinal)
 
@@ -167,15 +268,23 @@ class ShadowTrader(BaseComponentV3):
                 pos.mae = hist_pos.mae
 
                 # Write final bridge entry with outcome
-                self._write_bridge_entry(hist_pos, pos, exit_reason=getattr(hist_pos, 'status', 'CLOSED'))
+                self._write_bridge_entry(
+                    hist_pos, pos, exit_reason=getattr(hist_pos, "status", "CLOSED")
+                )
 
         return closed_outcomes
 
     def _get_atr_scale(self, shadow_pos: ShadowPosition) -> float:
         """Returns the ATR scale for normalizing MFE/MAE."""
-        return shadow_pos.entry_atr if shadow_pos.entry_atr > 0 else shadow_pos.entry_price * 0.01
+        return (
+            shadow_pos.entry_atr
+            if shadow_pos.entry_atr > 0
+            else shadow_pos.entry_price * 0.01
+        )
 
-    def _compute_outcome_ordinal(self, live_pos: LivePosition, shadow_pos: ShadowPosition) -> int:
+    def _compute_outcome_ordinal(
+        self, live_pos: LivePosition, shadow_pos: ShadowPosition
+    ) -> int:
         """
         Computes ordinal outcome based on Triple Barrier Method.
         0 = hit SL or loss, 1 = TP1 (2 ATR), 2 = TP2 (3 ATR), 3+ = TP3+ (4+ ATR)
@@ -184,7 +293,11 @@ class ShadowTrader(BaseComponentV3):
         if atr_scale <= 0:
             return 0
 
-        pnl_abs = abs(live_pos.exit_price - live_pos.entry_price) if live_pos.exit_price else 0
+        pnl_abs = (
+            abs(live_pos.exit_price - live_pos.entry_price)
+            if live_pos.exit_price
+            else 0
+        )
         pnl_atr = pnl_abs / atr_scale
 
         if live_pos.pnl_pct < 0:
@@ -204,8 +317,14 @@ class ShadowTrader(BaseComponentV3):
         live_pos: LivePosition,
         shadow_pos: ShadowPosition,
         exit_reason: str,
+        economic_gate_decision: str = "ACCEPTED",
+        friction_atr_est: float = 0.0,
     ):
-        """Persiste trade en bridge.jsonl para auditoría causal y feedback al Oracle."""
+        """Persiste trade en bridge.jsonl para auditoría causal y feedback al Oracle.
+
+        ADR-FRICCION-ECONOMICA-1: añade economic_gate_decision y friction_atr_est
+        para el feedback loop hacia el Oracle (Fase B feature de régimen).
+        """
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "trade_id": live_pos.pos_id,
@@ -216,21 +335,91 @@ class ShadowTrader(BaseComponentV3):
             "pnl_pct": round(live_pos.pnl_pct, 6),
             "mfe": round(live_pos.mfe, 6),
             "mae": round(live_pos.mae, 6),
-            "mfe_atr": round(live_pos.mfe / self._get_atr_scale(shadow_pos), 4) if shadow_pos.entry_atr > 0 else 0.0,
-            "mae_atr": round(abs(live_pos.mae) / self._get_atr_scale(shadow_pos), 4) if shadow_pos.entry_atr > 0 else 0.0,
+            "mfe_atr": round(live_pos.mfe / self._get_atr_scale(shadow_pos), 4)
+            if shadow_pos.entry_atr > 0
+            else 0.0,
+            "mae_atr": round(abs(live_pos.mae) / self._get_atr_scale(shadow_pos), 4)
+            if shadow_pos.entry_atr > 0
+            else 0.0,
             "exit_reason": exit_reason,
             "entry_atr": shadow_pos.entry_atr,
             "config_snapshot": shadow_pos.config_snapshot,
             "signal_data": shadow_pos.signal_data,
             "causal_tags": shadow_pos.causal_tags,
-            "microstructure_mode": (shadow_pos.signal_data or {}).get("regime", "UNKNOWN"),
+            "microstructure_mode": (shadow_pos.signal_data or {}).get(
+                "regime", "UNKNOWN"
+            ),
             "trinity_signal": {
                 "vwap": (shadow_pos.signal_data or {}).get("vwap_at_retest"),
                 "obi": (shadow_pos.signal_data or {}).get("obi_10_at_retest"),
-                "cum_delta": (shadow_pos.signal_data or {}).get("cumulative_delta_at_retest"),
+                "cum_delta": (shadow_pos.signal_data or {}).get(
+                    "cumulative_delta_at_retest"
+                ),
             },
-            "oracle_confidence": (shadow_pos.signal_data or {}).get("oracle_confidence"),
+            "oracle_confidence": (shadow_pos.signal_data or {}).get(
+                "oracle_confidence"
+            ),
+            "economic_gate_decision": economic_gate_decision,
+            "friction_atr_est": round(friction_atr_est, 6),
             "status": live_pos.status,
+        }
+
+        Path(BRIDGE_JSONL_PATH).parent.mkdir(parents=True, exist_ok=True)
+        with open(BRIDGE_JSONL_PATH, "a") as f:
+            f.write(json.dumps(entry, default=str) + "\n")
+
+    def _write_rejected_bridge_entry(
+        self,
+        signal_data: Dict,
+        entry_price: float,
+        direction: int,
+        atr: float,
+        friction_atr: float,
+        required_edge: float,
+        slippage_est: float,
+        cost_est: float,
+    ):
+        """Persiste un trade rechazado por EconomicGate en bridge.jsonl.
+
+        ADR-FRICCION-ECONOMICA-1: los trades rechazados se registran para el
+        feedback loop hacia el Oracle. Si EconomicGate rechaza muchas
+        predicciones BOUNCE_STRONG, ese patrón es evidencia de que el régimen
+        actual hace inoperable el label.
+        """
+        direction_str = "bullish" if direction > 0 else "bearish"
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "trade_id": f"rejected_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}",
+            "symbol": signal_data.get("symbol", "BTCUSDT"),
+            "direction": direction_str,
+            "entry_price": entry_price,
+            "exit_price": None,
+            "pnl_pct": None,
+            "mfe": None,
+            "mae": None,
+            "mfe_atr": None,
+            "mae_atr": None,
+            "exit_reason": "ECONOMIC_GATE_REJECTED",
+            "entry_atr": atr,
+            "config_snapshot": None,
+            "signal_data": signal_data,
+            "causal_tags": [],
+            "microstructure_mode": signal_data.get("regime", "UNKNOWN"),
+            "trinity_signal": {
+                "vwap": signal_data.get("vwap_at_retest"),
+                "obi": signal_data.get("obi_10_at_retest"),
+                "cum_delta": signal_data.get("cumulative_delta_at_retest"),
+            },
+            "oracle_confidence": signal_data.get("oracle_confidence"),
+            "economic_gate_decision": "REJECTED",
+            "friction_atr_est": round(friction_atr, 6),
+            "required_edge": required_edge,
+            "slippage_est": round(slippage_est, 6),
+            "cost_est": round(cost_est, 6),
+            "spread_bps": signal_data.get("spread_bps", 0.0),
+            "bid_depth": signal_data.get("bid_wall_depth_10_btc", 0.0),
+            "ask_depth": signal_data.get("ask_wall_depth_10_btc", 0.0),
+            "status": "REJECTED",
         }
 
         Path(BRIDGE_JSONL_PATH).parent.mkdir(parents=True, exist_ok=True)
@@ -259,6 +448,6 @@ class ShadowTrader(BaseComponentV3):
             heritage_source="legacy_vault/v1/trading_manager/potential_capture_engine.py",
             heritage_contribution="Ordinal outcome calculation based on ATR multiple bars.",
             v3_adaptations="Shadow trade lifecycle management, DryRunOrderManager delegation, bridge.jsonl persistence.",
-            causal_score=0.88
+            causal_score=0.88,
         )
         return cls(manifest)
