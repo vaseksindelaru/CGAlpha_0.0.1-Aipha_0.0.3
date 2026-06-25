@@ -95,15 +95,21 @@ class DeferredOutcomeMonitor:
 
     @staticmethod
     def _causal_fingerprint(meta: dict, l2: dict, zg: dict) -> str:
-        """Genera huella causal espacio-temporal de un evento físico.
+        """Genera huella causal espacio-temporal-direccional de un evento físico.
 
-        Dos snapshots con el mismo timestamp y precio de contacto
-        representan el mismo evento en el mercado, aunque provengan de
-        zonas distintas superpuestas (incluso de disinta polaridad).
+        Dos snapshots con el mismo timestamp, precio de contacto Y dirección
+        representan el mismo evento en el mercado. Snapshots con dirección
+        opuesta (ej. bullish vs bearish) son eventos causalmente distintos
+        y deben registrarse por separado — el Oracle necesita aprender a
+        predecir ambos.
+
+        B-008 v2 fix: la dirección se incluye en la huella para no bloquear
+        eventos direccionalmente opuestos en el mismo nivel de precio.
         """
         ts = meta.get("capture_ts_unix_ms", 0)
         price = l2.get("retest_price", 0)
-        return f"{int(ts)}_{float(price):.2f}"
+        direction = zg.get("direction", "unknown")
+        return f"{int(ts)}_{float(price):.2f}_{direction}"
 
     def _sync_seen_ids(self):
         """Pre-puebla IDs y huellas causales del dataset persistido."""
