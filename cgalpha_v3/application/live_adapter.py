@@ -631,7 +631,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
         l2_buffer = self.ws.l2_buffers.get(sym_lower)
 
         if l2_buffer:
-            l2_profile = l2_buffer.synthesize_at_retest()
+            l2_profile = l2_buffer.synthesize_at_retest(
+                t_candle_close_ms=self.current_kline.get("close_time"),
+                epsilon_ms=200
+            )
             raw_buffer = l2_buffer.get_raw_buffer()
         else:
             l2_profile = {}
