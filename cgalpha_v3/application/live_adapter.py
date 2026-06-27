@@ -85,6 +85,8 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self._last_aggtrade_ts_ms: int = int(time.time() * 1000)
         self._heartbeat_timeout_ms: int = 30_000  # 30 seconds
         self._last_heartbeat_price: float = 0.0
+        self._heartbeat_interval_s: int = 10  # heartbeat file refresh interval
+        self._last_heartbeat_write_ts: float = 0.0
         self.live_signals: List[Dict] = []
 
         # NexusGate & Causal Drift
@@ -240,6 +242,10 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         # Persistir vista para la GUI inmediatamente
         self._persist_active_zones()
+
+        # Emitir primer heartbeat tras warm_start exitoso
+        self._export_heartbeat()
+
         return True
 
     # ══════════════════════════════════════════════════════════════
@@ -260,6 +266,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
             )
             self._last_heartbeat_price = float(data["p"])
             await self._process_trade(data)
+            self._export_heartbeat()
         elif event_type == "depthUpdate" or ("b" in data and "a" in data):
             # Heartbeat watchdog: use depthUpdate clock when aggTrade is dead
             depth_ts_ms = int(data.get("E", data.get("T", time.time() * 1000)))
@@ -393,6 +400,55 @@ class LiveDataFeedAdapter(BaseComponentV3):
 
         # Update positions with heartbeat price
         self.order_mgr.update_positions(price)
+
+        # Export heartbeat after recovery action
+        self._export_heartbeat()
+
+    # ══════════════════════════════════════════════════════════════
+    # HEARTBEAT EXPORT (Watchdog Architecture)
+    # ══════════════════════════════════════════════════════════════
+
+    def _export_heartbeat(self):
+        """
+        Escribe heartbeat.json en aipha_memory/operational/ para watchdog externo.
+        Llamada sin bloquear desde on_ws_message y _heartbeat_candle_close.
+        """
+        now = time.time()
+        # Throttle: solo escribir cada _heartbeat_interval_s segundos
+        if now - self._last_heartbeat_write_ts < self._heartbeat_interval_s:
+            return
+
+        project_root = Path(__file__).resolve().parent.parent.parent
+        heartbeat_path = project_root / "aipha_memory" / "operational" / "heartbeat.json"
+        heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            dataset_mtime = 0.0
+            if _TRAINING_DATASET_V2.exists():
+                dataset_mtime = _TRAINING_DATASET_V2.stat().st_mtime
+
+            now_ms = int(now * 1000)
+            aggtrade_gap = now_ms - self._last_aggtrade_ts_ms
+
+            payload = {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts_unix_ms": now_ms,
+                "samples_full": self._count_full_samples(),
+                "last_aggtrade_gap_ms": aggtrade_gap,
+                "dataset_mtime": dataset_mtime,
+                "active_zones_count": len(self.detector.active_zones) if self.detector else 0,
+                "last_price": self._last_heartbeat_price,
+                "symbol": self.symbol,
+            }
+
+            tmp_path = heartbeat_path.with_suffix(".tmp")
+            with open(tmp_path, "w") as f:
+                json.dump(payload, f, indent=2)
+            tmp_path.rename(heartbeat_path)
+
+            self._last_heartbeat_write_ts = now
+        except Exception as e:
+            logger.warning(f"⚠️ heartbeat write failed: {e}")
 
     # ══════════════════════════════════════════════════════════════
     # SPEED 1 (1 MIN): Zone detection at candle close
