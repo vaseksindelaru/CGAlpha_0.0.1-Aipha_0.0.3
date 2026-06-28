@@ -559,7 +559,10 @@ class MiniTrendDetector:
 
         for i in range(1, len(self.data)):
             price = self.data["close"].iloc[i]
-            change_pct = abs(price - last_pivot) / last_pivot
+            if last_pivot == 0:
+                change_pct = 0.0
+            else:
+                change_pct = abs(price - last_pivot) / last_pivot
 
             if change_pct >= threshold_pct:
                 direction = "up" if price > last_pivot else "down"
