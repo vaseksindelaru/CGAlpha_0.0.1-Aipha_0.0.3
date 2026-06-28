@@ -1,0 +1,27 @@
+[Unit]
+Description=CGAlpha External Watchdog — Pipeline Health Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vaclav
+Group=vaclav
+WorkingDirectory=/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3
+ExecStart=/home/vaclav/.pyenv/shims/python3 /home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/harness_watchdog.py --daemon
+Restart=always
+RestartSec=30
+StandardOutput=append:/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/logs/watchdog-systemd.log
+StandardError=append:/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/logs/watchdog-systemd.log
+
+# Resource limits
+MemoryMax=256M
+CPUQuota=10%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3
+
+[Install]
+WantedBy=multi-user.target
