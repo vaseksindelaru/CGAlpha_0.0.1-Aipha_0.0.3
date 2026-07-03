@@ -54,7 +54,7 @@
 **Schema de datos (verificado en archivos reales):**
 
 `retests_dataset.json` (7 samples):
-```json
+```jsonc
 {
   "zone_id": "318_bearish",
   "retest_index": 318,
@@ -66,12 +66,12 @@
   "delta_divergence": "BEARISH_EXHAUSTION",
   "atr_14": 862.44,
   "regime": "LATERAL",
-  "outcome": "BOUNCE",
-  "direction": "MISSING"  // ← BUG: todos los samples tienen "MISSING" o null
+  "outcome": "BOUNCE"
+  // ← BUG: falta el campo direction en todos los samples
 }
 ```
 
-**CONFIRMADO:** `direction` está indefinido en TODOS los 7 samples (100% missing/NULL → display como "MISSING" en la tabla).
+**CONFIRMADO:** `direction` está ausente en TODOS los 7 samples. En `app.js`, `(rt.direction || "").toLowerCase()` cae al default no-bullish, por lo que la tabla y el chart pintan flecha bajista `▼` aunque el dato no exista.
 
 ### 1.2 Verificación de afirmaciones del plan vs código real
 
@@ -119,7 +119,7 @@
 
 | Bug | Estado | Evidencia |
 |-----|--------|-----------|
-| `rt.direction` indefinido | ❌ **SIGUE PRESENTE** | 7/7 samples = "MISSING" en `retests_dataset.json`. La tabla muestra "MISSING" en columna Dir. |
+| `rt.direction` indefinido | ❌ **SIGUE PRESENTE** | 7/7 samples no tienen campo `direction` en `retests_dataset.json`. La tabla y el chart caen al default bajista `▼`. |
 | `focusTrainingZone()` duplicada | ✅ **RESUELTO** | Solo 1 definición encontrada (línea 3482). El bug ya fue corregido en una sesión anterior. |
 | Endpoints approve/reject son stubs | ❌ **SIGUE PRESENTE** | Escriben a `retest_curation.jsonl` pero NO actualizan dataset ni pipeline. Solo loguean evento. |
 
@@ -141,7 +141,7 @@
 
 | Req | Cambio vs plan original | Justificación |
 |-----|------------------------|---------------|
-| **FIX: `rt.direction` indefinido** | **AÑADIDO** (no estaba en el plan original) | 100% de samples tienen direction="MISSING". Sin esto, la flecha de dirección en tabla y chart está rota. Debe fijarse en el backend del endpoint o en un fix de datos. |
+| **FIX: `rt.direction` indefinido** | **AÑADIDO** (no estaba en el plan original) | 100% de samples no tienen `direction`. Sin esto, la flecha de dirección en tabla y chart está rota porque cae al default bajista. Debe fijarse en el backend del endpoint o en un fix de datos. |
 | **FIX: Endpoints approve/reject con persistencia real** | **AÑADIDO** (no estaba en el plan original) | Escriben a un archivo de curation separado pero no devuelven el status al frontend ni actualizan el dataset. Sin esto, la UI optimista es inútil — no hay forma de saber si un retest fue aprobado. |
 | **Layout CSS Grid 65/35** | **YA ESTABA en el plan original** | Chart a la izquierda (SVG con 520px fijo → cambiar a `flex:1` o `min-width:65%`), tabla a la derecha con scroll independiente (`overflow-y:auto`, `max-height:calc(100vh - Xpx)`). CSS puro, sin backend. |
 | **Sync chart ↔ tabla (bidireccional)** | **PARCIALMENTE implementado** | `focusTrainingZone()` ya existe y cambia `trainingSelectedZone` + llama a `renderTrainingChart()`. Faltan: (a) resaltar fila seleccionada en tabla (`classList.add('row-selected')`) + scrollIntoView, (b) click en chart navegar en tabla. JS puro. |
@@ -208,7 +208,7 @@
 ### Prompt C (DeepSeek V4 Pro — Decisiones UX y features analíticas)
 
 **Problemas detectados:**
-1. ❌ **No referencia el schema REAL de retests_dataset.json** — El prompt pide definir un schema para labels granulares, pero no menciona que el schema actual tiene campos específicos: `zone_id`, `retest_index`, `retest_price`, `retest_timestamp`, `vwap_at_retest`, `obi_10_at_retest`, `cumulative_delta_at_retest`, `delta_divergence`, `atr_14`, `regime`, `outcome`, `direction`. El nuevo campo `label_status` debe integrarse sin romper la estructura existente.
+1. ❌ **No referencia el schema REAL de retests_dataset.json** — El prompt pide definir un schema para labels granulares, pero no menciona que el schema actual tiene campos específicos: `zone_id`, `retest_index`, `retest_price`, `retest_timestamp`, `vwap_at_retest`, `obi_10_at_retest`, `cumulative_delta_at_retest`, `delta_divergence`, `atr_14`, `regime`, `outcome`. El nuevo campo `label_status` debe integrarse sin romper la estructura existente, y `direction` debe derivarse o añadirse explícitamente.
 2. ⚠️ **No menciona que los datos son de phase0_results/** — El prompt asume que los datos están en un endpoint live, pero los datos reales vienen de archivos JSON estáticos en `cgalpha_v3/data/phase0_results/`. Esto afecta cómo se calculan y actualizan los campos de active learning.
 3. ❌ **No considera que `cumulative_delta_at_retest` ya existe** — El prompt original proponía añadir CumDelta como nueva visualización, pero el campo ya existe en `retests_dataset.json` como `cumulative_delta_at_retest`. No hay que añadirlo, solo dibujarlo.
 4. ✅ **Bueno:** Pide especificación técnica concreta con nombres de campos y pseudocódigo.
@@ -227,8 +227,8 @@
 >   delta_divergence: string (ej: 'BEARISH_EXHAUSTION'),
 >   atr_14: float,
 >   regime: string ('LATERAL' | 'TREND'),
->   outcome: string ('BOUNCE' | 'BREAKOUT'),
->   direction: string ← ACTUALMENTE TODOS TIENEN 'MISSING'
+>   outcome: string ('BOUNCE' | 'BREAKOUT')
+>   // direction NO existe actualmente en retests_dataset.json; derivarlo de zone_id o añadirlo explícitamente
 > }
 >
 > Para active learning, training_dataset.json tiene:

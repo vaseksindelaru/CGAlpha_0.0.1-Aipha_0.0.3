@@ -10,7 +10,13 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 862.4400000000023,
     "regime": "LATERAL",
-    "outcome": "BOUNCE"
+    "outcome": "BOUNCE",
+    "direction": "bearish",
+    "curation_status": "approved",
+    "curation_decision": "APPROVED",
+    "label_status": "validated",
+    "curated_by": "human",
+    "curated_at": "2026-07-03T08:22:23.393560+00:00"
   },
   {
     "zone_id": "323_bearish",
@@ -23,7 +29,13 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 878.760000000002,
     "regime": "TREND",
-    "outcome": "BOUNCE"
+    "outcome": "BOUNCE",
+    "direction": "bearish",
+    "curation_status": "rejected",
+    "curation_decision": "REJECTED",
+    "label_status": "discarded_noise",
+    "curated_by": "human",
+    "curated_at": "2026-07-03T08:22:29.898166+00:00"
   },
   {
     "zone_id": "359_bearish",
@@ -36,7 +48,8 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 622.3700000000026,
     "regime": "LATERAL",
-    "outcome": "BREAKOUT"
+    "outcome": "BREAKOUT",
+    "direction": "bearish"
   },
   {
     "zone_id": "363_bearish",
@@ -49,7 +62,8 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 792.3199999999997,
     "regime": "TREND",
-    "outcome": "BOUNCE"
+    "outcome": "BOUNCE",
+    "direction": "bearish"
   },
   {
     "zone_id": "366_bearish",
@@ -62,7 +76,8 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 955.6900000000023,
     "regime": "TREND",
-    "outcome": "BOUNCE"
+    "outcome": "BOUNCE",
+    "direction": "bearish"
   },
   {
     "zone_id": "367_bearish",
@@ -75,7 +90,8 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 873.510000000002,
     "regime": "TREND",
-    "outcome": "BOUNCE"
+    "outcome": "BOUNCE",
+    "direction": "bearish"
   },
   {
     "zone_id": "373_bearish",
@@ -88,6 +104,7 @@
     "delta_divergence": "BEARISH_EXHAUSTION",
     "atr_14": 855.260000000002,
     "regime": "TREND",
-    "outcome": "BOUNCE"
+    "outcome": "BOUNCE",
+    "direction": "bearish"
   }
 ]

@@ -329,6 +329,124 @@
             grid-row: span 2;
         }
 
+        /* ── TRAINING REVIEW ── */
+        .training-review-workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 65fr) minmax(360px, 35fr);
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .training-review-workspace .panel {
+            min-width: 0;
+        }
+
+        .training-chart-panel,
+        .training-table-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 620px;
+        }
+
+        .training-chart-body {
+            flex: 1;
+            min-height: 0;
+            padding: 0;
+        }
+
+        #training-candlestick-chart {
+            width: 100%;
+            height: 100%;
+            min-height: 560px;
+            background: var(--bg3);
+        }
+
+        .training-table-body {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            padding: 0;
+        }
+
+        #training-retest-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        #training-retest-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .training-retest-row {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+
+        .training-retest-row:hover,
+        .training-retest-row.selected {
+            background: rgba(0, 212, 170, 0.08);
+        }
+
+        .training-retest-row.selected {
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .training-retest-row.approved {
+            background: rgba(0, 212, 170, 0.07);
+        }
+
+        .training-retest-row.rejected {
+            background: rgba(255, 107, 107, 0.07);
+        }
+
+        .training-action-cell {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .training-decision-btn {
+            min-width: 28px;
+            height: 24px;
+            padding: 0 7px;
+            border-width: 1px;
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        .training-decision-btn.reject {
+            border-color: rgba(255, 107, 107, 0.55);
+        }
+
+        .training-decision-btn.reject:hover {
+            background: var(--red);
+        }
+
+        @media (max-width: 1180px) {
+            .training-review-workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .training-chart-panel,
+            .training-table-panel {
+                min-height: 0;
+            }
+
+            #training-candlestick-chart {
+                height: 520px;
+                min-height: 520px;
+            }
+
+            .training-table-body {
+                max-height: 420px;
+            }
+        }
+
         /* ── PILLS ── */
         .pill {
             padding: 3px 12px;
@@ -1850,68 +1968,71 @@
                 </div>
             </div>
 
-            <!-- Candlestick Chart -->
-            <div class="panel panel-tall" style="margin-bottom: 16px;">
-                <div class="panel-header">
-                    <span class="panel-icon">🕯️</span>
-                    <h2>Gráfico de Velas — Zonas y Retests</h2>
-                    <span class="pill pill-idle" id="chart-status-pill">Cargando...</span>
-                </div>
-                <!-- Zone Navigation -->
-                <div id="zone-nav-bar"
-                    style="display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:12px;">
-                    <button class="btn btn-sm btn-ghost" onclick="navigateZone(-1)" id="zone-prev-btn">←</button>
-                    <span id="zone-nav-label" style="color:var(--text); min-width:220px; text-align:center;">Zona 0 de
-                        0</span>
-                    <button class="btn btn-sm btn-ghost" onclick="navigateZone(1)" id="zone-next-btn">→</button>
-                    <span style="flex:1;"></span>
-                    <button class="btn btn-sm" onclick="showAllZones()" id="show-all-btn">Mostrar todas</button>
-                    <button class="btn btn-sm btn-ghost" onclick="showZoneContext()" id="context-btn">Contexto
-                        ±20</button>
-                </div>
-                <div class="panel-body" style="padding:0;">
-                    <div id="training-candlestick-chart" style="height: 520px; width: 100%; background: var(--bg3);">
+            <div class="training-review-workspace">
+                <!-- Candlestick Chart -->
+                <div class="panel panel-tall training-chart-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🕯️</span>
+                        <h2>Gráfico de Velas — Zonas y Retests</h2>
+                        <span class="pill pill-idle" id="chart-status-pill">Cargando...</span>
+                    </div>
+                    <!-- Zone Navigation -->
+                    <div id="zone-nav-bar"
+                        style="display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:12px;">
+                        <button class="btn btn-sm btn-ghost" onclick="navigateZone(-1)" id="zone-prev-btn">←</button>
+                        <span id="zone-nav-label" style="color:var(--text); min-width:220px; text-align:center;">Zona 0 de
+                            0</span>
+                        <button class="btn btn-sm btn-ghost" onclick="navigateZone(1)" id="zone-next-btn">→</button>
+                        <span style="flex:1;"></span>
+                        <button class="btn btn-sm" onclick="showAllZones()" id="show-all-btn">Mostrar todas</button>
+                        <button class="btn btn-sm btn-ghost" onclick="showZoneContext()" id="context-btn">Contexto
+                            ±20</button>
+                    </div>
+                    <div class="panel-body training-chart-body">
+                        <div id="training-candlestick-chart"></div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Retest Detail Table -->
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-icon">📋</span>
-                    <h2>Detalle de Retests</h2>
-                </div>
-                <div class="panel-body" style="padding:0; overflow-x:auto;">
-                    <table id="training-retest-table" style="width:100%; border-collapse:collapse; font-size:12px;">
-                        <thead>
-                            <tr style="border-bottom:1px solid var(--border); background:rgba(0,212,170,0.04);">
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    #</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    Zone</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    Price</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    Regime</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    Δ Divergence</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    VWAP</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    OBI</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    Outcome</th>
-                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
-                                    Dir</th>
-                            </tr>
-                        </thead>
-                        <tbody id="training-retest-tbody">
-                            <tr>
-                                <td colspan="9" style="padding:20px; text-align:center; color:var(--text-muted);">
-                                    Cargando datos...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Retest Detail Table -->
+                <div class="panel training-table-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📋</span>
+                        <h2>Detalle de Retests</h2>
+                    </div>
+                    <div class="panel-body training-table-body">
+                        <table id="training-retest-table">
+                            <thead>
+                                <tr style="border-bottom:1px solid var(--border); background:rgba(0,212,170,0.04);">
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        #</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Zone</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Price</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Regime</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Δ Divergence</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        VWAP</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        OBI</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Outcome</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Dir</th>
+                                    <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                        Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="training-retest-tbody">
+                                <tr>
+                                    <td colspan="10" style="padding:20px; text-align:center; color:var(--text-muted);">
+                                        Cargando datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>

@@ -3383,9 +3383,42 @@ let trainingData = null;
 let trainingCurrentFilter = "all";
 let trainingCurrentRegime = "all";
 let trainingSelectedZone = null; // zone_id or null for "all zones"
+let trainingSelectedRetestIndex = null;
 let trainingChartInstance = null;
 let trainingViewMode = "all"; // 'all', 'zone', 'context'
 let trainingContextPadding = 20; // candles around zone
+
+function getTrainingRetestId(rt) {
+  return `${rt.zone_id}:${rt.retest_index}`;
+}
+
+function getTrainingRetestDomId(rt) {
+  return `training-rt-${String(getTrainingRetestId(rt)).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+function getTrainingRetestDirection(rt) {
+  const explicitDir = (rt.direction || "").toLowerCase();
+  if (explicitDir) return explicitDir;
+  const zoneParts = String(rt.zone_id || "").split("_");
+  return (zoneParts[1] || "unknown").toLowerCase();
+}
+
+function getTrainingRetestById(retestId) {
+  if (!trainingData?.retests) return null;
+  return trainingData.retests.find((rt) => getTrainingRetestId(rt) === retestId);
+}
+
+function syncSelectedTrainingRow(scroll = true) {
+  document.querySelectorAll(".training-retest-row").forEach((row) => {
+    const isSelected =
+      row.dataset.zoneId === String(trainingSelectedZone || "") &&
+      row.dataset.retestIndex === String(trainingSelectedRetestIndex || "");
+    row.classList.toggle("selected", isSelected);
+    if (isSelected && scroll) {
+      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+}
 
 async function fetchTrainingReviewData() {
   try {
@@ -3450,6 +3483,8 @@ function navigateZone(direction) {
       trainingSelectedZone = zones[0].zone_id;
     }
   }
+  const selectedZone = zones.find((z) => z.zone_id === trainingSelectedZone);
+  trainingSelectedRetestIndex = selectedZone?.retest_indices?.[0] ?? null;
 
   // Auto-set view mode to context if not already on a single zone
   if (trainingViewMode === "all") {
@@ -3463,6 +3498,7 @@ function navigateZone(direction) {
 
 function showAllZones() {
   trainingSelectedZone = null;
+  trainingSelectedRetestIndex = null;
   trainingViewMode = "all";
   updateZoneNavLabel();
   renderTrainingChart();
@@ -3473,21 +3509,30 @@ function showZoneContext() {
   if (trainingSelectedZone === null && trainingData?.zones_summary?.length) {
     trainingSelectedZone = trainingData.zones_summary[0].zone_id;
   }
+  const zone = trainingData?.zones_summary?.find(
+    (z) => z.zone_id === trainingSelectedZone,
+  );
+  trainingSelectedRetestIndex = zone?.retest_indices?.[0] ?? null;
   trainingViewMode = "context";
   updateZoneNavLabel();
   renderTrainingChart();
   renderTrainingRetestTable();
 }
 
-function focusTrainingZone(zoneId, retestIndex) {
+function focusTrainingZone(zoneId, retestIndex, scrollChart = true) {
   trainingSelectedZone = zoneId;
+  trainingSelectedRetestIndex = retestIndex ?? null;
   trainingViewMode = "context";
   updateZoneNavLabel();
   renderTrainingChart();
+  renderTrainingRetestTable();
+  syncSelectedTrainingRow(!scrollChart);
 
   // Scroll to chart
   const chartEl = document.getElementById("training-candlestick-chart");
-  if (chartEl) chartEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (scrollChart && chartEl) {
+    chartEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 }
 
 function updateZoneNavLabel() {
@@ -3544,6 +3589,46 @@ function getFilteredRetests() {
   });
 }
 
+async function curateRetest(retestId, action, event) {
+  if (event) event.stopPropagation();
+  const rt = getTrainingRetestById(retestId);
+  if (!rt) return;
+
+  const previous = { ...rt };
+  const optimisticStatus = action === "approve" ? "approved" : "rejected";
+  const optimisticDecision = action === "approve" ? "APPROVED" : "REJECTED";
+  const optimisticLabel =
+    action === "approve" ? "validated" : "discarded_noise";
+  Object.assign(rt, {
+    curation_status: optimisticStatus,
+    curation_decision: optimisticDecision,
+    label_status: optimisticLabel,
+  });
+  renderTrainingRetestTable();
+
+  try {
+    const data = await apiFetch(
+      `/api/training/retest/${encodeURIComponent(retestId)}/${action}`,
+      { method: "POST" },
+    );
+    if (data.retest) Object.assign(rt, data.retest);
+  } catch (e) {
+    Object.assign(rt, previous);
+    alert(`Error guardando curación: ${e.message}`);
+  } finally {
+    renderTrainingRetestTable();
+    renderTrainingChart();
+  }
+}
+
+function approveRetest(retestId, event) {
+  return curateRetest(retestId, "approve", event);
+}
+
+function rejectRetest(retestId, event) {
+  return curateRetest(retestId, "reject", event);
+}
+
 function renderTrainingRetestTable() {
   const tbody = document.getElementById("training-retest-tbody");
   if (!tbody) return;
@@ -3553,39 +3638,62 @@ function renderTrainingRetestTable() {
 
   if (!filtered.length) {
     tbody.innerHTML =
-      '<tr><td colspan="9" style="padding:20px; text-align:center; color:var(--text-muted);">No hay retests con los filtros actuales</td></tr>';
+      '<tr><td colspan="10" style="padding:20px; text-align:center; color:var(--text-muted);">No hay retests con los filtros actuales</td></tr>';
     return;
   }
 
   let html = "";
   filtered.forEach((rt, idx) => {
+    const retestId = getTrainingRetestId(rt);
+    const retestDomId = getTrainingRetestDomId(rt);
     const outcomeColor =
       rt.outcome === "BOUNCE" ? "var(--accent)" : "var(--red)";
-    const dir = (rt.direction || "").toLowerCase();
+    const dir = getTrainingRetestDirection(rt);
     const isBullish = dir === "bullish" || dir === "long";
     const dirArrow = isBullish ? "▲" : "▼";
     const dirColor = isBullish ? "var(--accent)" : "var(--red)";
+    const curationStatus = rt.curation_status || "";
+    const isSelected =
+      rt.zone_id === trainingSelectedZone &&
+      rt.retest_index === trainingSelectedRetestIndex;
     const regimePill =
       rt.regime === "LATERAL"
         ? "var(--yellow)"
         : rt.regime === "TREND"
           ? "var(--accent2)"
           : "var(--red)";
+    const statusPill =
+      curationStatus === "approved"
+        ? '<span class="pill pill-idle">OK</span>'
+        : curationStatus === "rejected"
+          ? '<span class="pill pill-error">OUT</span>'
+          : "";
 
-    html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03); cursor:pointer;"
-                      onclick="focusTrainingZone('${rt.zone_id}', ${rt.retest_index})">
+    html += `<tr id="${retestDomId}"
+                      class="training-retest-row ${isSelected ? "selected" : ""} ${curationStatus}"
+                      data-zone-id="${escHtml(rt.zone_id)}"
+                      data-retest-index="${escHtml(rt.retest_index)}"
+                      onclick='focusTrainingZone(${JSON.stringify(rt.zone_id)}, ${JSON.stringify(rt.retest_index)})'>
             <td style="padding:8px 12px; color:var(--text-muted);">${idx + 1}</td>
-            <td style="padding:8px 12px; color:var(--text); font-family:monospace;">${rt.zone_id}</td>
+            <td style="padding:8px 12px; color:var(--text); font-family:monospace;">${escHtml(rt.zone_id)}</td>
             <td style="padding:8px 12px; color:var(--text); font-family:monospace;">${rt.retest_price?.toFixed(2) || "—"}</td>
-            <td style="padding:8px 12px;"><span style="color:${regimePill}; font-weight:600;">${rt.regime}</span></td>
-            <td style="padding:8px 12px; color:var(--text-dim); font-size:11px;">${rt.delta_divergence || "NEUTRAL"}</td>
+            <td style="padding:8px 12px;"><span style="color:${regimePill}; font-weight:600;">${escHtml(rt.regime || "—")}</span></td>
+            <td style="padding:8px 12px; color:var(--text-dim); font-size:11px;">${escHtml(rt.delta_divergence || "NEUTRAL")}</td>
             <td style="padding:8px 12px; color:var(--text); font-family:monospace; font-size:11px;">${rt.vwap_at_retest?.toFixed(2) || "—"}</td>
             <td style="padding:8px 12px; color:var(--text); font-family:monospace; font-size:11px;">${rt.obi_10_at_retest?.toFixed(3) || "—"}</td>
-            <td style="padding:8px 12px;"><span style="color:${outcomeColor}; font-weight:700;">${rt.outcome || "—"}</span></td>
-            <td style="padding:8px 12px; color:${dirColor}; font-weight:700;">${dirArrow}</td>
+            <td style="padding:8px 12px;"><span style="color:${outcomeColor}; font-weight:700;">${escHtml(rt.outcome || "—")}</span></td>
+            <td style="padding:8px 12px; color:${dirColor}; font-weight:700;" title="${escHtml(dir)}">${dirArrow}</td>
+            <td style="padding:6px 12px;">
+              <div class="training-action-cell">
+                <button class="btn btn-sm training-decision-btn" onclick='approveRetest(${JSON.stringify(retestId)}, event)' title="Aprobar retest">✓</button>
+                <button class="btn btn-sm btn-ghost training-decision-btn reject" onclick='rejectRetest(${JSON.stringify(retestId)}, event)' title="Rechazar retest">×</button>
+                ${statusPill}
+              </div>
+            </td>
         </tr>`;
   });
   tbody.innerHTML = html;
+  syncSelectedTrainingRow(false);
 }
 
 function renderTrainingChart() {
@@ -3818,6 +3926,9 @@ function renderTrainingChart() {
     const retestsAtIdx = retests.filter((rt) => rt.retest_index === globalIdx);
     retestsAtIdx.forEach((rt) => {
       const y = priceToY(rt.retest_price);
+      const isSelectedRetest =
+        rt.zone_id === trainingSelectedZone &&
+        rt.retest_index === trainingSelectedRetestIndex;
       const outcomeColor =
         rt.outcome === "BOUNCE"
           ? "#00d4aa"
@@ -3826,14 +3937,19 @@ function renderTrainingChart() {
             : "#f59e0b";
       const outcomeSymbol =
         rt.outcome === "BOUNCE" ? "●" : rt.outcome === "BREAKOUT" ? "✗" : "?";
+      const focusCall = `focusTrainingZone(${JSON.stringify(rt.zone_id)}, ${JSON.stringify(rt.retest_index)}, false)`;
 
       // Circle marker with glow
+      svg += `<g onclick='${focusCall}' style="cursor:pointer;">`;
       svg += `<circle cx="${x}" cy="${y}" r="8" fill="${outcomeColor}" opacity="0.15" />`;
+      if (isSelectedRetest) {
+        svg += `<circle cx="${x}" cy="${y}" r="11" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.8" />`;
+      }
       svg += `<circle cx="${x}" cy="${y}" r="5" fill="${outcomeColor}" stroke="#fff" stroke-width="1" opacity="0.9" />`;
       svg += `<text x="${x}" y="${y + 4}" text-anchor="middle" fill="#fff" font-size="7" font-weight="bold">${outcomeSymbol}</text>`;
 
       // Direction arrow
-      const dir = (rt.direction || "").toLowerCase();
+      const dir = getTrainingRetestDirection(rt);
       const isBullish = dir === "bullish" || dir === "long";
       const dirArrow = isBullish ? "▲" : "▼";
       const dirColor = isBullish ? "#00d4aa" : "#ff6b6b";
@@ -3847,6 +3963,7 @@ function renderTrainingChart() {
             ? "#00aef0"
             : "#ff6b6b";
       svg += `<text x="${x}" y="${y + 18}" text-anchor="middle" fill="${regimeColor}" font-size="7">${rt.regime}</text>`;
+      svg += `</g>`;
     });
   });
 

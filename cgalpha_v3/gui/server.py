@@ -2904,6 +2904,108 @@ def purge_legacy_origin():
 # ---------------------------------------------------------------------------
 
 
+def _training_review_paths() -> Dict[str, Path]:
+    data_dir = BASE_DIR.parent / "data" / "phase0_results"
+    return {
+        "data_dir": data_dir,
+        "ohlcv": data_dir / "synthetic_ohlcv_2000.csv",
+        "retests": data_dir / "retests_dataset.json",
+        "training": data_dir / "training_dataset.json",
+    }
+
+
+def _direction_from_zone_id(zone_id: Any) -> str:
+    parts = str(zone_id or "").split("_", 1)
+    return parts[1].lower() if len(parts) == 2 and parts[1] else "unknown"
+
+
+def _retest_id_candidates(rt: Dict[str, Any]) -> set[str]:
+    zone_id = str(rt.get("zone_id") or "")
+    retest_index = rt.get("retest_index")
+    candidates = {zone_id}
+    if retest_index is not None:
+        idx = str(retest_index)
+        candidates.update({idx, f"{zone_id}:{idx}", f"{zone_id}-{idx}"})
+    for key in ("retest_id", "sample_id", "id"):
+        value = rt.get(key)
+        if value is not None:
+            candidates.add(str(value))
+    return {c for c in candidates if c}
+
+
+def _load_training_retests() -> tuple[list[Dict[str, Any]], Path]:
+    retests_path = _training_review_paths()["retests"]
+    if not retests_path.exists():
+        return [], retests_path
+    with open(retests_path, encoding="utf-8") as f:
+        retests = json.load(f)
+    for rt in retests:
+        if not rt.get("direction"):
+            rt["direction"] = _direction_from_zone_id(rt.get("zone_id"))
+    return retests, retests_path
+
+
+def _save_training_retests(retests: list[Dict[str, Any]], retests_path: Path) -> None:
+    with open(retests_path, "w", encoding="utf-8") as f:
+        json.dump(retests, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+def _curate_training_retest(retest_id: str, decision: str) -> ResponseReturnValue:
+    now = datetime.now(timezone.utc).isoformat()
+    status = "approved" if decision == "APPROVED" else "rejected"
+    label_status = "validated" if decision == "APPROVED" else "discarded_noise"
+
+    retests, retests_path = _load_training_retests()
+    matches = [rt for rt in retests if retest_id in _retest_id_candidates(rt)]
+    if not matches:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Retest not found: {retest_id}",
+                    "retest_id": retest_id,
+                }
+            ),
+            404,
+        )
+
+    for rt in matches:
+        rt["curation_status"] = status
+        rt["curation_decision"] = decision
+        rt["label_status"] = label_status
+        rt["curated_by"] = "human"
+        rt["curated_at"] = now
+        if not rt.get("direction"):
+            rt["direction"] = _direction_from_zone_id(rt.get("zone_id"))
+    _save_training_retests(retests, retests_path)
+
+    curation_file = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
+    curation_file.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "ts": now,
+        "retest_id": retest_id,
+        "decision": decision,
+        "status": status,
+        "label_status": label_status,
+        "matched_count": len(matches),
+        "source": "human",
+    }
+    with open(curation_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    return jsonify(
+        {
+            "status": status,
+            "decision": decision,
+            "label_status": label_status,
+            "retest_id": retest_id,
+            "matched_count": len(matches),
+            "retest": matches[0],
+        }
+    )
+
+
 @app.route("/api/training/review-data", methods=["GET"])
 @require_auth
 def get_training_review_data():
@@ -2913,10 +3015,9 @@ def get_training_review_data():
     """
     import csv
 
-    data_dir = BASE_DIR.parent / "data" / "phase0_results"
-    ohlcv_path = data_dir / "synthetic_ohlcv_2000.csv"
-    retests_path = data_dir / "retests_dataset.json"
-    training_path = data_dir / "training_dataset.json"
+    paths = _training_review_paths()
+    ohlcv_path = paths["ohlcv"]
+    training_path = paths["training"]
 
     # 1. Load OHLCV
     ohlcv = []
@@ -2938,10 +3039,7 @@ def get_training_review_data():
                 )
 
     # 2. Load retests
-    retests = []
-    if retests_path.exists():
-        with open(retests_path) as f:
-            retests = json.load(f)
+    retests, _ = _load_training_retests()
 
     # 3. Load training samples (for approval status)
     training_samples = []
@@ -2955,6 +3053,7 @@ def get_training_review_data():
     zone_map = {}
     for rt in retests:
         zid = rt.get("zone_id", "unknown")
+        zone_direction = _direction_from_zone_id(zid)
         key_idx = int(zid.split("_")[0]) if "_" in zid else 0
         retest_idx = rt.get("retest_index", key_idx)
 
@@ -2972,7 +3071,7 @@ def get_training_review_data():
         if zid not in zone_map:
             zone_map[zid] = {
                 "zone_id": zid,
-                "direction": zid.split("_")[1] if "_" in zid else "unknown",
+                "direction": zone_direction,
                 "key_candle_index": key_idx,
                 "retests": [],
                 "zone_top": zone_top,
@@ -3010,7 +3109,8 @@ def get_training_review_data():
                         "zone_id": rt.get("zone_id"),
                         "retest_price": rt.get("retest_price"),
                         "outcome": rt.get("outcome"),
-                        "direction": rt.get("direction"),
+                        "direction": rt.get("direction")
+                        or _direction_from_zone_id(rt.get("zone_id")),
                         "regime": rt.get("regime"),
                         "delta_divergence": rt.get("delta_divergence"),
                         "vwap_at_retest": rt.get("vwap_at_retest"),
@@ -3076,19 +3176,11 @@ def get_training_review_data():
 def approve_retest(retest_id):
     """Marcar un retest como aprobado para entrenamiento del Oracle."""
     try:
-        curation_file = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
-        curation_file.parent.mkdir(parents=True, exist_ok=True)
-        entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "retest_id": retest_id,
-            "decision": "APPROVED",
-            "source": "human",
-        }
-        with open(curation_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-
+        response = _curate_training_retest(retest_id, "APPROVED")
+        if isinstance(response, tuple) and int(response[1]) >= 400:
+            return response
         _log_event(f"RETEST_CURATION: Approved {retest_id}", level="info")
-        return jsonify({"status": "approved", "retest_id": retest_id})
+        return response
     except Exception as e:
         logger.error(f"Error in approve_retest: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -3099,19 +3191,11 @@ def approve_retest(retest_id):
 def reject_retest(retest_id):
     """Marcar un retest como excluido del entrenamiento del Oracle."""
     try:
-        curation_file = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
-        curation_file.parent.mkdir(parents=True, exist_ok=True)
-        entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "retest_id": retest_id,
-            "decision": "REJECTED",
-            "source": "human",
-        }
-        with open(curation_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-
+        response = _curate_training_retest(retest_id, "REJECTED")
+        if isinstance(response, tuple) and int(response[1]) >= 400:
+            return response
         _log_event(f"RETEST_CURATION: Rejected {retest_id}", level="warning")
-        return jsonify({"status": "rejected", "retest_id": retest_id})
+        return response
     except Exception as e:
         logger.error(f"Error in reject_retest: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
