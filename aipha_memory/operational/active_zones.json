@@ -1,14 +1,1 @@
-[
-  {
-    "zone_id": "199_bearish",
-    "direction": "bearish",
-    "effective_direction": "bearish",
-    "original_direction": "bearish",
-    "polarity_flipped": false,
-    "state": "active",
-    "zone_top": 61850.0,
-    "zone_bottom": 61693.96,
-    "touches": 1,
-    "created_at": 1783060499999
-  }
-]
+[]

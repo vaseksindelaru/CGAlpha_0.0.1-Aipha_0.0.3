@@ -1,0 +1,243 @@
+{
+  "documentation_proposal_inbox": {
+    "version": "1.0",
+    "description": "Inbox de propuestas de estado como flujo hacia EVO-TICKET",
+    "flow": [
+      "Input (doc, idea, senal, video) ->",
+      "Extraer TechnicalSpec + source metadata ->",
+      "Agregar a proposal_inbox.json con status='pending_review' ->",
+      "Humano revisa y decide: Tiene evidencia suficiente? ->",
+      "Si SI -> Convertir en EVO-TICKET en documentation/EVO_TICKET_LOG.md ->",
+      "EVO-TICKET pasa por Orchestrator (Cat.1/2/3) con ADR ->",
+      "CodeCraftSage aplica el cambio",
+      "Si NO -> Cambiar a status='needs_evidence' y especificar que falta",
+      "Si RECHAZADA -> Cambiar a status='rejected' con razon"
+    ]
+  },
+  "proposals": [
+    {
+      "id": "aipha02-gradient-boosting",
+      "source": "Aipha_0.2 / Aia4you plan Fase 4: migrar a Gradient Boosting",
+      "source_doc": "aipha_0.2",
+      "source_type": "google_doc",
+      "signal_ref": null,
+      "analysis": "Tanto Aipha_0.2 como el plan Aia4you proponen migrar de RandomForest a Gradient Boosting (XGBoost/LightGBM). Mejor rendimiento en tabular data.",
+      "specs": [
+        {
+          "change_type": "optimization",
+          "target_file": "cgalpha_v3/lila/llm/oracle.py",
+          "target_attribute": "OracleTrainer_v3.model_type",
+          "old_value": "RandomForest",
+          "new_value": "XGBoost",
+          "reason": "Gradient Boosting supera a RandomForest en tabular data: mejor manejo de missing values, regularizacion, early stopping.",
+          "causal_score_est": 0.65,
+          "confidence": 0.7,
+          "categoria_sugerida": 2
+        }
+      ],
+      "status": "pending",
+      "priority": "high",
+      "created_at": "2026-06-28T04:30:00+00:00",
+      "tags": [
+        "ml",
+        "oracle",
+        "gradient-boosting",
+        "aipha02"
+      ],
+      "governance": {
+        "evidence_level": "partial",
+        "requires_evo_ticket": true,
+        "target_evo_ticket": null
+      },
+      "inbox_order": 1
+    },
+    {
+      "id": "aipha02-order-book-5-params",
+      "source": "Aipha_0.2 Paso 2: 5 parametros del order book para analisis en paralelo",
+      "source_doc": "aipha_0.2",
+      "source_type": "google_doc",
+      "signal_ref": null,
+      "analysis": "Aipha_0.2 describe 5 parametros del libro de ordenes (ratio compra/venta, velocidad cambio, tamano promedio, profundidad, tiempo vida). CGAlpha v3 solo tiene OBI y cumulative_delta. Implementaria enriqueceria el feature set del Oracle.",
+      "specs": [
+        {
+          "change_type": "feature",
+          "target_file": "cgalpha_v3/infrastructure/binance_websocket_manager.py",
+          "target_attribute": "BinanceWebSocketManager.get_order_book_micro_features",
+          "old_value": "No existe",
+          "new_value": "Metodo que calcula: ratio compra/venta, velocidad cambio, tamano promedio, profundidad 10 niveles, tiempo vida promedio",
+          "reason": "Aipha_0.2 Paso 2 define 5 parametros del order book. Implementar esto enriquece el feature set del Oracle y mejora deteccion de manipulacion (spoofing).",
+          "causal_score_est": 0.7,
+          "confidence": 0.6,
+          "categoria_sugerida": 3,
+          "old_code": "obi_10 = self.ws.get_current_obi(self.symbol, levels=10)",
+          "new_code": "obi_10 = self.ws.get_current_obi(self.symbol, levels=10)\norder_features = self.ws.get_order_book_micro_features(self.symbol)"
+        }
+      ],
+      "status": "pending",
+      "priority": "high",
+      "created_at": "2026-06-28T04:30:00+00:00",
+      "tags": [
+        "order-book",
+        "microestructura",
+        "features",
+        "aipha02"
+      ],
+      "governance": {
+        "evidence_level": "partial",
+        "requires_evo_ticket": true,
+        "target_evo_ticket": null
+      },
+      "inbox_order": 2
+    },
+    {
+      "id": "aipha02-signal8-quality-threshold",
+      "source": "Aipha_0.2 señal #8 (quality_score=0.6832 bloqueado por umbral 0.70)",
+      "source_doc": "aipha_0.2",
+      "source_type": "google_doc",
+      "signal_ref": {
+        "timestamp": "2025-04-16T03:50:00",
+        "symbol": "BTCUSDT",
+        "price": 88270.5,
+        "direction": "alcista",
+        "quality_score": 0.6832,
+        "r2": 0.6103,
+        "body_pct": 4.59,
+        "volume": 76.98,
+        "sub_scores": {
+          "zona_acumulacion": 0.4078,
+          "mini_tendencia": 0.5119,
+          "vela_clave": 0.4279,
+          "profit_potential": 0.75
+        }
+      },
+      "analysis": "La senal #8 de Aipha_0.2 tiene quality_score=0.6832. CGAlpha v3 usa quality_threshold=0.70, por lo que esta senal seria bloqueada. Sin embargo, NO hay evidencia suficiente para bajar el umbral basandose en una sola senal. Se necesita analizar el historico completo de senales para determinar si el umbral 0.70 esta descartando senales validas en volumen significativo.",
+      "specs": [
+        {
+          "change_type": "parameter",
+          "target_file": "cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py",
+          "target_attribute": "AccumulationZoneDetector.quality_threshold",
+          "old_value": 0.7,
+          "new_value": 0.65,
+          "reason": "Senal #8 de Aipha_0.2 (quality=0.6832) bloqueada por umbral 0.70. Bajar a 0.65 permite pasar senales validas sin aceptar zonas de baja calidad (<0.5).",
+          "causal_score_est": 0.4,
+          "confidence": 0.35,
+          "categoria_sugerida": 1
+        },
+        {
+          "change_type": "parameter",
+          "target_file": "cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py",
+          "target_attribute": "AccumulationZoneDetector.quality_weights",
+          "old_value": "0.35,0.35,0.15,0.10",
+          "new_value": "0.30,0.30,0.20,0.20",
+          "reason": "Dar mas peso a vwap_score y mfi_score que suelen ser mas altos en zonas validas. Mas balance entre los 4 factores.",
+          "causal_score_est": 0.4,
+          "confidence": 0.35,
+          "categoria_sugerida": 2
+        },
+        {
+          "change_type": "parameter",
+          "target_file": "cgalpha_v3/infrastructure/signal_detector/triple_coincidence.py",
+          "target_attribute": "AccumulationZoneDetector.quality_threshold",
+          "old_value": 0.7,
+          "new_value": 0.68,
+          "reason": "Alternativa mas conservadora: bajar solo a 0.68 para que la senal #8 (0.6832) pase con minimo margen.",
+          "causal_score_est": 0.4,
+          "confidence": 0.35,
+          "categoria_sugerida": 1
+        }
+      ],
+      "status": "needs_evidence",
+      "priority": "medium",
+      "created_at": "2026-06-28T04:30:00+00:00",
+      "tags": [
+        "quality",
+        "zona-acumulacion",
+        "aipha02",
+        "senal-historica"
+      ],
+      "evidence_needed": [
+        "Analizar cuantas senales historicas quedan entre quality 0.65 y 0.70",
+        "Distribucion BOUNCE/BREAKOUT de esas senales vs las que pasan",
+        "Comparacion con P75 del quality_score real del dataset actual"
+      ],
+      "governance": {
+        "evidence_level": "partial",
+        "requires_evo_ticket": true,
+        "target_evo_ticket": null
+      },
+      "inbox_order": 3
+    },
+    {
+      "id": "aipha02-combined-score",
+      "source": "Aipha_0.2: Combined Score (divergencia + fiabilidad + rentabilidad)",
+      "source_doc": "aipha_0.2",
+      "source_type": "google_doc",
+      "signal_ref": null,
+      "analysis": "Aipha_0.2 describe un Combined Score que integra divergencia, fiabilidad y rentabilidad (0.8124). CGAlpha v3 separa estas responsabilidades en Oracle + MAE + DeferredOutcome. Unificarlos mejoraria la calidad de decisiones.",
+      "specs": [
+        {
+          "change_type": "optimization",
+          "target_file": "cgalpha_v3/application/live_adapter.py",
+          "target_attribute": "_on_retest_detected.snapshot_building",
+          "old_value": "oracle_confidence only",
+          "new_value": "combined_score = oracle_confidence * reliability_factor * profit_potential",
+          "reason": "Aipha_0.2 describe Combined Score (divergencia + fiabilidad + rentabilidad). Implementarlo como score compuesto mejoraria calidad de senales ejecutadas.",
+          "causal_score_est": 0.55,
+          "confidence": 0.5,
+          "categoria_sugerida": 3
+        }
+      ],
+      "status": "pending",
+      "priority": "medium",
+      "created_at": "2026-06-28T04:30:00+00:00",
+      "tags": [
+        "scoring",
+        "combined-score",
+        "decision",
+        "aipha02"
+      ],
+      "governance": {
+        "evidence_level": "partial",
+        "requires_evo_ticket": true,
+        "target_evo_ticket": null
+      },
+      "inbox_order": 4
+    },
+    {
+      "id": "aipha02-clustering-features",
+      "source": "Aipha_0.2 Paso 3: clustering para seleccion de caracteristicas",
+      "source_doc": "aipha_0.2",
+      "source_type": "google_doc",
+      "signal_ref": null,
+      "analysis": "Aipha_0.2 propone usar clustering (K-Means/DBSCAN) para encontrar que parametros del order book tienen mayor vinculo con la direccion del precio. CGAlpha v3 usa RandomForest feature importance.",
+      "specs": [
+        {
+          "change_type": "optimization",
+          "target_file": "cgalpha_v3/lila/llm/oracle.py",
+          "target_attribute": "OracleTrainer_v3.feature_selection",
+          "old_value": "RandomForest feature_importance",
+          "new_value": "K-Means clustering + RF importance (ensemble)",
+          "reason": "Clustering puede revelar relaciones no lineales que RF feature importance no captura explicitamente.",
+          "causal_score_est": 0.5,
+          "confidence": 0.45,
+          "categoria_sugerida": 3
+        }
+      ],
+      "status": "pending",
+      "priority": "low",
+      "created_at": "2026-06-28T04:30:00+00:00",
+      "tags": [
+        "ml",
+        "clustering",
+        "feature-selection",
+        "aipha02"
+      ],
+      "governance": {
+        "evidence_level": "partial",
+        "requires_evo_ticket": true,
+        "target_evo_ticket": null
+      },
+      "inbox_order": 5
+    }
+  ]
+}

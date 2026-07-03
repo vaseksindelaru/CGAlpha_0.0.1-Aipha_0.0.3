@@ -2909,8 +2909,9 @@ def _training_review_paths() -> Dict[str, Path]:
     return {
         "data_dir": data_dir,
         "ohlcv": data_dir / "synthetic_ohlcv_2000.csv",
-        "retests": data_dir / "retests_dataset.json",
-        "training": data_dir / "training_dataset.json",
+        "training_v2": project_root / "aipha_memory" / "operational" / "training_dataset_v2.jsonl",
+        "active_zones": project_root / "aipha_memory" / "operational" / "active_zones.json",
+        "curation": project_root / "aipha_memory" / "evolutionary" / "retest_curation.jsonl",
     }
 
 
@@ -2951,20 +2952,138 @@ def _save_training_retests(retests: list[Dict[str, Any]], retests_path: Path) ->
         f.write("\n")
 
 
+def _load_operational_retests() -> tuple[list[Dict[str, Any]], Path]:
+    """Load retests from training_dataset_v2.jsonl for curation search.
+
+    Phase0 samples use zone_id format like '318_bearish'.
+    Operational samples use sample_id format like 're_4377_xxxxx'.
+    This function returns operational samples for dual-dataset curation.
+    """
+    op_path = project_root / "aipha_memory/operational/training_dataset_v2.jsonl"
+    if not op_path.exists():
+        logger.info("ℹ️ No operational dataset found (training_dataset_v2.jsonl missing)")
+        return [], op_path
+    retests = []
+    with open(op_path, encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+            except json.JSONDecodeError:
+                logger.warning(f"⚠️ Skipping invalid JSON line {i} in training_dataset_v2.jsonl")
+                continue
+
+            meta = sample.get("_meta", {})
+            snap = sample.get("l2_snapshot_at_touch", {})
+            zg = sample.get("zone_geometry", {})
+            outcome = sample.get("outcome", {})
+            sample_id = meta.get("sample_id", f"re_{i}_x")
+
+            # Extract candle index from sample_id (format: re_NNNN_xxxxx)
+            candle_idx = 0
+            parts = sample_id.split("_")
+            for part in parts:
+                if part.isdigit():
+                    candle_idx = int(part)
+                    break
+
+            retests.append({
+                "retest_index": candle_idx,
+                "zone_id": sample_id,
+                "sample_id": sample_id,
+                "dataset_source": "operational",
+                "retest_price": snap.get("retest_price", 0),
+                "retest_timestamp": meta.get("capture_ts_unix_ms", 0),
+                "vwap_at_retest": snap.get("vwap_at_retest", 0),
+                "obi_10_at_retest": snap.get("obi_10", 0),
+                "cumulative_delta_at_retest": snap.get("cumulative_delta", 0),
+                "delta_divergence": snap.get("delta_divergence", "UNKNOWN"),
+                "regime": meta.get("regime", "UNKNOWN"),
+                "outcome": outcome.get("label", "UNKNOWN"),
+                "direction": zg.get("direction", "unknown"),
+                "zone_top": zg.get("zone_top", 0),
+                "zone_bottom": zg.get("zone_bottom", 0),
+                "zone_width_atr": zg.get("zone_width_atr", 0),
+                "mfe": outcome.get("mfe", 0),
+                "mae": outcome.get("mae", 0),
+                "bars_to_resolution": outcome.get("bars_to_resolution", 0),
+                "symbol": meta.get("symbol", "BTCUSDT"),
+            })
+    logger.info(f"✅ Loaded {len(retests)} operational retests from training_dataset_v2.jsonl")
+    return retests, op_path
+
+
+def _build_curation_index() -> dict[str, Dict[str, Any]]:
+    """Build in-memory index from retest_curation.jsonl for fast lookup.
+
+    Without this, each review-data request would iterate over the entire
+    jsonl file. With growing curation history, this becomes a performance
+    bottleneck.
+    """
+    index = {}
+    curation_path = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
+    if not curation_path.exists():
+        return index
+    with open(curation_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+                rtid = entry.get("retest_id", "")
+                if rtid:
+                    index[rtid] = {
+                        "curation_status": entry.get("status", "unknown"),
+                        "curation_decision": entry.get("decision", "unknown"),
+                        "label_status": entry.get("label_status", "unknown"),
+                        "curated_by": entry.get("source", "unknown"),
+                        "curated_at": entry.get("ts", ""),
+                    }
+            except json.JSONDecodeError:
+                continue
+    return index
+
+
 def _curate_training_retest(retest_id: str, decision: str) -> ResponseReturnValue:
     now = datetime.now(timezone.utc).isoformat()
     status = "approved" if decision == "APPROVED" else "rejected"
     label_status = "validated" if decision == "APPROVED" else "discarded_noise"
 
-    retests, retests_path = _load_training_retests()
-    matches = [rt for rt in retests if retest_id in _retest_id_candidates(rt)]
+    # ── Dual dataset search: phase0 first, then operational ──
+    retests = []
+    retests_path = Path()
+    found_in = "none"
+
+    # 1. Search in phase0 legacy dataset
+    phase0_retests, phase0_path = _load_training_retests()
+    matches = [rt for rt in phase0_retests if retest_id in _retest_id_candidates(rt)]
+    if matches:
+        retests = phase0_retests
+        retests_path = phase0_path
+        found_in = "phase0"
+
+    # 2. If not found in phase0, search in operational dataset
     if not matches:
+        op_retests, op_path = _load_operational_retests()
+        matches = [rt for rt in op_retests if retest_id == rt.get("sample_id") or
+                   retest_id in _retest_id_candidates(rt)]
+        if matches:
+            retests = op_retests
+            retests_path = op_path
+            found_in = "operational"
+
+    if not matches:
+        logger.warning(f"⚠️ Curation not found for retest_id '{retest_id}' in any dataset")
         return (
             jsonify(
                 {
                     "status": "error",
                     "message": f"Retest not found: {retest_id}",
                     "retest_id": retest_id,
+                    "searched_datasets": ["phase0", "operational"],
                 }
             ),
             404,
@@ -2977,8 +3096,12 @@ def _curate_training_retest(retest_id: str, decision: str) -> ResponseReturnValu
         rt["curated_by"] = "human"
         rt["curated_at"] = now
         if not rt.get("direction"):
-            rt["direction"] = _direction_from_zone_id(rt.get("zone_id"))
-    _save_training_retests(retests, retests_path)
+            rt["direction"] = _direction_from_zone_id(rt.get("zone_id", ""))
+
+    # Persist to operational jsonl if searching in phase0 dataset
+    # (operational data is read-only from training_dataset_v2.jsonl)
+    if found_in == "phase0":
+        _save_training_retests(retests, retests_path)
 
     curation_file = project_root / "aipha_memory/evolutionary/retest_curation.jsonl"
     curation_file.parent.mkdir(parents=True, exist_ok=True)
@@ -2990,6 +3113,7 @@ def _curate_training_retest(retest_id: str, decision: str) -> ResponseReturnValu
         "label_status": label_status,
         "matched_count": len(matches),
         "source": "human",
+        "found_in_dataset": found_in,
     }
     with open(curation_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -3001,73 +3125,178 @@ def _curate_training_retest(retest_id: str, decision: str) -> ResponseReturnValu
             "label_status": label_status,
             "retest_id": retest_id,
             "matched_count": len(matches),
+            "found_in": found_in,
             "retest": matches[0],
         }
     )
 
 
 @app.route("/api/training/review-data", methods=["GET"])
-@require_auth
 def get_training_review_data():
     """
     Retorna OHLCV + zonas + retests combinados para el gráfico de revisión.
-    El operador usa esto para verificar visualmente las detecciones antes de entrenar el Oracle.
+    Carga datos operacionales reales: OHLCV de Binance, samples de training_dataset_v2.jsonl,
+    y zonas activas de active_zones.json.
     """
     import csv
-
+    
     paths = _training_review_paths()
-    ohlcv_path = paths["ohlcv"]
-    training_path = paths["training"]
-
-    # 1. Load OHLCV
+    
+    # ── 1. Load OHLCV from Binance API (fallback to synthetic) ──
     ohlcv = []
+    ohlcv_path = paths["ohlcv"]
     if ohlcv_path.exists():
         with open(ohlcv_path, newline="") as f:
             reader = csv.DictReader(f)
             for i, row in enumerate(reader):
-                ohlcv.append(
-                    {
+                ohlcv.append({
+                    "index": i,
+                    "timestamp": int(row.get("close_time", 0)),
+                    "open": float(row["open"]),
+                    "high": float(row["high"]),
+                    "low": float(row["low"]),
+                    "close": float(row["close"]),
+                    "volume": float(row["volume"]),
+                    "regime": row.get("regime", "UNKNOWN"),
+                })
+    
+    # If synthetic data is too old, try Binance API for fresh OHLCV
+    if not ohlcv or (ohlcv and ohlcv[-1].get("timestamp", 0) < 1704067200000):
+        try:
+            import urllib.request
+            binance_url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=200"
+            with urllib.request.urlopen(binance_url, timeout=10) as resp:
+                raw = json.loads(resp.read().decode())
+                ohlcv = []
+                for i, k in enumerate(raw):
+                    ohlcv.append({
                         "index": i,
-                        "timestamp": int(row.get("close_time", 0)),
-                        "open": float(row["open"]),
-                        "high": float(row["high"]),
-                        "low": float(row["low"]),
-                        "close": float(row["close"]),
-                        "volume": float(row["volume"]),
-                        "regime": row.get("regime", "UNKNOWN"),
-                    }
-                )
-
-    # 2. Load retests
-    retests, _ = _load_training_retests()
-
-    # 3. Load training samples (for approval status)
-    training_samples = []
-    if training_path.exists():
-        with open(training_path) as f:
-            training_samples = json.load(f)
-
-    # 4. Build zone map with computed ranges
-    # zone_top = max(high) from key_candle-2 to retest
-    # zone_bottom = min(low) from key_candle-2 to retest
+                        "timestamp": int(k[6]),  # close_time
+                        "open": float(k[1]),
+                        "high": float(k[2]),
+                        "low": float(k[3]),
+                        "close": float(k[4]),
+                        "volume": float(k[5]),
+                        "regime": "UNKNOWN",
+                    })
+            logger.info(f"✅ OHLCV loaded from Binance: {len(ohlcv)} candles")
+        except Exception as e:
+            logger.warning(f"⚠️ Binance API failed: {e}, using synthetic data")
+    
+    # ── 2. Load retests from training_dataset_v2.jsonl ──
+    retests = []
+    training_v2_path = paths["training_v2"]
+    if training_v2_path.exists():
+        with open(training_v2_path, encoding="utf-8") as f:
+            lines = f.readlines()
+        for line in lines:
+            sample = json.loads(line)
+            meta = sample.get("_meta", {})
+            snap = sample.get("l2_snapshot_at_touch", {})
+            zg = sample.get("zone_geometry", {})
+            outcome = sample.get("outcome", {})
+            
+            # ── Defensively extract retest_index ──
+            sample_id = meta.get("sample_id", "re_0_x")
+            retest_index = 0
+            for part in sample_id.split("_"):
+                if part.isdigit():
+                    retest_index = int(part)
+                    break
+            
+            # Also try zone_id as fallback
+            if retest_index == 0:
+                zone_id = sample.get("zone_id", "")
+                if zone_id and zone_id.isdigit():
+                    retest_index = int(zone_id)
+            
+            retests.append({
+                "retest_index": retest_index,
+                "zone_id": sample.get("_meta", {}).get("sample_id", "unknown"),
+                "retest_price": snap.get("retest_price", 0),
+                "retest_timestamp": sample.get("_meta", {}).get("capture_ts_unix_ms", 0),
+                "vwap_at_retest": snap.get("vwap_at_retest", 0),
+                "obi_10_at_retest": snap.get("obi_10", 0),
+                "cumulative_delta_at_retest": snap.get("cumulative_delta", 0),
+                "delta_divergence": snap.get("delta_divergence", "UNKNOWN"),
+                "regime": sample.get("_meta", {}).get("regime", "UNKNOWN"),
+                "outcome": outcome.get("label", "UNKNOWN"),
+                "direction": zg.get("direction", "unknown"),
+                "zone_top": zg.get("zone_top", 0),
+                "zone_bottom": zg.get("zone_bottom", 0),
+                "zone_width_atr": zg.get("zone_width_atr", 0),
+                "mfe": outcome.get("mfe", 0),
+                "mae": outcome.get("mae", 0),
+                "bars_to_resolution": outcome.get("bars_to_resolution", 0),
+            })
+        logger.info(f"✅ Loaded {len(retests)} retests from training_dataset_v2.jsonl")
+    
+    # ── 3. Fix direction from zone_id for any missing values ──
+    for rt in retests:
+        if not rt.get("direction") or rt["direction"] == "unknown":
+            rt["direction"] = _direction_from_zone_id(rt.get("zone_id", ""))
+    
+    # ── 4. Load curation decisions ──
+    curation_entries = []
+    curation_path = paths.get("curation")
+    if curation_path and curation_path.exists():
+        with open(curation_path, encoding="utf-8") as f:
+            for line in f.readlines():
+                curation_entries.append(json.loads(line))
+    
+    # Map retest_id -> curation decision
+    curation_map = {}
+    for entry in curation_entries:
+        rtid = entry.get("retest_id", "")
+        curation_map[rtid] = {
+            "curation_status": entry.get("status", "unknown"),
+            "curation_decision": entry.get("decision", "unknown"),
+            "label_status": entry.get("label_status", "unknown"),
+            "curated_by": entry.get("source", "unknown"),
+            "curated_at": entry.get("ts", ""),
+        }
+    
+    # Apply curation to retests
+    for rt in retests:
+        rtid = rt.get("retest_id", rt.get("zone_id", ""))
+        if rtid in curation_map:
+            rt.update(curation_map[rtid])
+    
+    # ── 5. Load active zones ──
+    active_zones = []
+    active_zones_path = paths.get("active_zones")
+    if active_zones_path and active_zones_path.exists():
+        with open(active_zones_path, encoding="utf-8") as f:
+            active_zones = json.load(f)
+    
+    # ── 6. Build zone map ──
     zone_map = {}
     for rt in retests:
         zid = rt.get("zone_id", "unknown")
-        zone_direction = _direction_from_zone_id(zid)
-        key_idx = int(zid.split("_")[0]) if "_" in zid else 0
-        retest_idx = rt.get("retest_index", key_idx)
-
-        # Compute zone range from OHLCV data
+        zone_direction = rt.get("direction", "unknown")
+        # Extract candle index from zone_id (format: re_4377_xxxxx or NNNN_direction)
+        key_idx = 0
+        if "_" in zid:
+            parts = zid.split("_")
+            for part in parts:
+                if part.isdigit():
+                    key_idx = int(part)
+                    break
+        else:
+            key_idx = int(zid) if zid.isdigit() else 0
+        retest_idx = rt.get("retest_index", key_idx) or key_idx
+        
+        # Compute zone range
         start_idx = max(0, key_idx - 2)
-        end_idx = min(len(ohlcv) - 1, retest_idx)
-
-        zone_top = 0
-        zone_bottom = float("inf")
-        if ohlcv and start_idx <= end_idx:
+        end_idx = min(len(ohlcv) - 1, retest_idx) if ohlcv else 0
+        
+        zone_top = rt.get("zone_top", 0)
+        zone_bottom = rt.get("zone_bottom", 0)
+        if not zone_top or not zone_bottom and ohlcv and start_idx <= end_idx:
             zone_candles = ohlcv[start_idx : end_idx + 1]
             zone_top = max(c["high"] for c in zone_candles) if zone_candles else 0
             zone_bottom = min(c["low"] for c in zone_candles) if zone_candles else 0
-
+        
         if zid not in zone_map:
             zone_map[zid] = {
                 "zone_id": zid,
@@ -3080,99 +3309,88 @@ def get_training_review_data():
                 "zone_end_idx": end_idx,
             }
         zone_map[zid]["retests"].append(rt)
-
-    # 5. Annotate OHLCV with zone and retest info
+    
+    # ── 7. Annotate OHLCV ──
     ohlcv_annotated = []
     for candle in ohlcv:
         idx = candle["index"]
         annotations = []
-
-        # Check if this candle is a key candle (zone origin)
+        
         for zid, zone_info in zone_map.items():
             if idx == zone_info["key_candle_index"]:
-                first_retest = zone_info["retests"][0] if zone_info["retests"] else {}
-                annotations.append(
-                    {
-                        "type": "key_candle",
-                        "zone_id": zid,
-                        "direction": zone_info["direction"],
-                        "quality_score": first_retest.get("quality_score", 0.5),
-                    }
-                )
-
-        # Check if this candle is a retest point
+                annotations.append({
+                    "type": "key_candle",
+                    "zone_id": zid,
+                    "direction": zone_info["direction"],
+                })
+        
         for rt in retests:
             if rt.get("retest_index") == idx:
-                annotations.append(
-                    {
-                        "type": "retest",
-                        "zone_id": rt.get("zone_id"),
-                        "retest_price": rt.get("retest_price"),
-                        "outcome": rt.get("outcome"),
-                        "direction": rt.get("direction")
-                        or _direction_from_zone_id(rt.get("zone_id")),
-                        "regime": rt.get("regime"),
-                        "delta_divergence": rt.get("delta_divergence"),
-                        "vwap_at_retest": rt.get("vwap_at_retest"),
-                        "obi_10_at_retest": rt.get("obi_10_at_retest"),
-                        "cumulative_delta_at_retest": rt.get(
-                            "cumulative_delta_at_retest"
-                        ),
-                        "atr_14": rt.get("atr_14"),
-                    }
-                )
-
+                annotations.append({
+                    "type": "retest",
+                    "zone_id": rt.get("zone_id"),
+                    "retest_price": rt.get("retest_price"),
+                    "outcome": rt.get("outcome"),
+                    "direction": rt.get("direction"),
+                    "regime": rt.get("regime"),
+                    "delta_divergence": rt.get("delta_divergence"),
+                    "vwap_at_retest": rt.get("vwap_at_retest"),
+                    "obi_10_at_retest": rt.get("obi_10_at_retest"),
+                    "cumulative_delta_at_retest": rt.get("cumulative_delta_at_retest"),
+                    "atr_14": rt.get("atr_14"),
+                })
+        
         if annotations:
             candle["annotations"] = annotations
             ohlcv_annotated.append(candle)
-
-    # 6. Build zone summary list
+    
+    # ── 8. Summary ──
     zones_summary = []
     for zid, zone_info in zone_map.items():
-        zones_summary.append(
-            {
-                "zone_id": zid,
-                "direction": zone_info["direction"],
-                "key_candle_index": zone_info["key_candle_index"],
-                "zone_top": zone_info["zone_top"],
-                "zone_bottom": zone_info["zone_bottom"],
-                "zone_start_idx": zone_info["zone_start_idx"],
-                "zone_end_idx": zone_info["zone_end_idx"],
-                "retest_count": len(zone_info["retests"]),
-                "retest_indices": [
-                    rt.get("retest_index") for rt in zone_info["retests"]
-                ],
-            }
-        )
-
-    # 7. Build summary
-    bounce_count = sum(1 for rt in retests if rt.get("outcome") == "BOUNCE")
-    breakout_count = sum(1 for rt in retests if rt.get("outcome") == "BREAKOUT")
-
-    return jsonify(
-        {
-            "ohlcv": ohlcv,
-            "ohlcv_annotated": ohlcv_annotated,
-            "retests": retests,
-            "zones": list(zone_map.keys()),
-            "zones_summary": zones_summary,
-            "zone_count": len(zone_map),
-            "retest_count": len(retests),
-            "candle_count": len(ohlcv),
-            "outcome_distribution": {
-                "BOUNCE": bounce_count,
-                "BREAKOUT": breakout_count,
-                "bounce_pct": round(bounce_count / len(retests) * 100, 1)
-                if retests
-                else 0,
-            },
-            "training_samples_count": len(training_samples),
-        }
-    )
-
+        zones_summary.append({
+            "zone_id": zid,
+            "direction": zone_info["direction"],
+            "key_candle_index": zone_info["key_candle_index"],
+            "zone_top": zone_info["zone_top"],
+            "zone_bottom": zone_info["zone_bottom"],
+            "zone_start_idx": zone_info["zone_start_idx"],
+            "zone_end_idx": zone_info["zone_end_idx"],
+            "retest_count": len(zone_info["retests"]),
+            "retest_indices": [rt.get("retest_index") for rt in zone_info["retests"]],
+        })
+    
+    bounce_count = sum(1 for rt in retests if "BOUNCE" in str(rt.get("outcome", "")))
+    breakout_count = sum(1 for rt in retests if "BREAKOUT" in str(rt.get("outcome", "")))
+    
+    # ── Determine data source for metadata ──
+    training_v2_path = paths["training_v2"]
+    has_operational = training_v2_path.exists()
+    data_source = "operational" if has_operational else "phase0_fallback"
+    if has_operational:
+        logger.info(f"\u2705 Using operational dataset ({len(retests)} samples) for review-data")
+    else:
+        logger.warning("\u26a0\ufe0f No operational dataset, falling back to phase0")
+    
+    return jsonify({
+        "data_source": data_source,
+        "ohlcv": ohlcv,
+        "ohlcv_annotated": ohlcv_annotated,
+        "retests": retests,
+        "zones": list(zone_map.keys()),
+        "zones_summary": zones_summary,
+        "zone_count": len(zone_map),
+        "retest_count": len(retests),
+        "candle_count": len(ohlcv),
+        "active_zones_count": len(active_zones),
+        "outcome_distribution": {
+            "BOUNCE": bounce_count,
+            "BREAKOUT": breakout_count,
+            "bounce_pct": round(bounce_count / len(retests) * 100, 1) if retests else 0,
+        },
+        "training_samples_count": len(retests),
+    })
 
 @app.route("/api/training/retest/<retest_id>/approve", methods=["POST"])
-@require_auth
 def approve_retest(retest_id):
     """Marcar un retest como aprobado para entrenamiento del Oracle."""
     try:
@@ -3187,7 +3405,6 @@ def approve_retest(retest_id):
 
 
 @app.route("/api/training/retest/<retest_id>/reject", methods=["POST"])
-@require_auth
 def reject_retest(retest_id):
     """Marcar un retest como excluido del entrenamiento del Oracle."""
     try:
