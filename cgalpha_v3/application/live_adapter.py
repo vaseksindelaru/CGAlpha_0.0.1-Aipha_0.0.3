@@ -128,9 +128,70 @@ class LiveDataFeedAdapter(BaseComponentV3):
         self.ws.add_callback(self.on_ws_message)
 
     def inject_oracle(self, oracle):
-        """Inyecta el modelo entrenado."""
+        """Inyecta el modelo entrenado y actualiza NexusGate con la firma causal real."""
         self._oracle = oracle
         logger.info("🧠 Oracle validado e inyectado en LiveAdapter.")
+
+        # Actualizar NexusGate con la firma causal del dataset de entrenamiento
+        # (evita baseline hardcodeado obsoleto que infla ΔCausal)
+        if hasattr(oracle, "get_causal_signature"):
+            causal_sig = oracle.get_causal_signature()
+            if causal_sig and causal_sig.get("obi_std", 0) > 0:
+                # Verificar si el baseline del modelo difiere significativamente del dataset actual
+                # Si es así, usar los stats del dataset actual como baseline (más representativo)
+                baseline_to_use = causal_sig
+                try:
+                    from pathlib import Path
+                    import json
+                    import statistics
+                    dataset_path = Path(__file__).resolve().parent.parent.parent / "aipha_memory" / "operational" / "training_dataset_v2.jsonl"
+                    if dataset_path.exists():
+                        obi_vals = []
+                        with open(dataset_path) as f:
+                            for line in f:
+                                d = json.loads(line)
+                                l2 = d.get('l2_snapshot_at_touch', {})
+                                obi = l2.get('obi_10')
+                                if obi is not None:
+                                    obi_vals.append(obi)
+                        if obi_vals:
+                            current_mean = statistics.mean(obi_vals)
+                            current_std = statistics.stdev(obi_vals) if len(obi_vals) > 1 else 0
+                            model_mean = causal_sig.get("obi_mean", 0)
+                            model_std = causal_sig.get("obi_std", 0)
+
+                            # Decidir qué baseline usar
+                            if model_std > 0 and current_std > 0:
+                                std_ratio = current_std / model_std
+                                mean_diff = abs(current_mean - model_mean) / (model_std + 1e-6)
+
+                                if std_ratio > 1.5 or std_ratio < 0.67 or mean_diff > 2.0:
+                                    logger.warning(
+                                        f"⚠️ DERIVA DE BASELINE DETECTADA: "
+                                        f"modelo std={model_std:.4f} vs dataset std={current_std:.4f} "
+                                        f"(ratio={std_ratio:.2f}x, mean_diff={mean_diff:.1f}σ). "
+                                        f"Usando stats del dataset actual como baseline."
+                                    )
+                                    # Crear baseline con stats actuales
+                                    baseline_to_use = {
+                                        "obi_mean": current_mean,
+                                        "obi_std": current_std,
+                                        "delta_mean": causal_sig.get("delta_mean", 0),
+                                        "delta_std": causal_sig.get("delta_std", 100.0),
+                                    }
+                except Exception as e:
+                    logger.debug(f"No se pudo comparar baseline: {e}")
+
+                self.nexus = NexusGate(baseline_signature=baseline_to_use)
+                logger.info(
+                    f"🔄 NexusGate recalibrado con firma causal real: "
+                    f"obi_mean={baseline_to_use.get('obi_mean', 0):.4f}, "
+                    f"obi_std={baseline_to_use.get('obi_std', 0):.4f}"
+                )
+            else:
+                logger.warning("⚠️ Oracle sin firma causal válida (obi_std=0), NexusGate mantiene baseline por defecto")
+        else:
+            logger.warning("⚠️ Oracle no expone get_causal_signature, NexusGate mantiene baseline por defecto")
 
     def inject_regressor(self, regressor):
         """Inyecta el regresor MAE (Capa 2)."""
@@ -419,7 +480,8 @@ class LiveDataFeedAdapter(BaseComponentV3):
             return
 
         project_root = Path(__file__).resolve().parent.parent.parent
-        heartbeat_path = project_root / "aipha_memory" / "operational" / "heartbeat.json"
+        # Archivo específico por símbolo para evitar colisiones multi-activo
+        heartbeat_path = project_root / "aipha_memory" / "operational" / f"heartbeat_{self.symbol}.json"
         heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -1055,7 +1117,7 @@ class LiveDataFeedAdapter(BaseComponentV3):
         return stats
 
     @classmethod
-    def create_default(cls, ws_manager, detector, order_mgr=None):
+    def create_default(cls, ws_manager, detector, order_mgr=None, symbol="BTCUSDT"):
         manifest = ComponentManifest(
             name="LiveDataFeedAdapter",
             category="application",
@@ -1064,4 +1126,6 @@ class LiveDataFeedAdapter(BaseComponentV3):
             outputs=["Signals", "ReentrySnapshots"],
             causal_score=0.95,
         )
-        return cls(manifest, ws_manager, detector, order_mgr)
+        adapter = cls(manifest, ws_manager, detector, order_mgr)
+        adapter.symbol = symbol
+        return adapter

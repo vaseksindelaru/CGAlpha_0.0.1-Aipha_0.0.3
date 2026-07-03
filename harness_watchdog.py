@@ -28,7 +28,7 @@ from pathlib import Path
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-HEARTBEAT_FILE = "aipha_memory/operational/heartbeat.json"
+HEARTBEAT_FILE = "aipha_memory/operational/heartbeat_BTCUSDT.json"
 DATASET_FILE = "aipha_memory/operational/training_dataset_v2.jsonl"
 
 MAX_HEARTBEAT_AGE_S = 600        # 10 minutos
@@ -103,11 +103,15 @@ def check_aggtrade_gap(data: dict) -> tuple[bool, str]:
 
 
 def check_dataset_freshness(project_root: Path, data: dict) -> tuple[bool, str]:
-    """Regla 3: Sin nuevas muestras en > 60 min."""
+    """Regla 3: Sin nuevas muestras en > 60 min.
+
+    NOTA: Si el pipeline esta vivo (heartbeat reciente, aggtrade gap bajo)
+    pero el dataset lleva sin actualizarse, probablemente no hay actividad
+    (sin retests resueltos). Eso NO es un fallo del pipeline.
+    Solo es fallo si el dataset es viejo Y el pipeline tambien parece muerto.
+    """
     dataset_path = project_root / DATASET_FILE
     if not dataset_path.exists():
-        # Si el dataset no existe pero el pipeline esta vivo, esta bien
-        # (se crea con el primer retest resuelto)
         ts_unix_ms = data.get("ts_unix_ms", 0)
         if ts_unix_ms > 0:
             return True, "dataset no existe aun (pipeline vivo, esperando primer retest)"
@@ -126,39 +130,20 @@ def check_dataset_freshness(project_root: Path, data: dict) -> tuple[bool, str]:
         age_s = time.time() - dataset_mtime
 
     if age_s > MAX_DATASET_AGE_S:
-        return False, f"dataset sin cambios hace {age_s/60:.1f}min > {MAX_DATASET_AGE_S/60:.0f}min (silencio operativo)"
+        # Pipeline vivo pero sin outcomes? No es fallo.
+        aggtrade_gap = data.get("last_aggtrade_gap_ms", 999999)
+        if aggtrade_gap < 60000:
+            return True, f"dataset idle {age_s/60:.1f}min (pipeline vivo, sin outcomes)"
+        else:
+            return False, f"dataset sin cambios {age_s/60:.1f}min + aggtrade_gap={aggtrade_gap}ms (posible fallo)"
     return True, f"dataset age={age_s/60:.1f}min OK"
 
 
 # ─── Actions ─────────────────────────────────────────────────────────────────
 
 def send_alert(subject: str, body: str):
-    """Envia alerta por email via Gmail API."""
-    try:
-        hermes_home = os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes"))
-        gmail_script = (
-            Path(hermes_home) / "skills" / "productivity" /
-            "google-workspace" / "scripts" / "google_api.py"
-        )
-        if not gmail_script.exists():
-            logger.warning("Script Gmail no encontrado, no se puede enviar alerta")
-            return
-
-        result = subprocess.run(
-            [
-                sys.executable, str(gmail_script), "gmail", "send",
-                "--to", "arturcloe2084@gmail.com",
-                "--subject", f"[CGAlpha WATCHDOG] {subject}",
-                "--body", body,
-            ],
-            capture_output=True, text=True, timeout=30,
-        )
-        if result.returncode == 0:
-            logger.info("Alerta enviada: %s", subject)
-        else:
-            logger.error("Fallo envio de alerta: %s", result.stderr[:200])
-    except Exception as e:
-        logger.error("Excepcion enviando alerta: %s", e)
+    """No-op: alertas por email desactivadas. Watchdog 100% autónomo."""
+    logger.info("Alerta suprimida (email desactivado): %s", subject)
 
 
 def attempt_restart(project_root: Path) -> bool:

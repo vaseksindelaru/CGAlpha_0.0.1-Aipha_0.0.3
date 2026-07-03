@@ -23,8 +23,9 @@ if [[ -f "$HEARTBEAT" ]]; then
     mv "$HEARTBEAT" "${HEARTBEAT}.bak.$(date +%s)" 2>/dev/null || true
 fi
 
-# 3. Lanzar pipeline en vivo
-PYTHONPATH=. python3 cgalpha_v3/scripts/launch_shadow_live.py >> "$LOG_FILE" 2>&1 &
+# 3. Lanzar pipeline en vivo (usar pyenv virtualenv donde están las deps)
+PYTHON="/home/vaclav/.pyenv/shims/python3"
+$PYTHON cgalpha_v3/scripts/launch_shadow_live.py >> "$LOG_FILE" 2>&1 &
 PID=$!
 
 sleep 3

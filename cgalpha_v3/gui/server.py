@@ -114,10 +114,17 @@ _order_mgr = create_order_manager()
 # Intentar cargar Oracle entrenado (de Phase 1/v4)
 _oracle_v3 = OracleTrainer_v3.create_default()
 try:
+    # Priorizar oracle_v3_historical (modelo real) sobre oracle_v3 (placeholder)
+    _oracle_path_historical = project_root / "aipha_memory" / "models" / "oracle_v3_historical.joblib"
     _oracle_path = project_root / "aipha_memory" / "models" / "oracle_v3.joblib"
-    if _oracle_path.exists():
+    if _oracle_path_historical.exists():
+        _oracle_v3.load_from_disk(str(_oracle_path_historical))
+        logger.info(f"✅ Oracle v4 cargado desde histórico: {_oracle_path_historical}")
+    elif _oracle_path.exists():
         _oracle_v3.load_from_disk(str(_oracle_path))
         logger.info(f"✅ Oracle v4 cargado satisfactoriamente desde {_oracle_path}")
+    else:
+        logger.warning("⚠️ No se encontró modelo Oracle, usando baseline por defecto")
 except Exception as e:
     logger.error(f"⚠️ No se pudo cargar el Oracle: {e}")
 
@@ -131,11 +138,11 @@ for symbol in SYMBOLS:
     _ws_managers[symbol] = BinanceWebSocketManager.create_default(symbol=symbol)
     _detectors[symbol] = TripleCoincidenceDetector()
     _adapters[symbol] = LiveDataFeedAdapter.create_default(
-        _ws_managers[symbol], _detectors[symbol], _order_mgr
+        _ws_managers[symbol], _detectors[symbol], _order_mgr, symbol=symbol
     )
     # Inyectar Oracle y Nexus en cada adaptador
     _adapters[symbol].inject_oracle(_oracle_v3)
-    _adapters[symbol].nexus = NexusGate(_oracle_v3.get_causal_signature())
+    # inject_oracle ya recalibra NexusGate con la firma causal del Oracle
     # Warm-start: hidratar buffer de klines para evitar cold start.
     # EVO-TICKET-0006: live_adapter operates at 5m, so 200 bars = 200
     # 5-minute candles (~16.6h). This gives the ZigZag trend detector
