@@ -3135,57 +3135,21 @@ def _curate_training_retest(retest_id: str, decision: str) -> ResponseReturnValu
 def get_training_review_data():
     """
     Retorna OHLCV + zonas + retests combinados para el gráfico de revisión.
-    Carga datos operacionales reales: OHLCV de Binance, samples de training_dataset_v2.jsonl,
-    y zonas activas de active_zones.json.
-    """
-    import csv
+    CRITICAL: Mapea retests a velas por TIMESTAMP (no por índice), ya que los retests
+    tienen timestamps de Mayo-Julio 2026 y las velas sintéticas son de Enero 2024.
+    """    # ── Cache check: skip Binance re-fetch if data is recent ──
+    cached = _get_training_review_cache()
+    if cached:
+        logger.info("📦 Serving cached training review data")
+        return jsonify(cached)
     
-    paths = _training_review_paths()
+
     
-    # ── 1. Load OHLCV from Binance API (fallback to synthetic) ──
-    ohlcv = []
-    ohlcv_path = paths["ohlcv"]
-    if ohlcv_path.exists():
-        with open(ohlcv_path, newline="") as f:
-            reader = csv.DictReader(f)
-            for i, row in enumerate(reader):
-                ohlcv.append({
-                    "index": i,
-                    "timestamp": int(row.get("close_time", 0)),
-                    "open": float(row["open"]),
-                    "high": float(row["high"]),
-                    "low": float(row["low"]),
-                    "close": float(row["close"]),
-                    "volume": float(row["volume"]),
-                    "regime": row.get("regime", "UNKNOWN"),
-                })
-    
-    # If synthetic data is too old, try Binance API for fresh OHLCV
-    if not ohlcv or (ohlcv and ohlcv[-1].get("timestamp", 0) < 1704067200000):
-        try:
-            import urllib.request
-            binance_url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=200"
-            with urllib.request.urlopen(binance_url, timeout=10) as resp:
-                raw = json.loads(resp.read().decode())
-                ohlcv = []
-                for i, k in enumerate(raw):
-                    ohlcv.append({
-                        "index": i,
-                        "timestamp": int(k[6]),  # close_time
-                        "open": float(k[1]),
-                        "high": float(k[2]),
-                        "low": float(k[3]),
-                        "close": float(k[4]),
-                        "volume": float(k[5]),
-                        "regime": "UNKNOWN",
-                    })
-            logger.info(f"✅ OHLCV loaded from Binance: {len(ohlcv)} candles")
-        except Exception as e:
-            logger.warning(f"⚠️ Binance API failed: {e}, using synthetic data")
-    
-    # ── 2. Load retests from training_dataset_v2.jsonl ──
+    # ── 1. Load retests FIRST to determine timestamp range ──
     retests = []
+    paths = _training_review_paths()
     training_v2_path = paths["training_v2"]
+    
     if training_v2_path.exists():
         with open(training_v2_path, encoding="utf-8") as f:
             lines = f.readlines()
@@ -3196,25 +3160,14 @@ def get_training_review_data():
             zg = sample.get("zone_geometry", {})
             outcome = sample.get("outcome", {})
             
-            # ── Defensively extract retest_index ──
-            sample_id = meta.get("sample_id", "re_0_x")
-            retest_index = 0
-            for part in sample_id.split("_"):
-                if part.isdigit():
-                    retest_index = int(part)
-                    break
-            
-            # Also try zone_id as fallback
-            if retest_index == 0:
-                zone_id = sample.get("zone_id", "")
-                if zone_id and zone_id.isdigit():
-                    retest_index = int(zone_id)
+            # Extract retest timestamp (milliseconds)
+            capture_ts = meta.get("capture_ts_unix_ms", 0)
             
             retests.append({
-                "retest_index": retest_index,
+                "retest_index": 0,  # Will be mapped by timestamp
                 "zone_id": sample.get("_meta", {}).get("sample_id", "unknown"),
                 "retest_price": snap.get("retest_price", 0),
-                "retest_timestamp": sample.get("_meta", {}).get("capture_ts_unix_ms", 0),
+                "retest_timestamp": capture_ts,  # KEY: use this for mapping
                 "vwap_at_retest": snap.get("vwap_at_retest", 0),
                 "obi_10_at_retest": snap.get("obi_10", 0),
                 "cumulative_delta_at_retest": snap.get("cumulative_delta", 0),
@@ -3231,12 +3184,159 @@ def get_training_review_data():
             })
         logger.info(f"✅ Loaded {len(retests)} retests from training_dataset_v2.jsonl")
     
-    # ── 3. Fix direction from zone_id for any missing values ──
+    if not retests:
+        return jsonify({"error": "No retests found", "ohlcv": [], "retests": [], "zones_summary": []})
+    
+    # ── 2. Fix direction from zone_id for any missing values ──
     for rt in retests:
         if not rt.get("direction") or rt["direction"] == "unknown":
             rt["direction"] = _direction_from_zone_id(rt.get("zone_id", ""))
     
-    # ── 4. Load curation decisions ──
+    # ── 3. Determine timestamp range from retests ──
+    retest_timestamps = [rt["retest_timestamp"] for rt in retests if rt["retest_timestamp"] > 0]
+    if not retest_timestamps:
+        logger.warning("⚠️ No valid timestamps in retests")
+        return jsonify({"error": "No valid timestamps", "ohlcv": [], "retests": [], "zones_summary": []})
+    
+    min_ts = min(retest_timestamps)
+    max_ts = max(retest_timestamps)
+    
+    # Add padding: 30 minutes before first retest, 30 minutes after last
+    # (candles are 5min, so 6 candles padding)
+    padding_ms = 30 * 60 * 1000  # 30 minutes
+    start_ts = max(0, min_ts - padding_ms)
+    end_ts = max_ts + padding_ms
+    
+    logger.info(f"📅 Retraining timestamp range: {min_ts} to {max_ts}")
+    logger.info(f"📅 Requesting OHLCV from: {start_ts} to {end_ts}")
+    
+    # ── 4. Load OHLCV from Binance with proper pagination ──
+    # Binance returns max 1000 candles per request. We need ~17567 candles.
+    # Strategy: paginate from oldest to newest using endTime of each page.
+    ohlcv = []
+    try:
+        import urllib.request
+        current_start = int(start_ts)
+        max_pages = 30  # Safety limit: 30 * 1000 = 30000 candles
+        page_num = 0
+        
+        while len(ohlcv) < 30000 and page_num < max_pages:
+            page_num += 1
+            page_url = (
+                f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m"
+                f"&startTime={current_start}&endTime={int(end_ts)}&limit=1000"
+            )
+            with urllib.request.urlopen(page_url, timeout=30) as resp:
+                raw = json.loads(resp.read().decode())
+            
+            if not raw:
+                break
+            
+            base_idx = len(ohlcv)
+            for candle_data in raw:
+                ohlcv.append({
+                    "index": base_idx,
+                    "timestamp": int(candle_data[6]),
+                    "open": float(candle_data[1]),
+                    "high": float(candle_data[2]),
+                    "low": float(candle_data[3]),
+                    "close": float(candle_data[4]),
+                    "volume": float(candle_data[5]),
+                    "regime": "UNKNOWN",
+                })
+                base_idx += 1
+            
+            logger.info(f"📄 Binance page {page_num}: got {len(raw)} candles (total: {len(ohlcv)})")
+            
+            if len(raw) < 1000:
+                break  # Last page
+            
+            # Next page starts 1ms after the last candle's close_time
+            current_start = int(raw[-1][6]) + 1
+        
+        logger.info(f"✅ OHLCV loaded from Binance: {len(ohlcv)} candles over {page_num} pages")
+        
+        if len(ohlcv) == 0:
+            logger.warning("⚠️ No candles returned - trying latest candles as fallback")
+            binance_url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=1000"
+            with urllib.request.urlopen(binance_url, timeout=10) as resp:
+                raw = json.loads(resp.read().decode())
+                for i, k in enumerate(raw):
+                    ohlcv.append({
+                        "index": i,
+                        "timestamp": int(k[6]),
+                        "open": float(k[1]),
+                        "high": float(k[2]),
+                        "low": float(k[3]),
+                        "close": float(k[4]),
+                        "volume": float(k[5]),
+                        "regime": "UNKNOWN",
+                    })
+            logger.info(f"📄 Fallback: loaded {len(ohlcv)} latest candles")
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Binance API failed: {e}, using synthetic data")
+        # Load synthetic data as last resort
+        ohlcv_path = paths["ohlcv"]
+        if ohlcv_path.exists():
+            import csv
+            with open(ohlcv_path, newline="") as f:
+                reader = csv.DictReader(f)
+                for i, row in enumerate(reader):
+                    ohlcv.append({
+                        "index": i,
+                        "timestamp": int(row.get("close_time", 0)),
+                        "open": float(row["open"]),
+                        "high": float(row["high"]),
+                        "low": float(row["low"]),
+                        "close": float(row["close"]),
+                        "volume": float(row["volume"]),
+                        "regime": row.get("regime", "UNKNOWN"),
+                    })
+    
+    # Cap at 25000 candles to keep response manageable
+    if len(ohlcv) > 25000:
+        ohlcv = ohlcv[-25000:]
+        logger.info(f"⚠️ Capped OHLCV to last 25000 candles")
+    
+    # ── 5. Map retests to candle indices by closest timestamp ──
+    if ohlcv:
+        # Build timestamp -> candle index map
+        ts_to_idx = {}
+        for i, candle in enumerate(ohlcv):
+            ts_to_idx[candle["timestamp"]] = i
+        
+        # For each retest, find the closest candle by timestamp
+        for rt in retests:
+            rt_ts = rt["retest_timestamp"]
+            if not rt_ts or rt_ts == 0:
+                rt["candle_index"] = -1
+                continue
+            
+            # Find closest candle
+            best_idx = 0
+            best_diff = abs(ohlcv[0]["timestamp"] - rt_ts)
+            
+            for i, candle in enumerate(ohlcv):
+                diff = abs(candle["timestamp"] - rt_ts)
+                if diff < best_diff:
+                    best_diff = diff
+                    best_idx = i
+            
+            rt["candle_index"] = best_idx
+            rt["ts_diff_ms"] = best_diff  # Store for debugging
+        
+        logger.info(f"✅ Mapped {len(retests)} retests to candle indices")
+        
+        # Log mapping stats
+        mapped = sum(1 for rt in retests if rt["candle_index"] >= 0)
+        avg_diff = sum(rt.get("ts_diff_ms", 0) for rt in retests) / max(1, mapped)
+        logger.info(f"📊 Mapped: {mapped}/{len(retests)}, avg timestamp diff: {avg_diff:.0f}ms")
+    else:
+        for rt in retests:
+            rt["candle_index"] = -1
+    
+    # ── 6. Load curation decisions ──
     curation_entries = []
     curation_path = paths.get("curation")
     if curation_path and curation_path.exists():
@@ -3262,33 +3362,20 @@ def get_training_review_data():
         if rtid in curation_map:
             rt.update(curation_map[rtid])
     
-    # ── 5. Load active zones ──
-    active_zones = []
-    active_zones_path = paths.get("active_zones")
-    if active_zones_path and active_zones_path.exists():
-        with open(active_zones_path, encoding="utf-8") as f:
-            active_zones = json.load(f)
-    
-    # ── 6. Build zone map ──
+    # ── 7. Build zone map using timestamp-mapped candle indices ──
     zone_map = {}
     for rt in retests:
         zid = rt.get("zone_id", "unknown")
         zone_direction = rt.get("direction", "unknown")
-        # Extract candle index from zone_id (format: re_4377_xxxxx or NNNN_direction)
-        key_idx = 0
-        if "_" in zid:
-            parts = zid.split("_")
-            for part in parts:
-                if part.isdigit():
-                    key_idx = int(part)
-                    break
-        else:
-            key_idx = int(zid) if zid.isdigit() else 0
-        retest_idx = rt.get("retest_index", key_idx) or key_idx
+        candle_idx = rt.get("candle_index", -1)
         
-        # Compute zone range
-        start_idx = max(0, key_idx - 2)
-        end_idx = min(len(ohlcv) - 1, retest_idx) if ohlcv else 0
+        # Compute zone range based on candle index
+        if candle_idx >= 0 and ohlcv:
+            start_idx = max(0, candle_idx - 2)
+            end_idx = min(len(ohlcv) - 1, candle_idx + 2)
+        else:
+            start_idx = 0
+            end_idx = len(ohlcv) - 1 if ohlcv else 0
         
         zone_top = rt.get("zone_top", 0)
         zone_bottom = rt.get("zone_bottom", 0)
@@ -3301,7 +3388,7 @@ def get_training_review_data():
             zone_map[zid] = {
                 "zone_id": zid,
                 "direction": zone_direction,
-                "key_candle_index": key_idx,
+                "key_candle_index": candle_idx,
                 "retests": [],
                 "zone_top": zone_top,
                 "zone_bottom": zone_bottom,
@@ -3310,22 +3397,15 @@ def get_training_review_data():
             }
         zone_map[zid]["retests"].append(rt)
     
-    # ── 7. Annotate OHLCV ──
+    # ── 8. Annotate OHLCV with retest data ──
     ohlcv_annotated = []
     for candle in ohlcv:
         idx = candle["index"]
         annotations = []
         
-        for zid, zone_info in zone_map.items():
-            if idx == zone_info["key_candle_index"]:
-                annotations.append({
-                    "type": "key_candle",
-                    "zone_id": zid,
-                    "direction": zone_info["direction"],
-                })
-        
+        # Find retests that map to this candle
         for rt in retests:
-            if rt.get("retest_index") == idx:
+            if rt.get("candle_index") == idx:
                 annotations.append({
                     "type": "retest",
                     "zone_id": rt.get("zone_id"),
@@ -3337,14 +3417,13 @@ def get_training_review_data():
                     "vwap_at_retest": rt.get("vwap_at_retest"),
                     "obi_10_at_retest": rt.get("obi_10_at_retest"),
                     "cumulative_delta_at_retest": rt.get("cumulative_delta_at_retest"),
-                    "atr_14": rt.get("atr_14"),
                 })
         
         if annotations:
             candle["annotations"] = annotations
             ohlcv_annotated.append(candle)
     
-    # ── 8. Summary ──
+    # ── 9. Summary ──
     zones_summary = []
     for zid, zone_info in zone_map.items():
         zones_summary.append({
@@ -3356,20 +3435,40 @@ def get_training_review_data():
             "zone_start_idx": zone_info["zone_start_idx"],
             "zone_end_idx": zone_info["zone_end_idx"],
             "retest_count": len(zone_info["retests"]),
-            "retest_indices": [rt.get("retest_index") for rt in zone_info["retests"]],
+            "retest_indices": [rt.get("candle_index") for rt in zone_info["retests"]],
         })
     
     bounce_count = sum(1 for rt in retests if "BOUNCE" in str(rt.get("outcome", "")))
     breakout_count = sum(1 for rt in retests if "BREAKOUT" in str(rt.get("outcome", "")))
     
-    # ── Determine data source for metadata ──
-    training_v2_path = paths["training_v2"]
+    # Determine data source
     has_operational = training_v2_path.exists()
     data_source = "operational" if has_operational else "phase0_fallback"
     if has_operational:
-        logger.info(f"\u2705 Using operational dataset ({len(retests)} samples) for review-data")
+        logger.info(f"✅ Using operational dataset ({len(retests)} samples) for review-data")
     else:
-        logger.warning("\u26a0\ufe0f No operational dataset, falling back to phase0")
+        logger.warning("⚠️ No operational dataset, falling back to phase0")
+    
+    # ── Cache the result for future requests (avoids re-paginating Binance) ──
+    _set_training_review_cache({
+        "data_source": data_source,
+        "ohlcv": ohlcv,
+        "ohlcv_annotated": ohlcv_annotated,
+        "retests": retests,
+        "zones": list(zone_map.keys()),
+        "zones_summary": zones_summary,
+        "zone_count": len(zone_map),
+        "retest_count": len(retests),
+        "candle_count": len(ohlcv),
+        "active_zones_count": 0,
+        "outcome_distribution": {
+            "BOUNCE": bounce_count,
+            "BREAKOUT": breakout_count,
+            "bounce_pct": round(bounce_count / len(retests) * 100, 1) if retests else 0,
+        },
+        "training_samples_count": len(retests),
+    })
+    logger.info(f"💾 Cached training review data: {len(ohlcv)} candles, {len(retests)} retests")
     
     return jsonify({
         "data_source": data_source,
@@ -3381,7 +3480,7 @@ def get_training_review_data():
         "zone_count": len(zone_map),
         "retest_count": len(retests),
         "candle_count": len(ohlcv),
-        "active_zones_count": len(active_zones),
+        "active_zones_count": 0,
         "outcome_distribution": {
             "BOUNCE": bounce_count,
             "BREAKOUT": breakout_count,
@@ -3389,6 +3488,7 @@ def get_training_review_data():
         },
         "training_samples_count": len(retests),
     })
+
 
 @app.route("/api/training/retest/<retest_id>/approve", methods=["POST"])
 def approve_retest(retest_id):
@@ -3421,6 +3521,48 @@ def reject_retest(retest_id):
 # ---------------------------------------------------------------------------
 # Arranque
 # ---------------------------------------------------------------------------
+
+
+# ── Disk cache for training review data (persists across restarts) ──
+_TRAINING_REVIEW_CACHE_FILE = project_root / "aipha_memory" / "operational" / "training_review_cache.json"
+_TRAINING_REVIEW_CACHE_TTL = 300  # 5 minutes
+
+def _get_training_review_cache():
+    """Get cached review data from disk if still valid, otherwise None."""
+    if not _TRAINING_REVIEW_CACHE_FILE.exists():
+        return None
+    try:
+        data = json.loads(_TRAINING_REVIEW_CACHE_FILE.read_text())
+        cache_ts = data.get("_cache_ts", 0)
+        if time.time() - cache_ts < _TRAINING_REVIEW_CACHE_TTL:
+            logger.info(f"📦 Serving cached training review data from disk (TTL: {int(time.time()-cache_ts)}s)")
+            # Also keep in memory for this session
+            _TRAINING_REVIEW_CACHE["data"] = data
+            _TRAINING_REVIEW_CACHE["timestamp"] = cache_ts
+            # Remove the internal timestamp field
+            result = {k: v for k, v in data.items() if k != "_cache_ts"}
+            return result
+        else:
+            logger.info("⏰ Cache expired, will re-fetch from Binance")
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"⚠️ Cache read error: {e}")
+    return None
+
+def _set_training_review_cache(data):
+    """Store review data in both disk cache and memory."""
+    cache_entry = {**data, "_cache_ts": time.time()}
+    try:
+        _TRAINING_REVIEW_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _TRAINING_REVIEW_CACHE_FILE.write_text(json.dumps(cache_entry))
+        logger.info(f"💾 Cached training review data to disk: {_TRAINING_REVIEW_CACHE_FILE}")
+    except OSError as e:
+        logger.warning(f"⚠️ Cache write error: {e}")
+    # Also keep in memory
+    _TRAINING_REVIEW_CACHE["data"] = data
+    _TRAINING_REVIEW_CACHE["timestamp"] = time.time()
+
+# In-memory copy for hot access within same session
+_TRAINING_REVIEW_CACHE = {"data": None, "timestamp": 0}
 
 logger = logging.getLogger("cgalpha_v3")
 

@@ -62,12 +62,165 @@ function doLogin() {
     });
 }
 
+// ── TOAST NOTIFICATIONS ─────────────────────────────────
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
+  const colors = {
+    success: "var(--accent)",
+    warning: "var(--yellow)",
+    error: "var(--red)",
+    info: "var(--accent2)"
+  };
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg2);
+    border-left: 4px solid ${colors[type]};
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 13px;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
+// Add keyframe animations if not already present
+if (!document.getElementById("toast-styles")) {
+  const style = document.createElement("style");
+  style.id = "toast-styles";
+  style.textContent = `
+    @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+  `;
+  document.head.appendChild(style);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Modo Acceso Directo v3: no solicita token en local
   authToken = "cgalpha-v3-local-dev";
   startPolling();
   renderFooterTs();
 });
+
+
+// ── UNDO FUNCTIONALITY FOR TRAINING REVIEW ──
+let trainingLastCuration = null; // { retestId, previousState }
+
+function recordTrainingCuration(retestId, previousState) {
+  trainingLastCuration = { retestId, previousState };
+  // Enable undo button
+  const undoBtn = document.querySelector('button[onclick="undoTrainingRetest()"]');
+  if (undoBtn) {
+    undoBtn.disabled = false;
+    undoBtn.title = "Deshacer última curación (Ctrl+Z)";
+  }
+}
+
+function undoTrainingRetest() {
+  if (!trainingLastCuration || !trainingData) return;
+  
+  const { retestId, previousState } = trainingLastCuration;
+  const rt = getTrainingRetestById(retestId);
+  if (!rt) return;
+  
+  // Restore previous state
+  Object.assign(rt, previousState);
+  
+  // Send API request to revert
+  apiFetch(`/api/training/retest/${encodeURIComponent(retestId)}/revert`, { method: "POST" })
+    .catch(e => console.error("Error reverting:", e));
+  
+  renderTrainingRetestTable();
+  renderTrainingChart();
+  
+  // Disable undo after use
+  const undoBtn = document.querySelector('button[onclick="undoTrainingRetest()"]');
+  if (undoBtn) {
+    undoBtn.disabled = true;
+    undoBtn.title = "Deshacer última curación (Ctrl+Z)";
+  }
+  
+  trainingLastCuration = null;
+  showToast("Deshecho", "info");
+}
+
+// ── KEYBOARD SHORTCUTS FOR TRAINING REVIEW ──
+function handleTrainingReviewKeyboard(event) {
+  // Only handle shortcuts when training review section is active
+  if (activeSection !== "training") return;
+  
+  // Don't intercept if user is typing in an input
+  const target = event.target;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+    return;
+  }
+  
+  const filtered = getFilteredRetests();
+  if (!filtered.length) return;
+  
+  // Find currently selected retest
+  let currentIdx = filtered.findIndex(rt => 
+    rt.zone_id === trainingSelectedZone && rt.retest_index === trainingSelectedRetestIndex
+  );
+  if (currentIdx < 0) currentIdx = 0;
+  
+  switch (event.key.toLowerCase()) {
+    case "a": // Approve
+      event.preventDefault();
+      const rtApprove = filtered[currentIdx];
+      if (rtApprove) {
+        const retestId = getTrainingRetestId(rtApprove);
+        approveRetest(retestId, event);
+        showToast("Aprobado", "success");
+      }
+      break;
+      
+    case "r": // Reject
+      event.preventDefault();
+      const rtReject = filtered[currentIdx];
+      if (rtReject) {
+        const retestId = getTrainingRetestId(rtReject);
+        rejectRetest(retestId, event);
+        showToast("Rechazado", "warning");
+      }
+      break;
+      
+    case "tab":
+    case "n": // Next retest
+      event.preventDefault();
+      const nextIdx = (currentIdx + 1) % filtered.length;
+      const nextRt = filtered[nextIdx];
+      focusTrainingZone(nextRt.zone_id, nextRt.retest_index);
+      break;
+      
+    case "p": // Previous retest (bonus)
+      event.preventDefault();
+      const prevIdx = (currentIdx - 1 + filtered.length) % filtered.length;
+      const prevRt = filtered[prevIdx];
+      focusTrainingZone(prevRt.zone_id, prevRt.retest_index);
+      break;
+        
+    case "z":
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        undoTrainingRetest();
+      }
+      break;
+      }
+}
+
+document.addEventListener("keydown", handleTrainingReviewKeyboard);
+
+
 
 // ── API ───────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
@@ -3592,6 +3745,10 @@ function getFilteredRetests() {
 async function curateRetest(retestId, action, event) {
   if (event) event.stopPropagation();
   const rt = getTrainingRetestById(retestId);
+
+  // Record for undo
+  const previousState = { ...rt };
+  recordTrainingCuration(retestId, previousState);
   if (!rt) return;
 
   const previous = { ...rt };
@@ -3693,6 +3850,16 @@ function renderTrainingRetestTable() {
         </tr>`;
   });
   tbody.innerHTML = html;
+  // Update current index counter
+  const currentIdxEl = document.getElementById("tr-current-index");
+  if (currentIdxEl) {
+    const filtered = getFilteredRetests();
+    const currentIdx = filtered.findIndex(rt => 
+      rt.zone_id === trainingSelectedZone && rt.retest_index === trainingSelectedRetestIndex
+    );
+    currentIdxEl.textContent = currentIdx >= 0 ? `${currentIdx + 1} / ${filtered.length}` : `—`;
+  }
+
   syncSelectedTrainingRow(false);
 }
 
