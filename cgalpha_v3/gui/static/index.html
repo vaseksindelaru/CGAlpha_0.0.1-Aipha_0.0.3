@@ -389,13 +389,17 @@
             transition: background 0.15s, box-shadow 0.15s;
         }
 
-        .training-retest-row:hover,
-        .training-retest-row.selected {
-            background: rgba(0, 212, 170, 0.08);
+        .training-retest-row.hovered-row {
+            background: rgba(0, 212, 170, 0.15);
         }
 
         .training-retest-row.selected {
+            background: rgba(0, 212, 170, 0.08);
             box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .training-retest-row.selected.hovered-row {
+            background: rgba(0, 212, 170, 0.18);
         }
 
         .training-retest-row.approved {
