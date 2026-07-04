@@ -3578,6 +3578,13 @@ async function fetchTrainingReviewData() {
     const data = await apiFetch("/api/training/review-data");
     trainingData = data;
 
+    // Auto-select first zone to prevent massive SVG rendering (17k+ candles) which freezes browser
+    if (trainingSelectedZone === null && data.zones_summary?.length > 0) {
+      trainingSelectedZone = data.zones_summary[0].zone_id;
+      trainingSelectedRetestIndex = data.zones_summary[0].retest_indices?.[0] ?? null;
+      trainingViewMode = "context";
+    }
+
     // Update summary stats
     setText("tr-candle-count", data.candle_count || 0);
     setText("tr-zone-count", data.zone_count || 0);
@@ -3955,6 +3962,9 @@ function renderTrainingChart() {
 
   // Background
   svg += `<rect width="${width}" height="${height}" fill="var(--bg3)" />`;
+
+  // --- DEBUG INFO ---
+  svg += `<text x="20" y="40" fill="white" font-size="12">DEBUG: ohlcv_len=${ohlcv?.length} display=${displayOhlcv?.length} maxP=${maxPrice.toFixed(2)} minP=${minPrice.toFixed(2)} range=${adjustedRange.toFixed(2)} offset=${candleOffset}</text>`;
 
   // Price axis labels
   const priceSteps = 6;
