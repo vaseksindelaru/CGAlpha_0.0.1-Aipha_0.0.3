@@ -31,7 +31,7 @@ Si el puerto sigue ocupado, fuerza liberacion:
   fuser -k 8080/tcp 2>/dev/null; sleep 2
 
 PASO 3 — INICIAR GUI SERVER
-  cd /home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3 && nohup /home/vaclav/.pyenv/versions/3.11.9/bin/python3 -m cgalpha_v3.gui.server > logs/gui_restart.log 2>&1 &
+  cd /home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3 && PYTHONPATH=. nohup /home/vaclav/.pyenv/versions/3.11.9/bin/python3 cgalpha_v3/gui/server.py > logs/gui_restart.log 2>&1 &
 Espera 12 segundos:
   sleep 12
 
