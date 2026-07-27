@@ -37,7 +37,25 @@ ANOMALY → INCUBATION → MATURITY → QUARANTINE_GATE → READY_FOR_CODEX
 | P8 | LLMSwitcher v2 | ✅ ESTABLE | CRB pendiente |
 | P9 | ShadowTrader | ✅ ESTABLE | CRB pendiente |
 
-> **Nota de honestidad**: NEXUS_SUPERIOR.md marca QUARANTINE_GATE y READY_FOR_CODEX como 🟡 SIMULADO — el ciclo de gobernanza existe como diseño y en parte como código, pero no todo está automatizado al 100%.
+> **Nota de honestidad**: QUARANTINE_GATE y READY_FOR_CODEX están marcados 🟡 SIMULADO en la tabla, pero la verificación en vivo revela que esto va más allá de "parcialmente automatizado".
+
+### QUARANTINE_GATE y READY_FOR_CODEX — verificación en vivo
+
+- **Cero archivos .py** en todo el repo contienen las cadenas `QUARANTINE_GATE` o `READY_FOR_CODEX`. No es que estén parcialmente codificados — no hay código que los implemente.
+- Lo que sí existe es el **checklist manual** (§9 de NEXUS_SUPERIOR.md):
+
+Concepto | Cómo se cumple hoy (textual de NEXUS_SUPERIOR.md)
+---|---
+QUARANTINE_GATE | Ruta C (`LILA_ROUTING_PROMPT.md`) + **checklist manual** contra §3 (verdades inmutables) antes de aprobar ejecución. Sin código que lo enforce.
+READY_FOR_CODEX | El orden de §4 (P1→P10) es la cola. No hay colisiones porque solo un componente está `EXECUTING` a la vez (regla de inicio §4). Sin código que lo enforce.
+
+**En la práctica**: no hay ningún código que impida ejecutar algo que contradiga las verdades inmutables de §3, ni ningún código que impida que dos componentes se ejecuten en paralelo violando la regla de "uno a la vez". Ambas protecciones dependen enteramente de que quien abre el ticket (humano o Lila) siga el checklist manualmente. Es una disciplina documentada y bien especificada — no un descuido — pero es disciplina, no enforcement. Si alguien salta el checklist, nada en el código lo detiene.
+
+> El conjunto completo ("AlphaLab", con QUARANTINE_GATE + READY_FOR_CODEX + resurrección automática) está marcado ❌ NO EXISTE — es "arquitectura objetivo, mismo nivel que el 'Eco Eterno' del Harness" (aspiracional, al mismo nivel que otras cosas todavía no construidas).
+
+## ¿Qué significa en la práctica?
+
+P1 (Oracle v6) es la máxima prioridad activa del proyecto. Si el gate de seguridad que debería protegerlo está completamente desenchufado del código (solo checklist manual), esto es información operativa real sobre el riesgo de seguir trabajando en P1 sin saber cuánto de esa protección es disciplina documentada vs. enforcement automático.
 
 ## ADRs vs NEXUS_SUPERIOR vs CRBs: qué es qué
 

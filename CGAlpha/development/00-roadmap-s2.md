@@ -46,14 +46,16 @@ Vive en `documentation/NEXUS_SUPERIOR.md`, **no** en ADRs. Los ADRs documentan d
 
 ## 🐛 6 Tests Fallando (clasificación verificada)
 
-| # | Test | Fallo | Clasificación | Acción |
-|---|---|---|---|---|
-| 1 | `test_classifier_feature_count_is_eleven` | `assert 23 == 11` | Oracle features desactualizado: pasó de 11 a 23 (Fase B, features dinámicas + L2) | Actualizar fixture |
-| 2 | `test_regressor_feature_count_is_twelve` | `assert 24 == 12` | Mismo que arriba (Oracle 12→24) | Actualizar fixture |
-| 3 | `test_orchestrator_classify_rule3` | `classify()` Rule 3 bloquea auto-aprobación para `volume_threshold` | Guardrail intencional: el Parameter Landscape Map marcó `volume_threshold` como alto impacto (véase línea 192 de `classify()`). El test es anterior al Landscape. | No es bug — documentar como diseño evolucionado |
-| 4 | `test_orchestrator_classify_rule3` (segundo) | Mismo mecanismo | Igual que #3 | Igual que #3 |
-| 5 | `test_heartbeat_status` | `'OFFLINE' not in ('offline', 'OK', ...)` | Cosmético: case mismatch en el assertion del test | Arregtar en test |
-| 6 | `test_clearance_instrumentation_robust` | Esperaba 10100.0, obtuvo 10200.0 | **Bug de fixture del test** — véase detalle abajo | Investigar fixture (PRIORIDAD S2) |
+| # | Test | Tipo de evidencia | Fallo | Clasificación | Acción |
+|---|---|---|---|---|---|
+| 1 | `test_classifier_feature_count_is_eleven` | **Verbatim pytest** (AssertionError) | `assert 23 == 11` | Oracle features desactualizado: pasó de 11 a 23 (Fase B, features dinámicas + L2) | Actualizar fixture |
+| 2 | `test_regressor_feature_count_is_twelve` | **Verbatim pytest** (AssertionError) | `assert 24 == 12` | Mismo que arriba (Oracle 12→24) | Actualizar fixture |
+| 3 | `test_heartbeat_status` | **Verbatim pytest** (AssertionError) | `'OFFLINE' not in ('offline', 'OK', ...)` | Cosmético: case mismatch en el assertion del test | Arreglar en test |
+| 4 | `test_clearance_instrumentation_robust` | **Verbatim pytest** (AssertionError) | Esperaba 10100.0, obtuvo 10200.0 | Bug de fixture del test — véase detalle abajo | Investigar fixture (PRIORIDAD S2) |
+| 5 | `test_orchestrator_classify` (Rule 3, caso 1) | **Lectura directa de código fuente** (no pytest) | Lógica del guardrail, no AssertionError | Guardrail intencional: `classify()` línea 192 Rule 3 bloquea auto-aprobación para `volume_threshold`. Test anterior al Parameter Landscape Map. | No es bug — documentar como diseño evolucionado |
+| 6 | `test_orchestrator_classify` (Rule 3, caso 2) | **Lectura directa de código fuente** (no pytest) | Mismo mecanismo | Igual que #5 | Igual que #5 |
+
+> **Nota de precisión**: Los tests #5 y #6 no tienen verbatim de pytest. Lo que tengo es la lógica causal completa en `classify()` línea 192, que es evidencia más fuerte que un trace de pytest (explica por qué fallan, no el mensaje de error del fallo). Son evidencia de tipo distinto.
 
 ### 🔴 PRIORIDAD S2: max_price_since_detection (test #6)
 
@@ -104,16 +106,14 @@ CGAlpha_0.0.1-Aipha_0.0.3/
 
 > **Nota de estructura**: `cgalpha_v4/` es un directorio raíz, hermano de `cgalpha_v3/`. Si la búsqueda está scopeada a `cgalpha_v3/`, nunca encuentra nada en `cgalpha_v4/`.
 
-## 🔍 Próximos pasos S2
+## ⏭️ Próximos pasos S2 — Priorizados
 
-| Paso | Prioridad | Descripción | Estado |
-|---|---|---|---|
-| **1. max_price_since_detection** | 🔴 ALTA | Investigar fixture del test `test_clearance_instrumentation_robust`. Determinar si arreglar el test o documentar como comportamiento intencional del guardrail `_cleanup_expired_zones` | PENDIENTE |
-| **2. QUARANTINE_GATE automatización** | 🟡 MEDIA | Verificar qué tan automatizado está el QUARANTINE_GATE y READY_FOR_CODEX del ciclo de gobernanza (actualmente 🟡 SIMULADO en NEXUS_SUPERIOR.md) | PENDIENTE |
-| **3. P6.5 Lila GUI reconexión** | 🟡 MEDIA | El "Eco Eterno" del Harness está bloqueado por chat de Lila desconectado — determinar si es prioridad de desarrollo real | PENDIENTE |
-| **4. Oracle v6 Fase A** | 🔴 ALTA | Reconstrucción determinista del Oracle (encoding) — coverage actual 54.77%, OOS 0.68. CRB tiene la hoja de ruta | EN PROGRESO (externo) |
-| **5. P0-Codex ingestión** | 🟢 COMPLETADO | 7 entradas ya ingeridas en `aipha_memory/codex/` | ✅ |
-| **6. P5 TripleCoincidenceDetector L2** | 🟢 COMPLETADO | CRB creado | ✅ |
+| Paso | Prioridad | Descripción | Estado | Por qué esta prioridad |
+|---|---|---|---|---|
+| **1. Fix del fixture de max_price_since_detection** | 🔴 ALTA | Aplicar el fix del test (inyectar zona en active_zones solo cuando el loop llega a candle_index, no antes). El diagnóstico está completo y el fix está listo. | PENDIENTE — LISTO PARA EJECUTAR | Es el único de los tres pasos con diagnóstico completo y fix listo para aplicar. Dejarlo abierto después de un diagnóstico del todo es la brecha entre "saber" y "cerrar". |
+| **2. QUARANTINE_GATE — ¿qué tan automatizado es?** | 🟡 MEDIA | Verificado en vivo: **cero archivos .py** contienen QUARANTINE_GATE o READY_FOR_CODEX. Son solo checklist manual (§9 de NEXUS_SUPERIOR.md), sin enforcement en código. P1 (Oracle v6) es la máxima prioridad y si el gate de seguridad que debería protegerlo está desenchufado del código, esto es información operativa real. | VERIFICADO — información almacenada en `02-gobernanza-nexus-superior.md` | No es curiosidad ociosa: la pregunta "¿cuánto de la protección del P1 es código real vs. proceso manual?" tiene respuesta verificada y es cero código. |
+| **3. Lila GUI P6.5** | 🔴 NO PRIORIZAR | Ya respondido con la lógica del propio proyecto: P6.5 tiene como prerequisito explícito "Orchestrator v5 estable"; P6 se autodeclara "baja urgencia mientras P1-P4 estén activos". No hace falta indagar más — el documento ya contestó esta pregunta. | RESUELTO por el documento del proyecto | El propio P0-P9 del proyecto ya priorizó y justificó la secuencia. |
+| **4. Leer NEXUS_SUPERIOR.md 100%** | NO HACERLO TODAVÍA | Sin una pregunta concreta que lo requiera, esto es la definición del antipatrón §7.3 del Prompt Fundacional: "filosofar antes de actuar". | APLAZADO | Cuando una decisión real dependa de un detalle que no leí, lo leo entonces — no antes. |
 
 ## 📝 Fuentes verificadas en este round
 
