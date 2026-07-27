@@ -1,4 +1,4 @@
----
+—
 type: project-moc
 project: CGAlpha
 tags:
@@ -21,6 +21,8 @@ Sistema de trading algorítmico. BTCUSDT 5min, estrategia de triple coincidencia
 - `test_oracle_encoding.py` está en `/tests/` (root), NO en `cgalpha_v3/tests/`.
 - Los tests fallan porque se añadieron features DESPUÉS de escribir los tests.
 - Hay `.venv` en el proyecto — usar para pytest.
+- **Evaluación externa obsoleta** — evaluación de 3-meses atrás dice "113 tests, 6 bugs" cuando la realidad es 401 tests (395/6) y 8 bugs originales ya resueltos.
+- **Gobernanza constitucional** nueva — ciclo ANOMALY → LIBRARY, P0-P9 priority table en NEXUS_SUPERIOR.md.
 
 ## 🗂️ Sesiones
 - _(aún sin sesiones registradas aquí — las nuevas irán apareciendo abajo)_
@@ -30,7 +32,7 @@ Sistema de trading algorítmico. BTCUSDT 5min, estrategia de triple coincidencia
 Secciones teóricas que construyen comprensión profunda del sistema.
 - **Índice**: `learning/00-índice.md`
 - **01** — El Viaje de un Dato (json, Oracle→GUI, puente HTTP)
-- **02** — Arquitectura y OOP (clases, dataclass, factory methods)
+- **02** — Arquitectura y OOP (clases, dataclass, factory)
 - **03** — Manipulación de Datos y ML (pandas, scikit-learn, pipeline)
 - **04** — Testing — El Sistema Inmunológico (pytest, fixtures, Triple Barrier)
 - **05** — Síntesis Final — Los Cinco Hilos
@@ -41,25 +43,27 @@ Secciones teóricas que construyen comprensión profunda del sistema.
 ## 🔧 Development (S2 — Próximos Pasos)
 Área de desarrollo activo.
 - **Índice**: `development/00-roadmap-s2.md`
-- **Paso 1 (🔴 PENDIENTE)**: Investigar discrepancia de `max_price_since_detection` (100pts)
+- **01** — Investigación `max_price_since_detection` (bug de fixture verificado en vivo)
+- **02** — Gobernanza NEXUS_SUPERIOR (P0-P9, ciclo de vida, ADRs vs CRBs vs NEXUS)
+- **03** — Auditoría LLM externo (evaluación verificada contra repo clonado)
 
 ## 🔗 Conocimiento aplicado
 - [[Books/Philosophy-Software-Design/Applied-to-CGAlpha|Ousterhout aplicado a CGAlpha]]
 
-## ⏭️ Pendientes
-- [ ] Procesar más capítulos de Ousterhout (2,3,5,9,10,20) aplicados a CGAlpha
-- [ ] Reconciliar tests con las 23 features reales
+## ⏭️ Pendientes verificados
+- [ ] max_price_since_detection (fixture bug, no regresión) — resolver en test o documentar como diseño intencional
+- [ ] QUARANTINE_GATE automatización (actualmente 🟡 SIMULADO)
+- [ ] Lila GUI reconexión (P6.5, Eco Eterno bloqueado)
+- [ ] Oracle v6 Fase A reconstrucción determinista (externo, en progreso)
+- [ ] Profundizar NEXUS_SUPERIOR.md completo (no leído 100% con rigor)
+- [ ] Verificar coverage real de la suite completa (solo 54.77% autoreportado en CRB)
+- [ ] Reconciliar tests restantes con las 23 features reales
 - [ ] Completar Clase Magistral 6+ según avance de S2
 
 ## 📊 Graphify Analysis
 - **Analysis date**: 2026-07-27
 - **Graph files**: `graphify-out/graph.html`, `graphify-out/GRAPH_REPORT.md`, `graphify-out/graph.json`
 - **Stats** (después del último análisis): 2798 nodes · 5671 edges · 151 communities
-- **Saved in vault**:
-  - `learning/` — Clases Magistrales con graphify integrado como herramienta de aprendizaje
-  - `development/` — Roadmap S2 con próximo paso concreto
-  - `graph-analysis-latest.html` — visualización interactiva actualizada
-  - `graph-report-latest.md` — resumen de comunidades actualizado
 
 ## 🔄 Auto-Update Workflow
 1. Run `graphify update .` after every approved code change
@@ -71,6 +75,6 @@ Secciones teóricas que construyen comprensión profunda del sistema.
 ## 🧪 Graphify para Learning
 Graphify no es solo para análisis de código fuente — es una herramienta pedagógica cuando se usa sobre el vault mismo:
 - `graphify .` sobre `~/Documents/Obsidian-Vault/CGAlpha/` revela las conexiones entre notas de learning
-- `graphify cluster-only .` agrupa notas por tema (clases vs roadmap vs sesiones)
+- `graphify cluster-only .` agrupa notas por tema
 - `graphify explain "learning"` muestra la comunidad y complejidad del área de aprendizaje
 - El grafo interactivo (HTML) visualiza cómo las 5 clases magistrales se interconectan

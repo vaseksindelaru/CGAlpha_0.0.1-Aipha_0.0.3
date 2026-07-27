@@ -1,72 +1,131 @@
 ---
-type: development-index
+type: development-roadmap
 project: CGAlpha
-tags: [proyecto/cgalpha, development, s2, proximos-pasos]
-created: 2026-07-27
+tags: [proyecto/cgalpha, development, s2, proximos-pasos, actualizado-2026-07-27]
+updated: 2026-07-27
+source: verified-live-against-cloned-repo
 ---
 
 # 🔧 Desarrollo — S2 (Próximos Pasos)
 
-> Área para la fase activa de desarrollo de cgAlpha_0.0.1.
-> Mientras `learning/` es teórico, esta es la práctica que transforma teoría en código.
+> Roadmap del desarrollo activo de CGAlpha v3/v4, basado en verificación en vivo contra el repositorio clonado (27 jul 2026).
 
----
+## 📊 Evaluación externa vs realidad del repo
 
-## 🔍 Paso inmediato de investigación (previo a cualquier desarrollo nuevo)
+La evaluación externa (LLM que citó S3_ORDEN_DE_CONSTRUCCION.md líneas 1-120) está **obsoleta**. Evidencia verificada contra el repo real:
 
-### Discrepancia de `max_price_since_detection`
+| Afirmación externa | Realidad verificada contra repo |
+|---|---|
+| "PRÓXIMO PASO: Paso 1 — IDENTITY Memory" | Identity completo: 11 ADRs viviendo en `aipha_memory/identity/`. Paso 1 es historia antigua. |
+| "113 tests passing, 92.76% coverage" | **401 tests reales** (395 passed, 6 failed) solo en `cgalpha_v3/tests/` + `tests/`. El badge del README dice "144 passing" — ni siquiera coincide con los 113. |
+| "Oracle v6 con 6 bugs, 2 fixados" | Existe `oracle_v6_skeleton.py` real (9906 bytes) pero es un CRB de reconstrucción determinista (54.77% coverage, 2 fases A/B), no "6 bugs, 2 fixados". Los 8 bugs originales BUG-1..BUG-8 están confirmados resueltos. |
+| "4 islas ⚠️ desconectadas" | `EvolutionOrchestratorV4` está inyectado en el pipeline, con `CodeCraftSage` como brazo ejecutor real — no solo aprobación sin ejecución. |
+| Evaluación basada en: | Texto descriptivo estático (`S3_ORDEN_DE_CONSTRUCCION.md` líneas 1-120), **no** en ejecución contra el repo. |
+| Método correcto verificado con: | `pytest` corriendo contra el código clonado, `grep` contra código fuente, artefactos derivados (11 ADRs), CRB fechados. |
 
-**Contexto**: El test de `ClearanceInstrument` espera `max_price_since_detection = 10100.0`, pero el valor actual del sistema es `10200`. Hay 100 puntos de diferencia.
+## 🔀 Esquema de prioridades P0-P9 (NEXUS_SUPERIOR.md)
 
-#### Plan de investigación
+Vive en `documentation/NEXUS_SUPERIOR.md`, **no** en ADRs. Los ADRs documentan decisiones puntuales (D-003, etc.); los CRB individuales documentan cada componente.
 
-1. **Localizar el cálculo**
-   - Buscar en `triple_coincidence.py` dónde se actualiza `max_price_since_detection`
-   - Buscar en `ShadowTrader/ClearanceInstrument` el mismo campo
-   - Determinar si el valor `10200` proviene de un tick de precio real de Binance o de un offset de inicialización/redondeo
+| Prioridad | Componente | Estado | Referencia |
+|---|---|---|---|
+| P0 META | Routing System (Nexus) | ✅ OPERATIVO | Este doc |
+| P0 META | Codex (7 entradas) | ✅ INGESTADO | CODEX_ENTRIES_DRAFT.md |
+| **P1** | **Oracle v6** | 🔴 EN PROGRESO | RECONSTRUCTION_BRIEF.md — OOS 0.68, coverage 54.77% |
+| P2 | CodeCraftSage v4 | 🟡 OPERATIVO | CRB pendiente |
+| P3 | L2 Ring Buffer (BinanceWebSocketManager) | 🟡 OPERATIVO, audit pendiente | CRB_BinanceWebSocketManager_P3.md |
+| P4 | DeferredOutcomeMonitor | 🟡 OPERATIVO, audit pendiente | CRB_DeferredOutcomeMonitor_P4.md |
+| P5 | TripleCoincidenceDetector (integración L2) | ✅ ESTABLE | CRB creado |
+| P6 | EvolutionOrchestrator v5 | 🟡 ACUMULA BACKLOG | CRB pendiente |
+| P6.5 | Chat de Lila (GUI) | 🔴 DESCONECTADO | Bloquea "Eco Eterno" del Harness |
+| P7 | MemoryPolicyEngine v4.1 | ✅ ESTABLE | CRB pendiente |
+| P8 | LLMSwitcher v2 | ✅ ESTABLE | CRB pendiente |
+| P9 | ShadowTrader | ✅ ESTABLE | CRB pendiente |
 
-2. **Verificar el seed/fixture del test**
-   - El test espera `10100.0`
-   - ¿El fixture usa un precio de entrada fijo?
-   - Si el precio de entrada es `10100` y el máximo observado es `10200`, el test podría tener el valor de entrada wrong (`10000` en vez de `10100`), no el código
+> **Nota de honestidad**: NEXUS_SUPERIOR.md marca QUARANTINE_GATE y READY_FOR_CODEX como 🟡 SIMULADO — el ciclo de gobernanza existe como diseño y en parte como código, pero no todo está automatizado al 100%. Verificar en próximo paso si el guardrail está implementado o solo diagramado.
 
-3. **Revisar la ventana temporal**
-   - `max_price_since_detection` se resetea al detectar una nueva zona
-   - ¿El test simula exactamente una ventana donde el precio sube 100 puntos desde el entry, o hay un escenario donde el precio sube más?
+## 🐛 6 Tests Fallando (clasificación verificada)
 
-4. **Si es un bug real**
-   - Ajustar el test o el código según corresponda
-   - Documentar en ADR (`aipha_memory/identity/ADR-...`)
-   - Correr test suite: `pytest cgalpha_v3/tests/ -q`
+| # | Test | Fallo | Clasificación | Acción |
+|---|---|---|---|---|
+| 1 | `test_classifier_feature_count_is_eleven` | `assert 23 == 11` | Oracle features desactualizado: pasó de 11 a 23 (Fase B, features dinámicas + L2) | Actualizar fixture |
+| 2 | `test_regressor_feature_count_is_twelve` | `assert 24 == 12` | Mismo que arriba (Oracle 12→24) | Actualizar fixture |
+| 3 | `test_orchestrator_classify_rule3` | `classify()` Rule 3 bloquea auto-aprobación para `volume_threshold` | Guardrail intencional: el Parameter Landscape Map marcó `volume_threshold` como alto impacto (véase línea 192 de `classify()`). El test es anterior al Landscape. | No es bug — documentar como diseño evolucionado |
+| 4 | `test_orchestrator_classify_rule3` (segundo) | Mismo mecanismo | Igual que #3 | Igual que #3 |
+| 5 | `test_heartbeat_status` | `'OFFLINE' not in ('offline', 'OK', ...)` | Cosmético: case mismatch en el assertion del test | Arregtar en test |
+| 6 | `test_clearance_instrumentation_robust` | Esperaba 10100.0, obtuvo 10200.0 | **Bug de fixture del test** — véase detalle abajo | Investigar fixture (PRIORIDAD S2) |
 
-5. **Si es un cambio intencional de comportamiento**
-   - Verificar si afecta el umbral de `max_clearance_atr`
-   - Revisar si los filtros de rebote prematuro que dependen de él siguen siendo válidos con el nuevo offset
-   - Actualizar test y documentar como cambio intencional
+### 🔴 PRIORIDAD S2: max_price_since_detection (test #6)
 
-6. **Si es un cambio intencional que afecta gobernanza**
-   - Actualizar SAFETY_THRESHOLS si es necesario
-   - Crear nuevo ADR para el cambio de comportamiento
+**Resultado verificado en vivo**: determinista, 10200.0 cada vez, no un flake.
 
----
+**Mecanismo exacto** (verificado contra código de producción):
+1. `detector.active_zones = [zone]` inyecta la zona en `active_zones` **antes** de que el loop arranque
+2. El loop `process_stream()` empieza en `idx=0` — la zona existe "desde el inicio"
+3. En `idx=0` el sistema dispara un **retest falso** porque no valida `idx >= zone.candle_index` antes de intentar retest
+4. `zone.max_price_since_detection` termina en **10200.0** (el high más alto de todo el dataset, incluyendo las 15 velas de padding del test)
+5. El guard `_cleanup_expired_zones()` (línea 1235) llega **tarde** — se ejecuta después del bloque de retest en la misma iteración
+6. El feature `max_clearance_atr` se calculó con `max_price_since_detection=10015` (valor real en `idx=0`), no `10100` ni `10200`
 
-## 📋 Roadmap S2 (desarrollos pendientes)
+**Conclusión**: **Bug de fixture, no regresión de producción**. Una zona genuina solo entra en `active_zones` a través de `_detect_new_zones()` en el mismo `idx` que la zona se detecta — nunca antes. El arreglo del test es inyectar la zona solo cuando el loop llega a `candle_index`:
 
-| # | Tarea | Estado | Dependencias |
-|---|-------|--------|-------------|
-| 1 | Investigar discrepancia `max_price_since_detection` | 🔴 PENDIENTE | Ninguna |
-| 2 | [Proxima tarea según resultado de 1] | ⬜ NO DEFINIDA | 1 |
-| 3 | [Proxima tarea según resultado de 2] | ⬜ NO DEFINIDA | 2 |
-
-> **Nota**: No hay "siguiente paso genérico". Hay un punto concreto de investigación — la discrepancia de 100 en `max_price_since_detection` — que es la única grieta genuina en lo demás un sistema que ha evolucionado mucho más allá de lo documentado.
-
----
-
-## 🧪 Testing en S2
-
-Cada fix debe seguir la Triple Barrera:
+```python
+# Fix recomendado (en el test, no en producción):
+_ = detector.process_stream(df.iloc[:zone.candle_index])
+detector.active_zones = [zone]
+_ = detector.process_stream(df.iloc[zone.candle_index:].reset_index(drop=True))
 ```
-Aplicar cambio → pytest cgalpha_v3/tests/ -q → solo git commit si todos pasan
+
+El dataset de entrenamiento real (`prepared_sets/`, 92+101+122 samples) **NO está contaminado** por este mecanismo — requiere una zona "nacida antes de su propio índice", condición imposible en pipeline live o batch histórico real.
+
+## 🏗️ Estructura del repositorio (verificada en vivo)
+
+```
+CGAlpha_0.0.1-Aipha_0.0.3/
+├── cgalpha_v3/          → Motor de producción
+│   ├── core/            → TripleCoincidenceDetector, OracleTrainer_v3
+│   ├── infrastructure/  → BinanceWebSocketManager
+│   ├── lila/            → EvolutionOrchestratorV4
+│   ├── learning/        → MemoryPolicyEngine, memory levels
+│   ├── tests/           → Test suite (401 tests, 395 passing)
+│   └── gui/             → server.py (punto de entrada)
+├── cgalpha_v4/          → Capa de especificación/reconstrucción (¡hermano de cgalpha_v3!, no anidado)
+│   ├── oracle_v6_skeleton.py (9906 bytes)
+│   ├── test_oracle_v6_skeleton.py (17594 bytes)
+│   └── CRBs individuales (P3, P4, P5)
+├── governance_log/      → Tickets fechados hasta 24jun2026
+├── documentation/        → NEXUS_SUPERIOR.md (gobernanza), S0_d_hasta_24h.md (108K)
+├── aipha_memory/identity/ → 11 ADRs documentando decisiones (D-003, etc.)
+├── rebound/             → Para "multitouch" (nuevo, no en crónica mayo)
+├── prepared_sets/       → Set A / Set Bhybrid (92+101+122 samples)
+├── docs/                → Crónica de desarrollo
+└── tests/               → Test suite raíz (tests/)
 ```
 
-El conteo de tests que pasa es el único criterio de aceptación.
+> **Nota de estructura**: `cgalpha_v4/` es un directorio raíz, hermano de `cgalpha_v3/`. Si la búsqueda está scopeada a `cgalpha_v3/`, nunca encuentra nada en `cgalpha_v4/`.
+
+## 🔍 Próximos pasos S2
+
+| Paso | Prioridad | Descripción | Estado |
+|---|---|---|---|
+| **1. max_price_since_detection** | 🔴 ALTA | Investigar fixture del test `test_clearance_instrumentation_robust`. Determinar si arreglar el test o documentar como comportamiento intencional del guardrail `_cleanup_expired_zones` | PENDIENTE |
+| **2. QUARANTINE_GATE automatización** | 🟡 MEDIA | Verificar qué tan automatizado está el QUARANTINE_GATE y READY_FOR_CODEX del ciclo de gobernanza (actualmente 🟡 SIMULADO en NEXUS_SUPERIOR.md) | PENDIENTE |
+| **3. P6.5 Lila GUI reconexión** | 🟡 MEDIA | El "Eco Eterno" del Harness está bloqueado por chat de Lila desconectado — determinar si es prioridad de desarrollo real | PENDIENTE |
+| **4. Oracle v6 Fase A** | 🔴 ALTA | Reconstrucción determinista del Oracle (encoding) — coverage actual 54.77%, OOS 0.68. CRB tiene la hoja de ruta | EN PROGRESO (externo) |
+| **5. P0-Codex ingestión** | 🟢 COMPLETADO | 7 entradas ya ingeridas en `aipha_memory/codex/` | ✅ |
+| **6. P5 TripleCoincidenceDetector L2** | 🟢 COMPLETADO | CRB creado | ✅ |
+
+## 📝 Fuentes verificadas en este round
+
+- `NEXUS_SUPERIOR.md` → esquema de fases P0-P9, tabla QUARANTINE_GATE/READY_FOR_CODEX como SIMULADO
+- `documentation/S0_d_hasta_24h.md` (108K) → documentación de estado
+- `governance_log/` → tickets fechados hasta 24jun2026
+- `cgalpha_v4/oracle_v6_skeleton.py` (9906 bytes) → CRB reconstrucción Oracle v6
+- `cgalpha_v4/test_oracle_v6_skeleton.py` (17594 bytes) → test del skeleton
+- `CRB_BinanceWebSocketManager_P3.md`, `CRB_DeferredOutcomeMonitor_P4.md`, `CRB_TripleCoincidenceDetector_P5.md` → CRBs de componentes
+- 11 ADRs en `aipha_memory/identity/` → D-003 (threshold 0.70 inmutable), etc.
+- `test_clearance_instrumentation.py` → fixture bug: retest_index=0 debería ser 13
+- `TripleCoincidenceDetector/_check_retest()` → retest dispara en idx=0 cuando zone.candle_index=10
+- `_cleanup_expired_zones()` → guard llega tarde (misma iteración, después del bloque de retest)
+- `classify()` línea 192 → Rule 3: RESTRICTED FOR VALIDATION para parámetros de alto impacto
+- `prepared_sets/` → 92+101+122 samples, no contaminados por bug de fixture
