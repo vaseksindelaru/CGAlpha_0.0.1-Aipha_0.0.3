@@ -38,9 +38,11 @@ Secciones teóricas que construyen comprensión profunda del sistema.
 - **03** — Manipulación de Datos y ML (pandas, scikit-learn, pipeline)
 - **04** — Testing — El Sistema Inmunológico (pytest, fixtures, Triple Barrier)
 - **05** — Síntesis Final — Los Cinco Hilos
+- **06** — Graphify como Tutor Activo (flujo de 5 pasos, aplicado sobre las comunidades del grafo)
 
 > 📖 Lee en orden. Cada clase construye sobre la anterior.
 > 🔧 Cada clase incluye sección de práctica con graphify.
+> **Clase 6**: no se lee de principio a fin — se ejecuta (Paso 1 al 5, con acciones y preguntas).
 
 ## 🔧 Development (S2 — Próximos Pasos)
 Área de desarrollo activo.
