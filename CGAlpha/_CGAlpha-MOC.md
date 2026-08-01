@@ -1,17 +1,17 @@
-—
+---
 type: project-moc
 project: CGAlpha
 tags:
   - proyecto/cgalpha
   - moc
 created: 2026-07-20
-last_updated: 2026-07-27
+last_updated: 2026-08-01
 ---
 
 # 🟢 CGAlpha v3 — Índice del Proyecto (MOC)
 
 > [!info] Punto de entrada del proyecto. Todo lo de CGAlpha vive bajo `CGAlpha/`.
-> Cada sesión de trabajo va en `CGAlpha/Sessions/` con tag `#proyecto/cgalpha`.
+> Cada sesión de trabajo va en `CGAlpha/sessions/` con tag `#proyecto/cgalpha`.
 
 ## 📌 Qué es
 Sistema de trading algorítmico. BTCUSDT 5min, estrategia de triple coincidencia.
@@ -27,8 +27,10 @@ Sistema de trading algorítmico. BTCUSDT 5min, estrategia de triple coincidencia
 - **P6.5 Lila GUI** ya resuelto por el propio P0-P9: prerequisito es Orchestrator v5 estable, que se autodeclara baja urgencia mientras P1-P4 activos.
 
 ## 🗂️ Sesiones
-- _(aún sin sesiones registradas aquí — las nuevas irán apareciendo abajo)_
-- Ver todas: buscar `path:CGAlpha/Sessions`
+- `CGAlpha/sessions/2026-07-27_vault-learning-development.md` — Vault learning/development structure
+- `CGAlpha/sessions/2026-07-29-cloud-infra.md` — Cloud infra completa (R2, B2, DuckDB, Supabase, GitHub Actions)
+- `CGAlpha/sessions/2026-08-01-restart-cgalpha-fix.md` — Fix restart-cgalpha con protocolo completo + respuesta LLM externa
+- Ver todas: buscar `path:CGAlpha/sessions`
 
 ## 📚 Learning (Clases Magistrales)
 Secciones teóricas que construyen comprensión profunda del sistema.
