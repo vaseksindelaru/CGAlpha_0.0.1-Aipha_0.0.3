@@ -29,6 +29,7 @@ Sistema de trading algorítmico. BTCUSDT 5min, estrategia de triple coincidencia
 ## 🗂️ Sesiones
 - `CGAlpha/sessions/2026-08-01-restart-cgalpha-fix.md` — Restart Cgalpha Fix
 - `CGAlpha/sessions/2026-07-29-cloud-infra.md` — Cloud Infra
+- `CGAlpha/sessions/2026-07-27_vault-learning-development.md` — Vault Learning Development
 - Ver todas: buscar `path:CGAlpha/sessions`
 
 ## 📚 Learning (Clases Magistrales)
