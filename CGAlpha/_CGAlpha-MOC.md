@@ -5,7 +5,7 @@ tags:
   - proyecto/cgalpha
   - moc
 created: 2026-07-20
-last_updated: 2026-08-01
+P26-08-01
 ---
 
 # 🟢 CGAlpha v3 — Índice del Proyecto (MOC)
@@ -27,9 +27,8 @@ Sistema de trading algorítmico. BTCUSDT 5min, estrategia de triple coincidencia
 - **P6.5 Lila GUI** ya resuelto por el propio P0-P9: prerequisito es Orchestrator v5 estable, que se autodeclara baja urgencia mientras P1-P4 activos.
 
 ## 🗂️ Sesiones
-- `CGAlpha/sessions/2026-07-27_vault-learning-development.md` — Vault learning/development structure
-- `CGAlpha/sessions/2026-07-29-cloud-infra.md` — Cloud infra completa (R2, B2, DuckDB, Supabase, GitHub Actions)
-- `CGAlpha/sessions/2026-08-01-restart-cgalpha-fix.md` — Fix restart-cgalpha con protocolo completo + respuesta LLM externa
+- `CGAlpha/sessions/2026-08-01-restart-cgalpha-fix.md` — Restart Cgalpha Fix
+- `CGAlpha/sessions/2026-07-29-cloud-infra.md` — Cloud Infra
 - Ver todas: buscar `path:CGAlpha/sessions`
 
 ## 📚 Learning (Clases Magistrales)
