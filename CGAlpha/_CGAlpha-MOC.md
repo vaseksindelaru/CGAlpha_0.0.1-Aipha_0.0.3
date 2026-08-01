@@ -5,7 +5,7 @@ tags:
   - proyecto/cgalpha
   - moc
 created: 2026-07-20
-P26-08-01
+last_updated: 2026-08-01
 ---
 
 # 🟢 CGAlpha v3 — Índice del Proyecto (MOC)
