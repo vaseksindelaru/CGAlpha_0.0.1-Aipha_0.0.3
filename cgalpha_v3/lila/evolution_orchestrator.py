@@ -636,7 +636,11 @@ class EvolutionOrchestratorV4:
         pending = self.memory.get_pending_proposals()
 
         for entry in pending:
-            data = json.loads(entry.content)
+            try:
+                data = json.loads(entry.content)
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"❌ Evolution Pulse: corrupt entry {entry.entry_id}, skipping: {e}")
+                continue
             if data.get("category") != 2:
                 continue
 
