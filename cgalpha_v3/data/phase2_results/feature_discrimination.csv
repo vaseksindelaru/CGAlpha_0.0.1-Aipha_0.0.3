@@ -1,0 +1,8 @@
+feature,mutual_information,f_score,p_value
+cumulative_delta_at_retest,0.051681,0.322003,0.57173124
+direction,0.051642,4.644869,0.03364747
+atr_14,0.042752,8.221033,0.00508989
+delta_divergence,0.04124,4.644869,0.03364747
+vwap_at_retest,0.00674,0.195605,0.65928673
+obi_10_at_retest,0.0,0.068084,0.7947065
+regime,0.0,0.258371,0.61240779

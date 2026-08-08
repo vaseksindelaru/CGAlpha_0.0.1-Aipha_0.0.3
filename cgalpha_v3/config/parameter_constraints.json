@@ -1,0 +1,134 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "Safety Envelope — Physical limits for all evolvable parameters. CodeCraftSage MUST reject any proposal outside these bounds.",
+    "generated_at": "2026-04-26T20:33:00+02:00",
+    "total_parameters": 28
+  },
+
+  "constraints": {
+
+    "TripleCoincidenceDetector": {
+      "volume_percentile_threshold": {
+        "min": 50, "max": 95, "type": "int",
+        "reason": "Below 50 captures noise; above 95 filters everything."
+      },
+      "body_percentage_threshold": {
+        "min": 10, "max": 70, "type": "int",
+        "reason": "Below 10 is a doji-only filter; above 70 includes full-body candles."
+      },
+      "lookback_candles": {
+        "min": 10, "max": 100, "type": "int",
+        "reason": "Must have enough history for percentile but not stale data."
+      },
+      "atr_period": {
+        "min": 5, "max": 50, "type": "int",
+        "reason": "Standard range for ATR calculation."
+      },
+      "atr_multiplier": {
+        "min": 0.5, "max": 5.0, "type": "float",
+        "reason": "Below 0.5 is too tight; above 5.0 includes all noise."
+      },
+      "volume_threshold": {
+        "min": 0.5, "max": 5.0, "type": "float",
+        "reason": "Multiplier on global average volume. Must be positive."
+      },
+      "min_zone_bars": {
+        "min": 2, "max": 20, "type": "int",
+        "reason": "Minimum candles for a valid accumulation zone."
+      },
+      "quality_threshold": {
+        "min": 0.1, "max": 1.0, "type": "float",
+        "reason": "Normalized quality score [0,1]."
+      },
+      "r2_min": {
+        "min": 0.1, "max": 0.95, "type": "float",
+        "reason": "R² threshold for mini-trend. Above 0.95 is overfitting a line."
+      },
+      "min_trend_length": {
+        "min": 3, "max": 30, "type": "int",
+        "reason": "Minimum candles for a valid mini-trend segment."
+      },
+      "zigzag_threshold": {
+        "min": 0.0001, "max": 0.05, "type": "float",
+        "reason": "ZigZag percentage. Too low = noise; too high = no trends."
+      },
+      "proximity_tolerance": {
+        "min": 1, "max": 30, "type": "int",
+        "reason": "Candle distance for spatial coincidence matching."
+      },
+      "retest_timeout_bars": {
+        "min": 10, "max": 200, "type": "int",
+        "reason": "Max wait for retest. Too short misses retests; too long wastes memory."
+      },
+      "outcome_lookahead_bars": {
+        "min": 3, "max": 50, "type": "int",
+        "reason": "Future candles to determine BOUNCE vs BREAKOUT."
+      }
+    },
+
+    "OracleTrainer_v3": {
+      "n_estimators": {
+        "min": 10, "max": 500, "type": "int",
+        "reason": "RandomForest trees. Below 10 underfits; above 500 is diminishing returns."
+      },
+      "max_depth": {
+        "min": 2, "max": 20, "type": "int",
+        "reason": "Tree depth. Above 20 overfits on small datasets."
+      },
+      "min_samples_split": {
+        "min": 2, "max": 20, "type": "int",
+        "reason": "Minimum samples to split a node."
+      },
+      "min_confidence": {
+        "min": 0.5, "max": 0.99, "type": "float",
+        "reason": "Oracle prediction threshold. Below 0.5 is random; above 0.99 filters everything."
+      },
+      "retrain_interval_hours": {
+        "min": 1, "max": 168, "type": "int",
+        "reason": "Hours between retraining. Min 1h to avoid thrashing."
+      }
+    },
+
+    "ShadowTrader": {
+      "max_position_size_pct": {
+        "min": 0.1, "max": 10.0, "type": "float",
+        "reason": "Max position size as % of portfolio. Above 10% is reckless."
+      },
+      "stop_loss_atr_mult": {
+        "min": 0.5, "max": 5.0, "type": "float",
+        "reason": "Stop loss as ATR multiplier."
+      },
+      "take_profit_atr_mult": {
+        "min": 0.5, "max": 10.0, "type": "float",
+        "reason": "Take profit as ATR multiplier."
+      }
+    },
+
+    "RiskManagement": {
+      "max_drawdown_session_pct": {
+        "min": 1.0, "max": 20.0, "type": "float",
+        "reason": "Session drawdown limit. Below 1% triggers too often; above 20% is dangerous."
+      },
+      "max_signals_per_hour": {
+        "min": 1, "max": 50, "type": "int",
+        "reason": "Rate limiting. Prevents runaway signal generation."
+      },
+      "min_signal_quality_score": {
+        "min": 0.3, "max": 0.95, "type": "float",
+        "reason": "Minimum quality to act on a signal."
+      }
+    },
+
+    "AutoProposer": {
+      "drift_threshold": {
+        "min": 0.01, "max": 0.5, "type": "float",
+        "reason": "Minimum drift magnitude to trigger a proposal."
+      },
+      "cooldown_seconds": {
+        "min": 60, "max": 86400, "type": "int",
+        "reason": "Seconds between proposals for the same parameter. Min 1min."
+      }
+    }
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "generated_at": "2026-04-12T01:15:10.289810+00:00",
+  "memory_api": {
+    "api_available": true,
+    "ingested": [
+      {
+        "ok": true,
+        "status_code": 200,
+        "data": {
+          "entry": {
+            "approved_by": "auto",
+            "content": "Oracle RF entrenado: accuracy_oos=1.0000, sharpe_neto_avg=1.1372, feature_importances_top3={'atr_14': 0.0776, 'vwap_at_retest': 0.0758, 'cumulative_delta_at_retest': 0.072}",
+            "created_at": "2026-04-12T01:15:09.855233+00:00",
+            "entry_id": "234f2d09-6c85-4b24-956a-a8b02d3e9fe2",
+            "expires_at": "2026-04-19T01:15:09.855267+00:00",
+            "field": "math",
+            "level": "0b",
+            "source_id": null,
+            "source_type": "secondary",
+            "stale": false,
+            "tags": [
+              "phase1",
+              "oracle",
+              "walk_forward"
+            ]
+          },
+          "snapshot": {
+            "expiring_within_24h": 0,
+            "fields": {
+              "architect": 0,
+              "codigo": 0,
+              "math": 2,
+              "memory_librarian": 8,
+              "trading": 1
+            },
+            "last_regime_shift": null,
+            "levels": {
+              "0a": 0,
+              "0b": 10,
+              "1": 1,
+              "2": 0,
+              "3": 0,
+              "4": 0
+            },
+            "regime_events_count": 0,
+            "stale_entries": 0,
+            "total_entries": 11
+          }
+        },
+        "error": null
+      },
+      {
+        "ok": true,
+        "status_code": 200,
+        "data": {
+          "entry": {
+            "approved_by": "auto",
+            "content": "Walk-Forward validado: 3 ventanas OOS, sharpe_neto_avg=1.1372, max_dd_avg=0.2505%, oracle_accuracy_oos=1.0000",
+            "created_at": "2026-04-12T01:15:09.916111+00:00",
+            "entry_id": "01c1764b-fc5d-456e-9ffd-3339b4eb949c",
+            "expires_at": "2026-04-19T01:15:09.916857+00:00",
+            "field": "trading",
+            "level": "0b",
+            "source_id": null,
+            "source_type": "secondary",
+            "stale": false,
+            "tags": [
+              "phase1",
+              "walk_forward",
+              "oos"
+            ]
+          },
+          "snapshot": {
+            "expiring_within_24h": 0,
+            "fields": {
+              "architect": 0,
+              "codigo": 0,
+              "math": 2,
+              "memory_librarian": 9,
+              "trading": 2
+            },
+            "last_regime_shift": null,
+            "levels": {
+              "0a": 0,
+              "0b": 12,
+              "1": 1,
+              "2": 0,
+              "3": 0,
+              "4": 0
+            },
+            "regime_events_count": 0,
+            "stale_entries": 0,
+            "total_entries": 13
+          }
+        },
+        "error": null
+      }
+    ],
+    "promoted": [
+      {
+        "ok": true,
+        "status_code": 200,
+        "data": {
+          "entry": {
+            "approved_by": "phase1_oracle_training",
+            "content": "Walk-Forward validado: 3 ventanas OOS, sharpe_neto_avg=1.1372, max_dd_avg=0.2505%, oracle_accuracy_oos=1.0000",
+            "created_at": "2026-04-12T01:15:09.916111+00:00",
+            "entry_id": "01c1764b-fc5d-456e-9ffd-3339b4eb949c",
+            "expires_at": "2026-05-12T01:15:09.945840+00:00",
+            "field": "trading",
+            "level": "1",
+            "source_id": null,
+            "source_type": "secondary",
+            "stale": false,
+            "tags": [
+              "phase1",
+              "walk_forward",
+              "oos"
+            ]
+          },
+          "snapshot": {
+            "expiring_within_24h": 0,
+            "fields": {
+              "architect": 0,
+              "codigo": 0,
+              "math": 2,
+              "memory_librarian": 10,
+              "trading": 2
+            },
+            "last_regime_shift": null,
+            "levels": {
+              "0a": 0,
+              "0b": 12,
+              "1": 2,
+              "2": 0,
+              "3": 0,
+              "4": 0
+            },
+            "regime_events_count": 0,
+            "stale_entries": 0,
+            "total_entries": 14
+          }
+        },
+        "error": null
+      }
+    ]
+  },
+  "library_api": {
+    "api_available": true,
+    "search": [
+      {
+        "term": "Meta-Labeling",
+        "ok": true,
+        "count": 1
+      },
+      {
+        "term": "RandomForest trading",
+        "ok": true,
+        "count": 0
+      },
+      {
+        "term": "Walk-Forward validation",
+        "ok": true,
+        "count": 0
+      },
+      {
+        "term": "microstructure features",
+        "ok": true,
+        "count": 0
+      },
+      {
+        "term": "order book imbalance prediction",
+        "ok": true,
+        "count": 0
+      }
+    ],
+    "backlog_created": [
+      {
+        "term": "RandomForest trading",
+        "ok": true,
+        "status_code": 200,
+        "item": "bl-add786a2",
+        "error": null
+      },
+      {
+        "term": "Walk-Forward validation",
+        "ok": true,
+        "status_code": 200,
+        "item": "bl-ba0a360d",
+        "error": null
+      },
+      {
+        "term": "microstructure features",
+        "ok": true,
+        "status_code": 200,
+        "item": "bl-95031a38",
+        "error": null
+      },
+      {
+        "term": "order book imbalance prediction",
+        "ok": true,
+        "status_code": 200,
+        "item": "bl-98fd6bb3",
+        "error": null
+      }
+    ],
+    "canonical_ingested": [
+      {
+        "title": "Advances in Financial Machine Learning - Ch. 3: Meta-Labeling",
+        "ok": true,
+        "status": "already_present"
+      },
+      {
+        "title": "The Volume-Weighted Average Price (VWAP) as a Trading Benchmark",
+        "ok": true,
+        "status": "already_present"
+      },
+      {
+        "title": "The Probability of Backtest Overfitting",
+        "ok": true,
+        "status": "already_present"
+      }
+    ]
+  }
+}

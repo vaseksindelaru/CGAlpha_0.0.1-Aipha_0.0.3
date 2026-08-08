@@ -1,0 +1,36 @@
+{
+  "phase": "0 \u2014 Cosecha y Observabilidad",
+  "strategy": "Triple Coincidence v3",
+  "timestamp": "2026-04-11T22:38:02.180950",
+  "data": {
+    "n_candles": 500,
+    "interval": "1h",
+    "price_range": [
+      49473.13,
+      73688.79
+    ],
+    "regime_distribution": {
+      "HIGH_VOL": 196,
+      "LATERAL": 158,
+      "TREND": 146
+    }
+  },
+  "detection": {
+    "active_zones": 0,
+    "retest_events": 21,
+    "training_samples": 21
+  },
+  "outcomes": {
+    "BOUNCE": 19,
+    "BREAKOUT": 2
+  },
+  "oracle": {
+    "status": "placeholder",
+    "confidence_fixed": 0.85,
+    "next_step": "Implementar RandomForestClassifier con dataset real"
+  },
+  "experiment_runner": {
+    "retests_via_runner": 21,
+    "dataset_via_runner": 21
+  }
+}

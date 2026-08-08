@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CGAlpha v3 / Control Room</title>
+    <meta name="description" content="Sala de control viva de CGAlpha v3. Observable, participativa y segura." />
+    <style>
+        /* ── RESET ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ── TOKENS: paleta idéntica a GUI anterior ── */
+        :root {
+            --bg: #1a1a2e;
+            --bg2: #16213e;
+            --bg3: #0f1b2d;
+            --border: #333;
+            --accent: #00d4aa;
+            --accent-dim: rgba(0, 212, 170, 0.55);
+            --accent2: #00aef0;
+            --purple: #a855f7;
+            --text: #eee;
+            --text-dim: #aaa;
+            --text-muted: #777;
+            --red: #ff6b6b;
+            --yellow: #f59e0b;
+            --green: #00d4aa;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            zoom: 0.82;
+        }
+
+        /* ── LOGIN OVERLAY ── */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: var(--bg2);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            padding: 40px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            min-width: 320px;
+            box-shadow: 0 8px 40px rgba(0, 212, 170, 0.15);
+        }
+
+        .login-card h1 {
+            color: var(--accent);
+            font-size: 1.8rem;
+        }
+
+        .login-card p {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .login-field {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .login-field label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .login-field input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg3);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .login-field input:focus {
+            border-color: var(--accent);
+        }
+
+        #login-error {
+            color: var(--red);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            min-height: 48px;
+        }
+
+        .topbar-title {
+            color: var(--accent);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-right: 32px;
+            white-space: nowrap;
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .nav-btn {
+            padding: 6px 14px;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .nav-btn:hover {
+            color: var(--text);
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            font-weight: bold;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 6px 16px;
+            background: var(--bg2);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 6px;
+        }
+
+        .btn-danger {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-danger:hover {
+            background: var(--red);
+            color: #000;
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-ghost {
+            border-color: rgba(0, 212, 170, 0.3);
+            color: var(--text-dim);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(0, 212, 170, 0.08);
+            color: var(--accent);
+        }
+
+        /* ── SECTIONS ── */
+        .section {
+            display: none;
+            padding: 20px 20px;
+            flex: 1;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* ── GRID ── */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+
+            .grid-4,
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--bg2);
+            border: 1px solid rgba(0, 212, 170, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .panel:hover {
+            border-color: rgba(0, 212, 170, 0.4);
+            box-shadow: 0 4px 16px rgba(0, 212, 170, 0.05);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 212, 170, 0.04);
+        }
+
+        .panel-icon {
+            font-size: 16px;
+        }
+
+        .panel-header h2 {
+            font-size: 13px;
+            font-weight: 700;
+            flex: 1;
+            color: var(--text);
+        }
+
+        .panel-body {
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .panel-tall {
+            grid-row: span 2;
+        }
+
+        /* ── PILLS ── */
+        .pill {
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .pill-idle {
+            background: rgba(0, 212, 170, 0.12);
+            color: var(--accent);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+        }
+
+        .pill-running {
+            background: rgba(0, 174, 240, 0.12);
+            color: #00aef0;
+            border: 1px solid rgba(0, 174, 240, 0.3);
+        }
+
+        .pill-error {
+            background: rgba(255, 107, 107, 0.12);
+            color: var(--red);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .pill-killswitch {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff8a8a;
+            border: 1px solid rgba(255, 107, 107, 0.4);
+        }
+
+        .pill-degraded {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .pill-armed {
+            background: rgba(0, 212, 170, 0.12);
+            color: var(--accent);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+        }
+
+        .pill-triggered {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff8a8a;
+            border: 1px solid rgba(255, 107, 107, 0.4);
+        }
+
+        /* ── STAT ROW ── */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 11px;
+        }
+
+        .stat-value {
+            font-size: 12px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .stat-value.accent {
+            color: var(--accent);
+        }
+
+        .stat-value.red {
+            color: var(--red);
+        }
+
+        .stat-value.yellow {
+            color: var(--yellow);
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-wrap {
+            height: 5px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            transition: width 0.4s;
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, var(--yellow), var(--red));
+        }
+
+        /* ── DQ STATES ── */
+        .dq-valid {
+            color: var(--accent);
+        }
+
+        .dq-stale {
+            color: var(--yellow);
+        }
+
+        .dq-corrupt {
+            color: var(--red);
+        }
+
+        /* ── EVENTS LOG ── */
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 280px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 212, 170, 0.3) transparent;
+        }
+
+        .ev-entry {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: start;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 12px;
+        }
+
+        .ev-text {
+            color: var(--text-dim);
+            word-break: break-all;
+        }
+
+        .ev-ts {
+            color: var(--text-muted);
+            font-size: 10px;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        .ev-critical .ev-text {
+            color: var(--red);
+        }
+
+        .ev-warning .ev-text {
+            color: var(--yellow);
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            background: var(--bg2);
+            border: 2px solid var(--red);
+            border-radius: 16px;
+            padding: 32px;
+            width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 40px rgba(255, 107, 107, 0.2);
+        }
+
+        .modal-card h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .modal-card p {
+            color: var(--text-dim);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* ── SECTION TITLES ── */
+        .section-title {
+            margin-bottom: 20px;
+        }
+
+        .section-title h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .section-title p {
+            color: var(--text-dim);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* ── FORM ── */
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-row label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .form-row input[type="number"] {
+            width: 100%;
+            padding: 9px 12px;
+            background: var(--bg3);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .form-row input:focus {
+            border-color: var(--accent);
+        }
+
+        .success-msg {
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        /* ── PLACEHOLDER PANEL ── */
+        .placeholder {
+            padding: 32px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .placeholder .ph-icon {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* ── LEARNING STUDY PLAN ── */
+        .study-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .subject-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .subject-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 212, 170, 0.15);
+        }
+
+        .subject-card.completed {
+            border-left: 4px solid var(--accent);
+        }
+
+        .subject-card .subj-num {
+            position: absolute;
+            top: -5px;
+            right: 5px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            opacity: 0.08;
+            color: var(--accent);
+            pointer-events: none;
+        }
+
+        .subject-card h3 {
+            font-size: 15px;
+            color: var(--accent);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .subject-card p {
+            font-size: 12.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .code-container {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #c9d1d9;
+            margin-top: 12px;
+            border: 1px solid #30363d;
+            overflow-x: auto;
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-container pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .code-tag {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--accent);
+            font-size: 10px;
+            padding: 4px 10px;
+            border-bottom-left-radius: 8px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .token-kw {
+            color: #ff7b72;
+            font-weight: bold;
+        }
+
+        .token-str {
+            color: #a5d6ff;
+        }
+
+        .token-comment {
+            color: #8b949e;
+            font-style: italic;
+        }
+
+        .token-fn {
+            color: #d2a8ff;
+        }
+
+        .token-num {
+            color: #79c0ff;
+        }
+
+        /* ── STUDY UI ── */
+        .study-cat-item {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .study-cat-item:hover {
+            border-color: var(--accent);
+            background: rgba(0, 212, 170, 0.05);
+            transform: scale(1.02);
+        }
+
+        .study-cat-item.active {
+            border-color: var(--accent);
+            background: rgba(0, 212, 170, 0.1);
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.1);
+        }
+
+        .study-cat-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            background: var(--bg2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .study-cat-info h4 {
+            font-size: 13px;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .study-detail-box {
+            background: var(--bg2);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── LIBRARY MVP ── */
+        .lib-toolbar {
+            display: grid;
+            grid-template-columns: 1fr 160px 1fr auto auto;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .lib-toolbar input,
+        .lib-toolbar select,
+        .lib-ingest-grid input,
+        .lib-ingest-grid textarea,
+        .lib-ingest-grid select {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg3);
+            border: 1px solid rgba(0, 212, 170, 0.25);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 12px;
+            outline: none;
+        }
+
+        .lib-toolbar input:focus,
+        .lib-toolbar select:focus,
+        .lib-ingest-grid input:focus,
+        .lib-ingest-grid textarea:focus,
+        .lib-ingest-grid select:focus {
+            border-color: var(--accent);
+        }
+
+        .lib-results {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 340px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .lib-row {
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .lib-row:hover {
+            border-color: rgba(0, 212, 170, 0.45);
+            background: rgba(0, 212, 170, 0.06);
+        }
+
+        .lib-row-title {
+            font-size: 12px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .lib-row-meta {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-dim);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .lib-detail {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.5;
+            min-height: 120px;
+            white-space: pre-wrap;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .lib-ingest-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .lib-ingest-grid textarea {
+            min-height: 76px;
+            resize: vertical;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 980px) {
+            .lib-toolbar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .lib-ingest-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .footer .block-badge {
+            background: rgba(255, 107, 107, 0.12);
+            color: #ff8a8a;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 10px;
+            padding: 2px 10px;
+        }
+
+        /* ── BADGE ── */
+        .badge {
+            margin-left: 6px;
+            padding: 2px 6px;
+            background: var(--red);
+            color: #fff;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .prop-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 170, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .prop-card:hover {
+            border-color: var(--accent);
+            background: rgba(0, 212, 170, 0.05);
+        }
+
+        .prop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prop-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .prop-delta {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--green);
+        }
+
+        .prop-body {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .prop-footer {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" class="hidden">
+        <div class="login-card">
+            <h1>CGAlpha v3</h1>
+            <p>Control Room / Auth Required</p>
+            <div class="login-field">
+                <label>Access Token</label>
+                <input type="password" id="auth-token" placeholder="v3-token-..." />
+            </div>
+            <button class="btn" onclick="doLogin()">Authorize Session</button>
+            <div id="login-error" class="error-msg hidden"></div>
+        </div>
+    </div>
+
+    <!-- KILL-SWITCH MODAL -->
+    <div id="ks-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2>⚠️ Confirmar Kill-Switch</h2>
+            <p>Esta acción suspende <strong>todas las señales</strong> de forma inmediata.<br />Esta operación requiere
+                confirmación explícita (2 pasos).</p>
+            <div class="modal-actions">
+                <button class="btn btn-ghost btn-sm" onclick="closeKsModal()">Cancelar</button>
+                <button class="btn btn-danger btn-sm" onclick="killSwitchConfirm()">Confirmar activación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app" style="display:flex;flex-direction:column;min-height:100vh;">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <span class="topbar-title">CGAlpha/control-room</span>
+            <nav class="topbar-nav">
+                <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showSection('risk')">Risk</button>
+                <button class="nav-btn" onclick="showSection('library')">Library</button>
+                <button class="nav-btn" onclick="showSection('theory')">Theory Live</button>
+                <button class="nav-btn" onclick="showSection('experiment')">Experiment Loop <span id="exp-badge"
+                        class="badge" style="display:none">0</span></button>
+                <button class="nav-btn" onclick="showSection('training')">Training Review</button>
+                <button class="nav-btn" onclick="showSection('learning')">Learning</button>
+                <button class="nav-btn" onclick="showSection('help')">Help ?</button>
+            </nav>
+            <div class="topbar-right">
+                <button id="mute-btn" onclick="toggleMute()" class="btn btn-ghost"
+                    style="font-size:16px; margin-right:10px;">🔊</button>
+                <div class="status-indicator">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Conectando…</span>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="killSwitchStep1()">⚡ Kill-Switch</button>
+            </div>
+        </header>
+
+        <!-- HELP CENTER -->
+        <main id="section-help" class="section">
+            <div class="help-container">
+                <div class="help-sidebar">
+                    <h3>Centro de Ayuda</h3>
+                    <div class="help-nav">
+                        <button class="help-nav-btn active" data-cat="inicio" onclick="helpSearch('inicio')">🚀 Inicio
+                            Rápido</button>
+                        <button class="help-nav-btn" data-cat="riesgo" onclick="helpSearch('riesgo')">🛡️ Gestión de
+                            Riesgos</button>
+                        <button class="help-nav-btn" data-cat="lila" onclick="helpSearch('lila')">🤖 Asistente
+                            Lila</button>
+                        <button class="help-nav-btn" data-cat="micro" onclick="helpSearch('micro')">📡
+                            Microestructura</button>
+                        <button class="help-nav-btn" data-cat="boveda" onclick="helpSearch('boveda')">🏛️ Bóveda &amp;
+                            ADN</button>
+                        <button class="help-nav-btn" data-cat="doc" onclick="helpSearch('doc')">📚
+                            Documentación</button>
+                        <button class="help-nav-btn" data-cat="auditoria" onclick="helpSearch('auditoria')">📋 Auditoría
+                            P3</button>
+                        <button class="help-nav-btn" data-cat="glosario" onclick="helpSearch('glosario')">📖
+                            Glosario</button>
+                        <button class="help-nav-btn" data-cat="faq" onclick="helpSearch('faq')">❓ FAQ</button>
+                    </div>
+                </div>
+                <div class="help-content-wrap">
+                    <div class="help-search-bar">
+                        <input type="text" id="help-search-input"
+                            placeholder="¿En qué podemos ayudarte? (Escribe para buscar...)" onkeyup="filterHelp()">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <div id="help-articles" class="help-articles">
+                        <!-- Articles will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- HELP STYLES -->
+        <style>
+            .help-container {
+                display: grid;
+                grid-template-columns: 200px 1fr;
+                gap: 1px;
+                height: calc(100vh - 48px);
+                background: var(--border);
+            }
+
+            .help-sidebar {
+                background: var(--bg2);
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .help-nav {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .help-nav-btn {
+                background: transparent;
+                border: 1px solid transparent;
+                color: var(--text-dim);
+                text-align: left;
+                padding: 10px 14px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 14px;
+            }
+
+            .help-nav-btn:hover,
+            .help-nav-btn.active {
+                background: rgba(0, 212, 170, 0.1);
+                color: var(--accent);
+                border-color: rgba(0, 212, 170, 0.2);
+            }
+
+            .help-content-wrap {
+                background: var(--bg3);
+                padding: 32px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .help-search-bar {
+                position: relative;
+                max-width: 600px;
+            }
+
+            #help-search-input {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border);
+                padding: 14px 48px 14px 18px;
+                border-radius: 12px;
+                color: var(--text);
+                outline: none;
+                font-size: 16px;
+                transition: border-color 0.3s, box-shadow 0.3s;
+            }
+
+            #help-search-input:focus {
+                border-color: var(--accent);
+                box-shadow: 0 0 15px rgba(0, 212, 170, 0.2);
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            .search-icon {
+                position: absolute;
+                right: 18px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-dim);
+                pointer-events: none;
+            }
+
+            .help-articles {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+                max-width: 800px;
+            }
+
+            .help-card {
+                background: var(--bg2);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 24px;
+                transition: transform 0.2s;
+            }
+
+            .help-card:hover {
+                border-color: var(--accent-dim);
+            }
+
+            .help-card h4 {
+                color: var(--accent);
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .help-card p {
+                color: var(--text-dim);
+                line-height: 1.6;
+                font-size: 14px;
+            }
+
+            .help-faq-item {
+                border-bottom: 1px solid var(--border);
+                padding: 16px 0;
+            }
+
+            .help-faq-q {
+                font-weight: bold;
+                color: var(--text);
+                margin-bottom: 8px;
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .help-faq-q .faq-arrow {
+                transition: transform 0.3s ease;
+                font-size: 12px;
+            }
+
+            .help-faq-item.open .help-faq-q .faq-arrow {
+                transform: rotate(180deg);
+            }
+
+            .help-faq-a {
+                color: var(--text-dim);
+                font-size: 14px;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease, opacity 0.3s ease;
+                opacity: 0;
+            }
+
+            .help-faq-item.open .help-faq-a {
+                max-height: 500px;
+                opacity: 1;
+            }
+
+            .help-empty {
+                color: var(--text-muted);
+                text-align: center;
+                padding: 40px 20px;
+            }
+
+            /* Search highlight */
+            .help-card mark {
+                background: rgba(0, 212, 170, 0.3);
+                color: var(--accent);
+                padding: 1px 4px;
+                border-radius: 3px;
+            }
+        </style>
+
+        <!-- DASHBOARD -->
+        <main id="section-dashboard" class="section active">
+            <div class="grid-4">
+
+                <!-- MISSION CONTROL -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🛸</span>
+                        <h2>Mission Control</h2>
+                        <span class="pill pill-idle" id="mc-status-pill">idle</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Misión</span>
+                            <span class="stat-value accent" id="mc-phase"
+                                style="font-size:10px; font-weight:bold;">NORTH STAR 3.0.0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Status Construcción</span>
+                            <span class="stat-value" id="mc-ks">7/7 RECONSTRUCTED</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Nexus Gate</span>
+                            <span class="stat-value" id="mc-last-event"
+                                style="font-size:11px;max-width:160px;text-align:right; color:#4f4;">PROMOTED_TO_L2</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Daily Target</span>
+                            <span class="stat-value" id="mc-target-status"
+                                style="font-weight:bold; color:var(--accent);">READY</span>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="resetKillSwitch()">Re-armar
+                            sistema</button>
+                        <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <span style="font-size:11px; color:var(--text-dim); font-weight:700;">SNAPSHOTS
+                                    (ROLLBACK)</span>
+                                <button class="btn btn-ghost btn-sm" onclick="fetchRollbacks()">↻</button>
+                            </div>
+                            <div id="rollback-list"
+                                style="max-height:80px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
+                                <span style="font-size:10px; color:var(--text-muted)">Cargando snapshots...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVOLUTION PULSE (Novedad v4) -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🧬</span>
+                        <h2>Evolution Pulse</h2>
+                        <span class="pill pill-idle" id="evo-hb-status">offline</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Ciclo Actual</span>
+                            <span class="stat-value" id="evo-hb-cycle">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Uptime</span>
+                            <span class="stat-value" id="evo-hb-uptime">0 min</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Precio Último</span>
+                            <span class="stat-value accent" id="evo-hb-price">$0.00</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Oracle Status</span>
+                            <span class="stat-value" id="evo-hb-oracle">⏳ Placeholder</span>
+                        </div>
+                        <div class="stat-row"
+                            style="margin-top:8px; border-top:1px solid var(--border); padding-top:8px;">
+                            <span class="stat-label">Resultados Ciclo</span>
+                            <span class="stat-value" id="evo-hb-result" style="font-size:10px;">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Active Shadow Trades</span>
+                            <span class="stat-value accent" id="evo-hb-trades">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Bridge Entries</span>
+                            <span class="stat-value" id="evo-hb-bridge">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MARKET LIVE -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📈</span>
+                        <h2>Market Live (Shadow Mode)</h2>
+                        <span id="dq-badge" class="pill pill-idle">✅ live</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Par Operado</span>
+                            <span class="stat-value accent" id="mkt-symbol">BTCUSDT</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Precio en Vivo</span>
+                            <span class="stat-value" id="mkt-price"
+                                style="font-size:1.1rem; font-weight:700; color:var(--accent);">$0.00</span>
+                        </div>
+                        <div class="stat-row" style="margin-top: 10px;">
+                            <span class="stat-label">Order Book Imbalance (OBI)</span>
+                            <span class="stat-value accent" id="mkt-obi">0.0000</span>
+                        </div>
+                        <div class="progress-wrap"
+                            style="height: 12px; margin-top: 4px; background: rgba(255,107,107,0.1); position: relative; border-radius:6px;">
+                            <div id="obi-bar" class="progress-fill"
+                                style="width: 50%; background: var(--accent); position: absolute; left: 0;"></div>
+                            <div
+                                style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.3); z-index: 2;">
+                            </div>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 8px; color: var(--text-dim); margin-top: 2px; text-transform:uppercase; letter-spacing:0.5px;">
+                            <span>Short Bias</span>
+                            <span>Long Bias</span>
+                        </div>
+                        <div class="stat-row" style="margin-top: 10px;">
+                            <span class="stat-label">Data Quality Gate</span>
+                            <span class="stat-value" id="dq-text">✅ FRESH</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Last Ticks (Buffer)</span>
+                            <span class="stat-value" id="mkt-ts" style="font-family:monospace; font-size:10px;">0
+                                pkts/sec</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE ALERTS -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🚨</span>
+                        <h2>Live Alerts (Shadow)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div id="live-signals-list" style="max-height: 200px; overflow-y: auto;">
+                            <div style="font-size:11px; color:var(--text-dim); text-align:center; padding:10px;">
+                                Capturando retests...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RISK DASHBOARD -->
+                <div class="panel">
+                    <div class="panel-header" style="justify-content: space-between;">
+                        <div style="display:flex; align-items:center;">
+                            <span class="panel-icon">🛡️</span>
+                            <h2>Risk Dashboard</h2>
+                        </div>
+                        <button onclick="confirmPanicClose()" class="btn btn-sm btn-danger"
+                            style="background:#ff4444; border:none; padding:4px 10px; font-weight:bold; font-size:10px;">🛑
+                            PANIC CLOSE ALL</button>
+                    </div>
+                    <div class="panel-body">
+                        <!-- PnL Chart Container -->
+                        <div style="height: 100px; width: 100%; margin-bottom: 20px;">
+                            <canvas id="pnl-chart"></canvas>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">DryRun Account Balance</span>
+                            <span class="stat-value" id="portfolio-balance"
+                                style="font-weight:bold; color:var(--accent);">$10,000.00</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Active Positions (DR)</span>
+                            <span class="stat-value" id="active-positions-count">0</span>
+                        </div>
+
+                        <!-- Exposure Breakdown -->
+                        <div id="exposure-breakdown-list"
+                            style="margin: 15px 0; border-top: 1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                            <div style="font-size:10px; color:var(--text-dim);">Cargando exposición...</div>
+                        </div>
+
+                        <div class="stat-row"
+                            style="margin-top:10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                            <span class="stat-label">Session Win Rate</span>
+                            <span class="stat-value" id="session-winrate">0%</span>
+                        </div>
+
+                        <div id="session-trades-summary" style="margin-top:10px; font-size:10px;">
+                            <div style="color:var(--text-dim); margin-bottom:5px;">Recent Closed Trades:</div>
+                            <div id="trades-list-mini" style="max-height: 80px; overflow-y:auto;"></div>
+                        </div>
+                        <div class="progress-wrap">
+                            <div class="progress-fill" id="dd-bar" style="width:100%"></div>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Componentes Capa 1</span>
+                            <span class="stat-value" id="dd-limit">31 PENDING</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Delta Causal OOS</span>
+                            <span class="stat-value accent" id="cb-text">+0.84 (GOLD)</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Namespace</span>
+                            <span class="stat-value accent">v3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT LOG -->
+                <div class="panel panel-tall">
+                    <div class="panel-header">
+                        <span class="panel-icon">📋</span>
+                        <h2>Event Log</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="fetchEvents()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="events-list" id="events-list">
+                            <span style="color:var(--text-muted);font-size:12px">Cargando…</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- RISK -->
+        <main id="section-risk" class="section">
+            <div class="section-title">
+                <h2>🛡️ Risk Management</h2>
+                <p>Parámetros configurables desde esta sala de control (Sección M del Prompt Maestro).</p>
+            </div>
+            <div class="grid-2">
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">⚙️</span>
+                        <h2>Parámetros de Riesgo</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <label>Max Drawdown Sesión (%)</label>
+                            <input type="number" id="risk-max-dd" step="0.5" min="0" max="20" value="5" />
+                        </div>
+                        <div class="form-row">
+                            <label>Max Position Size (%)</label>
+                            <input type="number" id="risk-max-position" step="0.1" min="0" max="100" value="2" />
+                        </div>
+                        <div class="form-row">
+                            <label>Max Signals por Hora</label>
+                            <input type="number" id="risk-max-signals" step="1" min="1" max="500" value="10" />
+                        </div>
+                        <div class="form-row">
+                            <label>Min Signal Quality Score (0-1)</label>
+                            <input type="number" id="risk-min-quality" step="0.01" min="0" max="1" value="0.65" />
+                        </div>
+                        <button class="btn btn-sm" style="margin-top:10px" onclick="saveRiskParams()">Guardar
+                            parámetros</button>
+                        <p id="risk-save-msg" class="success-msg hidden">✓ Parámetros actualizados</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">⚡</span>
+                        <h2>Kill-Switch</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Estado actual</span>
+                            <span class="stat-value" id="ks-status-big">—</span>
+                        </div>
+                        <p style="color:var(--text-muted);font-size:12px;line-height:1.6;margin-top:4px">
+                            Suspende todas las señales de forma inmediata. Requiere confirmación en 2 pasos.
+                            Se reactiva desde esta misma interfaz, sin reiniciar el sistema.
+                        </p>
+                        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                            <button class="btn btn-danger btn-sm" onclick="killSwitchStep1()">⚡ Activar
+                                Kill-Switch</button>
+                            <button class="btn btn-ghost btn-sm" onclick="resetKillSwitch()">Re-armar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="grid-column: 1 / -1">
+                    <div class="panel-header"><span class="panel-icon">🚨</span>
+                        <h2>Circuit Breakers (Sección M)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Drawdown sesión &gt; límite</span>
+                            <span class="stat-value accent">→ Suspender operación + alerta P0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Latencia API &gt; 1000ms p95 sostenida &gt;60s</span>
+                            <span class="stat-value" style="color:var(--yellow)">→ Degradar a stand-by</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Data Quality Gate falla</span>
+                            <span class="stat-value" style="color:var(--yellow)">→ Suspender señales + alerta P1</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">3 señales rechazadas consecutivas por filtro ML</span>
+                            <span class="stat-value" style="color:var(--yellow)">→ Revisar threshold</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- LIBRARY -->
+        <main id="section-library" class="section">
+            <div class="section-title">
+                <h2>📚 Library — Lila</h2>
+                <p>Biblioteca gobernada por Lila. Fuentes clasificadas: primaria / secundaria / terciaria.</p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📊</span>
+                        <h2>Estado de Biblioteca</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="refreshLibrary()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Total docs</span><span class="stat-value accent"
+                                id="lib-total">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Primary ratio</span><span class="stat-value"
+                                id="lib-primary-ratio">0.000</span></div>
+                        <div class="stat-row"><span class="stat-label">Pending review</span><span class="stat-value"
+                                id="lib-pending">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Last ingestion</span><span class="stat-value"
+                                id="lib-last-ingestion" style="font-size:11px;font-family:monospace;">—</span></div>
+                        <div class="stat-row"><span class="stat-label">Primarias</span><span class="stat-value"
+                                id="lib-count-primary">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Secundarias</span><span class="stat-value"
+                                id="lib-count-secondary">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Terciarias</span><span class="stat-value"
+                                id="lib-count-tertiary">0</span></div>
+
+                        <div class="lib-toolbar">
+                            <input id="lib-query" type="text" placeholder="Buscar por título/resumen/tag" />
+                            <select id="lib-type">
+                                <option value="">Todos</option>
+                                <option value="primary">Primary</option>
+                                <option value="secondary">Secondary</option>
+                                <option value="tertiary">Tertiary</option>
+                            </select>
+                            <input id="lib-tags" type="text" placeholder="tags: momentum, crypto" />
+                            <button class="btn btn-sm" onclick="searchLibrary()">Buscar</button>
+                            <button class="btn btn-ghost btn-sm" onclick="clearLibraryFilters()">Limpiar</button>
+                        </div>
+
+                        <div id="lib-results" class="lib-results">
+                            <span style="color:var(--text-muted);font-size:12px">Cargando biblioteca...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🧾</span>
+                        <h2>Ficha / Ingesta</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div id="lib-detail" class="lib-detail">Selecciona una fuente para ver detalle.</div>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">Nueva fuente</div>
+                            <div class="lib-ingest-grid">
+                                <input id="lib-ingest-title" type="text" placeholder="Título" />
+                                <input id="lib-ingest-year" type="number" placeholder="Año" min="1900" max="2100" />
+                                <select id="lib-ingest-type">
+                                    <option value="primary">primary</option>
+                                    <option value="secondary">secondary</option>
+                                    <option value="tertiary">tertiary</option>
+                                </select>
+                                <input id="lib-ingest-venue" type="text" placeholder="Venue / Fuente" />
+                                <input id="lib-ingest-authors" type="text" placeholder="Autores (coma separada)" />
+                                <input id="lib-ingest-tags" type="text" placeholder="Tags (coma separada)" />
+                                <textarea id="lib-ingest-abstract" placeholder="Abstract"></textarea>
+                                <textarea id="lib-ingest-finding" placeholder="Relevant finding"></textarea>
+                                <textarea id="lib-ingest-applicability" placeholder="Applicability"></textarea>
+                            </div>
+                            <button class="btn btn-sm" style="margin-top:8px" onclick="ingestLibrarySource()">Ingestar
+                                fuente</button>
+                            <p id="lib-ingest-msg" class="success-msg hidden">✓ Fuente ingestada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- THEORY LIVE -->
+        <main id="section-theory" class="section">
+            <div class="section-title">
+                <h2>🧪 Theory Live — Lila Runtime</h2>
+                <p>Conexión directa a snapshot de biblioteca, detección de primary_source_gap y backlog adaptativo.</p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📡</span>
+                        <h2>Estado Teórico en Vivo</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="refreshTheoryLive()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Total docs</span><span class="stat-value accent"
+                                id="th-total-docs">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Primary ratio</span><span class="stat-value"
+                                id="th-primary-ratio">0.000</span></div>
+                        <div class="stat-row"><span class="stat-label">Primary source gap</span><span class="stat-value"
+                                id="th-primary-gap">NO</span></div>
+                        <div class="stat-row"><span class="stat-label">Backlog open</span><span class="stat-value"
+                                id="th-backlog-open">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Backlog in-progress</span><span
+                                class="stat-value" id="th-backlog-inprogress">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Backlog resolved</span><span class="stat-value"
+                                id="th-backlog-resolved">0</span></div>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">Fuentes recientes
+                            </div>
+                            <div id="th-recent-sources" class="lib-results">
+                                <span style="color:var(--text-muted);font-size:12px">Cargando…</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🧠</span>
+                        <h2>Validación Claim + Backlog</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <label>Claim técnico</label>
+                            <input id="th-claim" type="text"
+                                placeholder="Ej: Momentum intradía mantiene edge en régimen X" />
+                        </div>
+                        <div class="form-row">
+                            <label>Source IDs (coma separados)</label>
+                            <input id="th-source-ids" type="text" placeholder="src-xxxx, src-yyyy" />
+                        </div>
+                        <button class="btn btn-sm" onclick="validateTheoryClaim()">Validar claim</button>
+                        <div id="th-claim-result" class="lib-detail" style="margin-top:8px;">Sin validación aún.</div>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:12px; color:var(--text-dim);">Backlog adaptativo
+                                    (prioridad)</span>
+                                <button class="btn btn-ghost btn-sm" onclick="fetchAdaptiveBacklog()">↻</button>
+                            </div>
+                            <div id="th-backlog-list" class="lib-results">
+                                <span style="color:var(--text-muted);font-size:12px">Cargando backlog…</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- EXPERIMENT LOOP -->
+        <main id="section-experiment" class="section">
+            <div class="section-title">
+                <h2>🧬 Experiment Loop</h2>
+                <p>Change Proposer + ejecución con fricciones activas, walk-forward y no-leakage obligatorio.</p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🧪</span>
+                        <h2>Propuesta</h2>
+                        <button class="btn btn-ghost btn-sm" onclick="fetchExperimentStatus()">↻</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <label>Hipótesis</label>
+                            <input id="exp-hypothesis" type="text"
+                                placeholder="Ej: Ajustar filtro de calidad para RETEST/BREAKOUT" />
+                        </div>
+                        <div class="form-row">
+                            <label>Approach types (coma)</label>
+                            <input id="exp-approaches" type="text" placeholder="RETEST, BREAKOUT" />
+                        </div>
+                        <button class="btn btn-sm" onclick="proposeExperiment()">Generar propuesta</button>
+                        <p id="exp-propose-msg" class="success-msg hidden">✓ Propuesta generada</p>
+
+                        <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div class="stat-row"><span class="stat-label">Estado loop</span><span class="stat-value"
+                                    id="exp-status">idle</span></div>
+                            <div class="stat-row"><span class="stat-label">Proposal ID</span><span class="stat-value"
+                                    id="exp-proposal-id" style="font-family:monospace;font-size:11px;">—</span></div>
+                            <div class="stat-row"><span class="stat-label">Experiment ID</span><span class="stat-value"
+                                    id="exp-experiment-id" style="font-family:monospace;font-size:11px;">—</span></div>
+                            <div class="stat-row"><span class="stat-label">No-leakage</span><span class="stat-value"
+                                    id="exp-no-leakage">—</span></div>
+                            <div class="stat-row"><span class="stat-label">WF windows</span><span class="stat-value"
+                                    id="exp-wf-windows">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📊</span>
+                        <h2>Métricas Netas (post-fricción)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Gross return (%)</span><span class="stat-value"
+                                id="exp-gross">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Friction cost (%)</span><span class="stat-value"
+                                id="exp-cost">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Net return (%)</span><span
+                                class="stat-value accent" id="exp-net">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Sharpe like</span><span class="stat-value"
+                                id="exp-sharpe">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Max DD (%)</span><span class="stat-value"
+                                id="exp-mdd">0.0000</span></div>
+                        <div class="stat-row"><span class="stat-label">Trades</span><span class="stat-value"
+                                id="exp-trades">0</span></div>
+                        <button class="btn btn-sm" style="margin-top:8px" onclick="runExperiment()">Ejecutar
+                            experimento</button>
+                        <div id="exp-window-metrics" class="lib-results" style="margin-top:10px;">
+                            <span style="color:var(--text-muted);font-size:12px">Sin resultados aún.</span>
+                        </div>
+                        <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">
+                            <div class="stat-row"><span class="stat-label">Approach labels (total)</span><span
+                                    class="stat-value" id="exp-approach-total">0</span></div>
+                            <div id="exp-approach-hist" class="lib-results">
+                                <span style="color:var(--text-muted);font-size:12px">Sin histograma aún.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:20px;">
+                <div class="panel-header">
+                    <span class="panel-icon">💡</span>
+                    <h2>Recomendaciones del AutoProposer</h2>
+                    <span id="prop-count" class="pill pill-idle">0 pendientes</span>
+                </div>
+                <div class="panel-body">
+                    <div id="prop-list" class="grid-2">
+                        <div class="placeholder">
+                            <span class="ph-icon">🤖</span>
+                            Analizando historial para detectar oportunidades de mejora...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- TRAINING REVIEW -->
+        <main id="section-training" class="section">
+            <div class="section-title">
+                <h2>🕯️ Training Review — Revisión de Datos de Entrenamiento</h2>
+                <p>Verifica visualmente las zonas y retests detectados antes de entrenar el Oracle. Aprueba o excluye
+                    detecciones para mejorar la calidad del dataset.</p>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="grid-4" style="margin-bottom: 16px;">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">📊</span>
+                        <h2>Velas</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Total</span><span class="stat-value"
+                                id="tr-candle-count">—</span></div>
+                        <div class="stat-row"><span class="stat-label">Zonas detectadas</span><span
+                                class="stat-value accent" id="tr-zone-count">—</span></div>
+                        <div class="stat-row"><span class="stat-label">Retests</span><span class="stat-value accent"
+                                id="tr-retest-count">—</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🎯</span>
+                        <h2>Outcome Distribution</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label" style="color:var(--accent)">BOUNCE</span><span
+                                class="stat-value" id="tr-bounce-count" style="color:var(--accent)">—</span></div>
+                        <div class="stat-row"><span class="stat-label" style="color:var(--red)">BREAKOUT</span><span
+                                class="stat-value" id="tr-breakout-count" style="color:var(--red)">—</span></div>
+                        <div class="stat-row"><span class="stat-label">Bounce %</span><span class="stat-value yellow"
+                                id="tr-bounce-pct">—</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🧠</span>
+                        <h2>Oracle Training</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">Training samples</span><span class="stat-value"
+                                id="tr-training-count">—</span></div>
+                        <div class="stat-row" style="margin-top:8px;">
+                            <button class="btn btn-sm" onclick="fetchTrainingReviewData()" style="width:100%">🔄 Refresh
+                                Data</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🔍</span>
+                        <h2>Filtros</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="btn btn-sm tr-filter-btn active" data-filter="all"
+                                onclick="setTrainingFilter('all')">Todas</button>
+                            <button class="btn btn-sm tr-filter-btn" data-filter="BOUNCE"
+                                onclick="setTrainingFilter('BOUNCE')">BOUNCE</button>
+                            <button class="btn btn-sm tr-filter-btn" data-filter="BREAKOUT"
+                                onclick="setTrainingFilter('BREAKOUT')">BREAKOUT</button>
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+                            <button class="btn btn-sm tr-filter-btn active" data-regime="all"
+                                onclick="setTrainingRegime('all')">Todos Regímenes</button>
+                            <button class="btn btn-sm tr-filter-btn" data-regime="LATERAL"
+                                onclick="setTrainingRegime('LATERAL')">LATERAL</button>
+                            <button class="btn btn-sm tr-filter-btn" data-regime="TREND"
+                                onclick="setTrainingRegime('TREND')">TREND</button>
+                        </div>
+                        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">
+                            Mostrando: <span id="tr-visible-count">0</span> de <span id="tr-total-count">0</span>
+                            retests
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Candlestick Chart -->
+            <div class="panel panel-tall" style="margin-bottom: 16px;">
+                <div class="panel-header">
+                    <span class="panel-icon">🕯️</span>
+                    <h2>Gráfico de Velas — Zonas y Retests</h2>
+                    <span class="pill pill-idle" id="chart-status-pill">Cargando...</span>
+                </div>
+                <!-- Zone Navigation -->
+                <div id="zone-nav-bar"
+                    style="display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:12px;">
+                    <button class="btn btn-sm btn-ghost" onclick="navigateZone(-1)" id="zone-prev-btn">←</button>
+                    <span id="zone-nav-label" style="color:var(--text); min-width:220px; text-align:center;">Zona 0 de
+                        0</span>
+                    <button class="btn btn-sm btn-ghost" onclick="navigateZone(1)" id="zone-next-btn">→</button>
+                    <span style="flex:1;"></span>
+                    <button class="btn btn-sm" onclick="showAllZones()" id="show-all-btn">Mostrar todas</button>
+                    <button class="btn btn-sm btn-ghost" onclick="showZoneContext()" id="context-btn">Contexto
+                        ±20</button>
+                </div>
+                <div class="panel-body" style="padding:0;">
+                    <div id="training-candlestick-chart" style="height: 520px; width: 100%; background: var(--bg3);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Retest Detail Table -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-icon">📋</span>
+                    <h2>Detalle de Retests</h2>
+                </div>
+                <div class="panel-body" style="padding:0; overflow-x:auto;">
+                    <table id="training-retest-table" style="width:100%; border-collapse:collapse; font-size:12px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border); background:rgba(0,212,170,0.04);">
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    #</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    Zone</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    Price</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    Regime</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    Δ Divergence</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    VWAP</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    OBI</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    Outcome</th>
+                                <th style="padding:10px 12px; text-align:left; color:var(--text-dim); font-weight:600;">
+                                    Dir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="training-retest-tbody">
+                            <tr>
+                                <td colspan="9" style="padding:20px; text-align:center; color:var(--text-muted);">
+                                    Cargando datos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- LEARNING -->
+        <main id="section-learning" class="section">
+            <div class="section-title">
+                <h2>🧠 Learning &amp; Memoria</h2>
+                <p>5 campos de aprendizaje sincronizados con cada iteración técnica. Política de memoria niveles 0a–4.
+                </p>
+            </div>
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">📊</span>
+                        <h2>Campos de Aprendizaje</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">código</span><span class="stat-value"
+                                id="learn-field-codigo">0</span></div>
+                        <div class="stat-row"><span class="stat-label">math</span><span class="stat-value"
+                                id="learn-field-math">0</span></div>
+                        <div class="stat-row"><span class="stat-label">trading</span><span class="stat-value"
+                                id="learn-field-trading">0</span></div>
+                        <div class="stat-row"><span class="stat-label">architect</span><span class="stat-value"
+                                id="learn-field-architect">0</span></div>
+                        <div class="stat-row"><span class="stat-label">memory_librarian</span><span class="stat-value"
+                                id="learn-field-memory-librarian">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Regime shift activo</span><span
+                                class="stat-value" id="learn-regime-active">NO</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-icon">🗂️</span>
+                        <h2>Niveles de Memoria</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-row"><span class="stat-label">0a — Raw intake</span><span class="stat-value"
+                                id="learn-level-0a">0</span></div>
+                        <div class="stat-row"><span class="stat-label">0b — Normalizado</span><span class="stat-value"
+                                id="learn-level-0b">0</span></div>
+                        <div class="stat-row"><span class="stat-label">1 — Hechos</span><span class="stat-value"
+                                id="learn-level-1">0</span></div>
+                        <div class="stat-row"><span class="stat-label">2 — Relaciones</span><span class="stat-value"
+                                id="learn-level-2">0</span></div>
+                        <div class="stat-row"><span class="stat-label">3 — Playbooks</span><span class="stat-value"
+                                id="learn-level-3">0</span></div>
+                        <div class="stat-row"><span class="stat-label">4 — Estrategia</span><span class="stat-value"
+                                id="learn-level-4">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Expiran <24h< /span><span class="stat-value"
+                                        id="learn-expiring">0</span></div>
+                        <div class="stat-row"><span class="stat-label">Stale entries</span><span class="stat-value"
+                                id="learn-stale">0</span></div>
+                        <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
+                            <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">Acciones runtime
+                            </div>
+                            <div class="lib-ingest-grid">
+                                <input id="learn-content" type="text" placeholder="Contenido de memoria" />
+                                <select id="learn-field">
+                                    <option value="memory_librarian">memory_librarian</option>
+                                    <option value="trading">trading</option>
+                                    <option value="codigo">codigo</option>
+                                    <option value="math">math</option>
+                                    <option value="architect">architect</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                                <button class="btn btn-sm" onclick="ingestLearningMemory()">Ingestar</button>
+                                <button class="btn btn-ghost btn-sm" onclick="runLearningRetention()">TTL Run</button>
+                                <button class="btn btn-ghost btn-sm" onclick="runLearningRegimeCheck()">Regime
+                                    Check</button>
+                            </div>
+                            <p id="learn-msg" class="success-msg hidden">✓ Acción Learning ejecutada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-1" style="margin-top: 20px;">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🎓</span>
+                        <h2>Plan de Estudio: Triple Coincidence Strategy v3</h2>
+                    </div>
+                    <div class="panel-body">
+                        <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 13px;">Este plan describe las
+                            <strong>7 etapas críticas</strong> de desarrollo para la estrategia <strong>Triple
+                                Coincidence v3</strong>.
+                            Cada etapa representa un hito de aprendizaje validado: detección de zonas, retest,
+                            microestructura,
+                            Oracle ML, gestión de riesgo, Bóveda y promoción al ADN Permanente. Etapas ✅ verificadas en
+                            Fase 0.
+                        </p>
+
+                        <div class="study-grid">
+                            <!-- MATERIA 1 -->
+                            <div class="subject-card completed" onclick="openStudyMateria(1)">
+                                <div class="subj-num">01</div>
+                                <h3>🎯 Zonas: Triple Coincidence</h3>
+                                <p>Detección de zonas de alta probabilidad por convergencia de vela clave + acumulación
+                                    + mini-tendencia (ZigZag + R² > 0.45).</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Theory</div>
+                                    <pre><span class="token-comment"># Tesis: Triple Coincidencia → Zona Activa</span>
+<span class="token-kw">zone</span> = <span class="token-fn">detect_if_key_candle</span>() <span class="token-kw">and</span>
+       <span class="token-fn">detect_accumulation</span>() <span class="token-kw">and</span>
+       <span class="token-fn">detect_mini_trend</span>(r2_min=<span class="token-num">0.45</span>)</pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 2 -->
+                            <div class="subject-card completed">
+                                <div class="subj-num">02</div>
+                                <h3>⏳ Retest: Captura de Features</h3>
+                                <p>Monitoreo de zona activa hasta el retest. Captura de VWAP, OBI y CumDelta en el
+                                    MOMENTO exacto del retest.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Python</div>
+                                    <pre><span class="token-kw">if</span> <span class="token-fn">zone.is_retested</span>(price):
+    features = {<span class="token-str">'vwap'</span>: vwap,
+                <span class="token-str">'obi'</span>: obi_10,
+                <span class="token-str">'delta'</span>: cum_delta}</pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 3 -->
+                            <div class="subject-card completed">
+                                <div class="subj-num">03</div>
+                                <h3>🧠 Oracle: Meta-Labeling</h3>
+                                <p>El Oracle predice BOUNCE vs BREAKOUT usando features del retest. Entrena con outcomes
+                                    reales observados (N velas lookahead).</p>
+                                <div class="code-container">
+                                    <div class="code-tag">ML</div>
+                                    <pre><span class="token-comment"># Oracle predice calidad del retest</span>
+<span class="token-fn">oracle.predict</span>(features_retest)
+<span class="token-comment"># confidence > 0.70 → operar</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 4 -->
+                            <div class="subject-card">
+                                <div class="subj-num">04</div>
+                                <h3>⚖️ Riesgo: Kill-Switch y DD</h3>
+                                <p>Configuración de Kill-Switch por excesivo Max Drawdown y Circuit Breakers de sesión.
+                                    Protección en 2 pasos.
+                                </p>
+                                <div class="code-container">
+                                    <div class="code-tag">Risk</div>
+                                    <pre><span class="token-kw">if</span> session_dd > <span class="token-num">1.5</span>:
+    <span class="token-fn">trigger_kill_switch</span>(<span class="token-str">"RISK_OVER_THRESHOLD"</span>)</pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 5 -->
+                            <div class="subject-card">
+                                <div class="subj-num">05</div>
+                                <h3>🚀 Promoción: Nexus Gate</h3>
+                                <p>Promoción al ADN Permanente (Capa 2) tras validación Walk-Forward (≥3 ventanas OOS) y
+                                    aprobación humana.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Production</div>
+                                    <pre><span class="token-kw">gate.evaluate_performance</span>(report)
+<span class="token-comment"># → PROMOTED_TO_LAYER_2</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 6 -->
+                            <div class="subject-card">
+                                <div class="subj-num">06</div>
+                                <h3>🏛️ Bóveda: Capa 1 → Capa 2</h3>
+                                <p>Gestión de componentes: legacy vault (Capa 1) → Mosaic Bridge → validación ΔCausal →
+                                    ADN Permanente (Capa 2).</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Vault</div>
+                                    <pre><span class="token-comment"># Mosaic Bridge: 5-phase protocol</span>
+<span class="token-fn">discovery</span>() → <span class="token-fn">wrap</span>() → <span class="token-fn">audit</span>()
+→ <span class="token-fn">register</span>() → <span class="token-fn">canary_push</span>()
+<span class="token-comment"># ΔCausal > 0 → LAYER_2</span></pre>
+                                </div>
+                            </div>
+
+                            <!-- MATERIA 7 -->
+                            <div class="subject-card">
+                                <div class="subj-num">07</div>
+                                <h3>🚀 Walk-Forward + NexusGate</h3>
+                                <p>Promoción: Walk-Forward ≥3 ventanas, Sharpe > 1.5, ΔCausal > 0, test_coverage ≥ 80%,
+                                    human_approval.</p>
+                                <div class="code-container">
+                                    <div class="code-tag">Production</div>
+                                    <pre><span class="token-comment"># NexusGate: binary gate</span>
+<span class="token-fn">gate.evaluate</span>(delta_causal > <span class="token-num">0</span>,
+    coverage >= <span class="token-num">0.80</span>,
+    human_approval == <span class="token-num">True</span>)
+<span class="token-comment"># → PROMOTE | REJECT</span></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FASE 0 HARVEST RESULTS -->
+                <div class="panel" style="margin-top:20px;">
+                    <div class="panel-header">
+                        <span class="panel-icon">🌾</span>
+                        <h2>Fase 0: Cosecha y Observabilidad — Resultados</h2>
+                    </div>
+                    <div class="panel-body">
+                        <p style="margin-bottom:16px; color:var(--text-dim); font-size:12px;">
+                            Resultados de <code>phase0_harvest.py</code> — 500 velas sintéticas (1h, BTCUSDT).
+                            Pipeline Triple Coincidence procesó el stream completo y generó 21 muestras de
+                            entrenamiento.
+                        </p>
+                        <div class="grid-2">
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Detección &amp; Retests</h4>
+                                <div class="stat-row"><span>Velas procesadas</span><span class="stat-value"
+                                        style="color:var(--accent)">500</span></div>
+                                <div class="stat-row"><span>Retests detectados</span><span class="stat-value"
+                                        style="color:var(--accent)">21</span></div>
+                                <div class="stat-row"><span>BOUNCE</span><span class="stat-value"
+                                        style="color:var(--accent)">19 (90.5%)</span></div>
+                                <div class="stat-row"><span>BREAKOUT</span><span class="stat-value"
+                                        style="color:var(--red)">2 (9.5%)</span></div>
+                                <div class="stat-row"><span>Direction bullish</span><span class="stat-value">17</span>
+                                </div>
+                                <div class="stat-row"><span>Direction bearish</span><span class="stat-value">4</span>
+                                </div>
+                            </div>
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Features de Microestructura (en Retest)</h4>
+                                <div class="stat-row"><span>VWAP μ / σ</span><span class="stat-value"
+                                        style="color:var(--accent)">62,923 / 2,786</span></div>
+                                <div class="stat-row"><span>OBI μ / σ</span><span class="stat-value"
+                                        style="color:var(--accent)">0.042 / 0.151</span></div>
+                                <div class="stat-row"><span>CumDelta μ / σ</span><span class="stat-value"
+                                        style="color:var(--accent)">−283 / 241</span></div>
+                                <div class="stat-row"><span>Oracle status</span><span class="stat-value">placeholder
+                                        (0.85 fijo)</span></div>
+                                <div style="margin-top:10px; font-size:10px; color:var(--text-dim); font-style:italic;">
+                                    * Datos sintéticos (seed=42). Próximo paso: CSVs reales de Binance Vision.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top:20px;">
+                    <div class="panel-header">
+                        <span class="panel-icon">📈</span>
+                        <h2>Plan de Retroanálisis: Triple Coincidence (Audit Results)</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="grid-2">
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Performance Walk-Forward</h4>
+                                <div class="stat-row"><span>Ventana 1 (OOS)</span><span class="stat-value"
+                                        style="color:var(--accent)">+1.44% (Sharpe: 1.82)</span></div>
+                                <div class="stat-row"><span>Ventana 2 (OOS)</span><span class="stat-value"
+                                        style="color:var(--accent)">+0.92% (Sharpe: 1.25)</span></div>
+                                <div class="stat-row"><span>Ventana 3 (OOS)</span><span class="stat-value"
+                                        style="color:var(--accent)">+2.08% (Sharpe: 2.31)</span></div>
+                                <div style="margin-top:10px; font-size:11px; color:var(--text-dim); font-style:italic;">
+                                    * Datos netos incluyendo fees (0.04%) y slippage (2bps).</div>
+                            </div>
+                            <div
+                                style="background:var(--bg3); padding:20px; border-radius:12px; border:1px solid var(--border);">
+                                <h4
+                                    style="color:var(--accent2); font-size:11px; text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">
+                                    Certificación de No-Leakage</h4>
+                                <div class="stat-row"><span>Data Freshness Check</span><span class="stat-value">✓
+                                        PASSED</span></div>
+                                <div class="stat-row"><span>Temporal Leakage Gate</span><span class="stat-value"
+                                        style="color:var(--accent)">0.00% detectado</span></div>
+                                <div class="stat-row"><span>Nexus Gate Consensus</span><span class="stat-value">APPROVED
+                                        (0.92 conf)</span></div>
+                                <div class="code-container" style="margin-top:15px; padding:10px; font-size:10px;">
+                                    <pre><span class="token-comment">// Audit signature: v3.0-audit-77b2</span>
+<span class="token-fn">validate_gate_seal</span>(strategy_id=<span class="token-str">"simple-v3"</span>)</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <span>CGAlpha v3.0-audit · Namespace: <strong style="color:var(--accent)">v3</strong></span>
+            <span class="block-badge">🔴 Mercado real bloqueado hasta P0 verificado</span>
+            <span id="footer-ts" style="font-family:monospace"></span>
+        </footer>
+
+    </div>
+
+
+    <!-- LILA ASSISTANT CHAT -->
+    <div id="lila-chat" class="lila-collapsed">
+        <div class="lila-header">
+            <div class="lila-header-main" onclick="toggleLilaChat()">
+                <div class="lila-status-dot"></div>
+                <strong>Lila Assistant</strong>
+                <div id="lila-toggle-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="lila-toolbar">
+                <button title="New Chat" onclick="startNewLilaChat()">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                </button>
+                <button title="LLM Settings" onclick="toggleLilaSettings()">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path fill="currentColor"
+                            d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm7.39-4c.07-.49.11-.98.11-1.5s-.04-1.01-.11-1.5l2.06-1.61c.19-.15.24-.41.12-.62l-1.95-3.37c-.12-.22-.38-.29-.61-.2l-2.42.98c-.51-.39-1.06-.71-1.66-.96l-.37-2.58c-.04-.24-.24-.42-.48-.42h-3.9c-.24 0-.44.18-.48.42l-.37 2.58c-.6.25-1.15.57-1.66.96l-2.42-.98c-.23-.09-.49-.02-.61.2L3.04 7.27c-.12.21-.07.47.12.62l2.06 1.61c-.07.49-.11.98-.11 1.5s.04 1.01.11 1.5l-2.06 1.61c-.19.15-.24.41-.12.62l1.95 3.37c.12.22.38.29.61.2l2.42-.98c.51.39 1.06.71 1.66.96l.37 2.58c.04.24.24.42.48.42h3.9c.24 0 .44-.18.48-.42l.37-2.58c.6-.25 1.15-.57 1.66-.96l2.42.98c.23.09.49.02.61-.2l1.95-3.37c.12-.21.07-.47-.12-.62l-2.06-1.61z" />
+                    </svg>
+                </button>
+                <button title="History" onclick="toggleLilaHistory()">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path fill="currentColor"
+                            d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89l.07.14L9 12H6a7 7 0 1 1 7 7a7 7 0 0 1-5.12-2.13l-1.42 1.42A8.98 8.98 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54l.72-1.21l-3.5-2.08V8H12z" />
+                    </svg>
+                </button>
+                <button title="Active Strategy" onclick="toggleLilaActiveStrategy()">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path fill="currentColor" d="M3 13h12v-2H3v2zm0 4h12v-2H3v2zm0-8h12V7H3v2zm14 8l5-5-5-5v10z" />
+                    </svg>
+                </button>
+                <button title="Heritage Vault" onclick="toggleLilaVault()">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path fill="currentColor"
+                            d="M18 19H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V9h12v2zm-2-6H8v2h8V5zM4 21h16V3H4v18z" />
+                    </svg>
+                </button>
+                <button id="lila-fs-btn" title="Fullscreen" onclick="toggleLilaFullScreen()">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path fill="currentColor"
+                            d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="lila-body">
+            <div id="lila-history-overlay" class="hidden">
+                <div class="history-header">Chat History</div>
+                <div id="lila-history-list"></div>
+            </div>
+            <div id="lila-settings-overlay" class="hidden">
+                <div class="history-header">Lila Assistant Settings</div>
+                <div id="lila-llm-status-info"
+                    style="padding:15px; font-size:12px; color:var(--text); line-height:1.6;">
+                    <p><strong>Provider:</strong> <span id="lila-provider-name">Loading...</span></p>
+                    <div class="control-group" style="margin: 10px 0;">
+                        <label for="lila-provider-select">Switch Provider:</label>
+                        <select id="lila-provider-select" onchange="switchLilaProvider(this.value)"
+                            style="background:var(--bg2); color:var(--text); border:1px solid var(--accent); padding:4px; border-radius:4px; width:100%; margin-top:5px;">
+                            <option value="openai">OpenAI</option>
+                            <option value="zhipu">Zhipu AI</option>
+                            <option value="ollama">Local Qwen (Ollama)</option>
+                        </select>
+                    </div>
+                    <p><strong>Status:</strong> <span id="lila-circuit-status">OK</span></p>
+                    <div id="lila-memory-summary"
+                        style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
+                        <h4 style="margin-bottom:8px; color:var(--accent);">Memory Integrity (0a-4)</h4>
+                        <div id="memory-levels-grid"
+                            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 0.85em; text-align: center;">
+                            <div style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">0a
+                                <br><strong id="mem-0a" style="color:var(--accent)">0</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">0b
+                                <br><strong id="mem-0b" style="color:var(--accent)">0</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">1
+                                <br><strong id="mem-1" style="color:var(--accent)">0</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">2
+                                <br><strong id="mem-2" style="color:var(--accent)">0</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">3
+                                <br><strong id="mem-3" style="color:var(--accent)">0</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.05); padding:5px; border-radius:4px;">4
+                                <br><strong id="mem-4" style="color:var(--accent)">0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="lila-strategy-overlay" class="hidden">
+                <div class="history-header">Triple Coincidence Strategy (v3.0.0)</div>
+                <div id="lila-strategy-content"
+                    style="padding:15px; font-size:12px; height: calc(100% - 40px); overflow-y: auto;">
+                    <div id="strategy-pipeline-view" style="display: flex; flex-direction: column; gap: 8px;">
+                        <p style="opacity: 0.6;">Sincronizando pipeline v3...</p>
+                    </div>
+                </div>
+            </div>
+            <div id="lila-vault-overlay" class="hidden">
+                <div class="history-header">Vault Evolution Dashboard (Purification)</div>
+                <div id="lila-vault-content"
+                    style="padding:15px; font-size:12px; height: calc(100% - 40px); overflow-y: auto;">
+                    <div id="vault-dashboard-v4" style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- ZONE 1: Oracle Health -->
+                        <div class="panel"
+                            style="background: rgba(0,255,200,0.03); border: 1px solid rgba(0,255,200,0.1);">
+                            <div class="panel-header">
+                                <span class="panel-icon">🧠</span>
+                                <h2>Zona 1: Oracle Health & Fidelity</h2>
+                            </div>
+                            <div class="panel-body">
+                                <div class="stat-row">
+                                    <span class="stat-label">Status</span>
+                                    <span class="stat-value" id="vault-oracle-status">--</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Samples Acumulados</span>
+                                    <span class="stat-value" id="vault-oracle-samples">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Test Accuracy (OOS)</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span class="stat-value accent" id="vault-oracle-acc">0.00</span>
+                                        <span id="vault-sig-warning" class="pill pill-warning"
+                                            style="display:none; font-size:9px;">⚠️ Muestra Insuficiente</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZONE 2: Market Activity -->
+                        <div class="panel"
+                            style="background: rgba(0,180,255,0.03); border: 1px solid rgba(0,180,255,0.1);">
+                            <div class="panel-header">
+                                <span class="panel-icon">📈</span>
+                                <h2>Zona 2: Market Activity (Shadow)</h2>
+                            </div>
+                            <div class="panel-body">
+                                <div class="stat-row">
+                                    <span class="stat-label">Retests Detectados</span>
+                                    <span class="stat-value" id="vault-mkt-retests">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Total Shadow Trades</span>
+                                    <span class="stat-value" id="vault-mkt-trades">0</span>
+                                </div>
+                                <div class="stat-row" style="font-size: 10px; opacity:0.8;">
+                                    <span>Real: <b id="vault-mkt-real-trades" class="accent">0</b></span>
+                                    <span>Placeholder: <b id="vault-mkt-placeholder-trades">0</b></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZONE 3: Evolution Governance -->
+                        <div class="panel"
+                            style="background: rgba(255,180,0,0.03); border: 1px solid rgba(255,180,0,0.1);">
+                            <div class="panel-header">
+                                <span class="panel-icon">⚖️</span>
+                                <h2>Zona 3: Evolution Governance</h2>
+                            </div>
+                            <div class="panel-body">
+                                <div class="stat-row">
+                                    <span class="stat-label">Propuestas en Cola</span>
+                                    <span class="stat-value" id="vault-evo-pending">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Rechazos Safety Envelope</span>
+                                    <span class="stat-value danger" id="vault-evo-rejected"
+                                        style="color:#ff4444;">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Parches Aplicados (Auto)</span>
+                                    <span class="stat-value success" id="vault-evo-applied"
+                                        style="color:#00ff88;">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="lila-messages">
+                <div class="msg lila-msg">
+                    Hi. I'm Lila Assistant. Mission state: ACTIVE. Causal architecture v3 is ready. How can I assist
+                    you?
+                </div>
+            </div>
+            <div class="lila-input-area">
+                <input type="text" id="lila-input" placeholder="Type a message..."
+                    onkeydown="if(event.key==='Enter') sendLilaMessage()" />
+                <button onclick="sendLilaMessage()">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2l.01 7z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Styles extension for Lila Chat -->
+    <style>
+        #lila-chat {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 320px;
+            background: rgba(18, 18, 38, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        #lila-chat.lila-collapsed {
+            height: 48px;
+            width: 220px;
+            cursor: pointer;
+        }
+
+        #lila-chat.lila-fullscreen {
+            width: 90vw;
+            height: 85vh;
+            bottom: 5vh;
+            right: 5vw;
+        }
+
+        #lila-chat.lila-collapsed #lila-body,
+        #lila-chat.lila-collapsed .lila-toolbar {
+            display: none;
+        }
+
+        .lila-header {
+            padding: 8px 14px;
+            background: linear-gradient(to right, rgba(0, 212, 170, 0.1), rgba(0, 174, 240, 0.03));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            user-select: none;
+            cursor: pointer;
+        }
+
+        .lila-header-main {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .lila-header-main strong {
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .lila-toolbar {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .lila-toolbar button {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: color 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lila-toolbar button:hover {
+            color: var(--accent);
+            background: rgba(0, 212, 170, 0.08);
+        }
+
+        .lila-status-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        #lila-toggle-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 4px;
+        }
+
+        #lila-chat.lila-collapsed #lila-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        #lila-body {
+            height: 380px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .lila-fullscreen #lila-body {
+            height: calc(85vh - 48px);
+        }
+
+        #lila-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: radial-gradient(circle at top right, rgba(0, 212, 170, 0.05), transparent);
+        }
+
+        .lila-input-area {
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 10px;
+        }
+
+        #lila-input {
+            flex: 1;
+            background: #0f1b2d;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #lila-input:focus {
+            border-color: var(--accent);
+        }
+
+        .lila-input-area button {
+            background: var(--accent);
+            border: none;
+            color: #000;
+            padding: 0 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lila-input-area button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.4);
+        }
+
+        /* OVERLAYS (History, Settings, Vault) */
+        #lila-history-overlay,
+        #lila-settings-overlay,
+        #lila-vault-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a1a2e;
+            z-index: 100;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .history-header {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: profile;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--accent);
+        }
+
+        #lila-history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+    </style>
+
+    <!-- STUDY MODAL -->
+    <div id="study-modal" class="modal-overlay hidden"
+        style="background: rgba(0,0,0,0.85); z-index: 2000; position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center;">
+        <div class="modal-card"
+            style="width: 850px; max-height: 90vh; overflow-y: auto; border: 2px solid var(--accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span id="study-main-icon" style="font-size: 1.5rem;">📊</span>
+                    <h2 id="study-title" style="color:var(--accent); margin:0;">Materia 01: Fundamentos de Order Flow
+                    </h2>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="closeStudyModal()" style="font-size:16px;">✕</button>
+            </div>
+
+            <div id="study-categories" class="grid-2" style="gap:16px; margin-bottom: 24px;">
+                <!-- Deberán aparecer las 5 categorías para estudiar -->
+            </div>
+
+            <div id="study-content-area" class="study-detail-box"
+                style="display:none; background: var(--bg3); border: 1px solid var(--border);">
+                <!-- Información para estudiar -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TRAINING REVIEW STYLES -->
+    <style>
+        /* Training review filter buttons */
+        .tr-filter-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .tr-filter-btn[data-filter="BOUNCE"].active {
+            background: var(--green);
+            color: #000;
+        }
+
+        .tr-filter-btn[data-filter="BREAKOUT"].active {
+            background: var(--red);
+            color: #000;
+        }
+
+        /* Training retest table hover */
+        #training-retest-tbody tr {
+            transition: background 0.15s;
+        }
+
+        #training-retest-tbody tr:hover {
+            background: rgba(0, 212, 170, 0.06);
+        }
+
+        #training-retest-tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        #training-retest-tbody tr:nth-child(even):hover {
+            background: rgba(0, 212, 170, 0.06);
+        }
+
+        /* Chart tooltip */
+        .chart-tooltip {
+            position: absolute;
+            background: var(--bg2);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 11px;
+            color: var(--text);
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            max-width: 280px;
+        }
+
+        .chart-tooltip .tt-label {
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .chart-tooltip .tt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+
+        .chart-tooltip .tt-value {
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

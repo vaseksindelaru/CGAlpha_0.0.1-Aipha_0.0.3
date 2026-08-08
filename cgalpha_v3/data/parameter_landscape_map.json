@@ -1,0 +1,1185 @@
+{
+  "artifact": "parameter_landscape_map",
+  "version": "v4_s3_step4",
+  "generated_at": "2026-04-26T04:40:34.069401+00:00",
+  "project_root": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3",
+  "qualitative_source": "heuristic_fallback",
+  "parameter_count": 117,
+  "sensitivity_breakdown": {
+    "high": 6,
+    "medium": 57,
+    "low": 54
+  },
+  "parameters": [
+    {
+      "name": "fee_taker_pct",
+      "file": "application/change_proposer.py",
+      "line": 20,
+      "current_value": 0.05,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "fee_maker_pct",
+      "file": "application/change_proposer.py",
+      "line": 21,
+      "current_value": 0.02,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "slippage_bps",
+      "file": "application/change_proposer.py",
+      "line": 22,
+      "current_value": 2.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "oos_pct",
+      "file": "application/change_proposer.py",
+      "line": 80,
+      "current_value": 20,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "train_pct",
+      "file": "application/change_proposer.py",
+      "line": 80,
+      "current_value": 60,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "validation_pct",
+      "file": "application/change_proposer.py",
+      "line": 80,
+      "current_value": 20,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "walk_forward_windows",
+      "file": "application/change_proposer.py",
+      "line": 81,
+      "current_value": 3,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "walk_forward_windows_min",
+      "file": "application/change_proposer.py",
+      "line": 85,
+      "current_value": 3,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_dd",
+      "file": "application/experiment_runner.py",
+      "line": 458,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.43,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "confidence",
+      "file": "application/live_adapter.py",
+      "line": 120,
+      "current_value": 0.5,
+      "type": "float",
+      "sensitivity": "high",
+      "causal_impact_est": 0.92,
+      "auto_proposer_refs": 15
+    },
+    {
+      "name": "volume_percentile_threshold",
+      "file": "application/pipeline.py",
+      "line": 60,
+      "current_value": 70,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "body_percentage_threshold",
+      "file": "application/pipeline.py",
+      "line": 61,
+      "current_value": 40,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "lookback_candles",
+      "file": "application/pipeline.py",
+      "line": 62,
+      "current_value": 30,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_period",
+      "file": "application/pipeline.py",
+      "line": 63,
+      "current_value": 14,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_multiplier",
+      "file": "application/pipeline.py",
+      "line": 64,
+      "current_value": 1.5,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "volume_threshold",
+      "file": "application/pipeline.py",
+      "line": 65,
+      "current_value": 1.2,
+      "type": "float",
+      "sensitivity": "high",
+      "causal_impact_est": 0.86,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "min_zone_bars",
+      "file": "application/pipeline.py",
+      "line": 66,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "quality_threshold",
+      "file": "application/pipeline.py",
+      "line": 67,
+      "current_value": 0.45,
+      "type": "float",
+      "sensitivity": "high",
+      "causal_impact_est": 0.83,
+      "auto_proposer_refs": 2
+    },
+    {
+      "name": "retest_timeout_bars",
+      "file": "application/pipeline.py",
+      "line": 70,
+      "current_value": 50,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "outcome_lookahead_bars",
+      "file": "application/pipeline.py",
+      "line": 71,
+      "current_value": 10,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "oracle_min_confidence",
+      "file": "application/pipeline.py",
+      "line": 162,
+      "current_value": 0.7,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "min_sharpe_oos",
+      "file": "application/promotion_validator.py",
+      "line": 34,
+      "current_value": 0.8,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_drawdown_oos",
+      "file": "application/promotion_validator.py",
+      "line": 35,
+      "current_value": 15.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_calmar_oos",
+      "file": "application/promotion_validator.py",
+      "line": 36,
+      "current_value": 1.5,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_profit_factor_oos",
+      "file": "application/promotion_validator.py",
+      "line": 37,
+      "current_value": 1.3,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "threshold",
+      "file": "data_quality/nexus_gate.py",
+      "line": 31,
+      "current_value": 0.25,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "causal_score",
+      "file": "domain/base_component.py",
+      "line": 42,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "oos_period",
+      "file": "domain/base_component.py",
+      "line": 43,
+      "current_value": "",
+      "type": "str",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "fee_taker_pct",
+      "file": "gui/server.py",
+      "line": 145,
+      "current_value": 0.04,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "slippage_bps",
+      "file": "gui/server.py",
+      "line": 145,
+      "current_value": 2.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "walk_forward_windows",
+      "file": "gui/server.py",
+      "line": 146,
+      "current_value": 3,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "confidence",
+      "file": "gui/server.py",
+      "line": 159,
+      "current_value": 0.84,
+      "type": "float",
+      "sensitivity": "high",
+      "causal_impact_est": 0.92,
+      "auto_proposer_refs": 15
+    },
+    {
+      "name": "confidence",
+      "file": "gui/server.py",
+      "line": 169,
+      "current_value": 0.79,
+      "type": "float",
+      "sensitivity": "high",
+      "causal_impact_est": 0.92,
+      "auto_proposer_refs": 15
+    },
+    {
+      "name": "drawdown_session_pct",
+      "file": "gui/server.py",
+      "line": 273,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_drawdown_session_pct",
+      "file": "gui/server.py",
+      "line": 274,
+      "current_value": 5.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_position_size_pct",
+      "file": "gui/server.py",
+      "line": 275,
+      "current_value": 2.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_signals_per_hour",
+      "file": "gui/server.py",
+      "line": 276,
+      "current_value": 10,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_signal_quality_score",
+      "file": "gui/server.py",
+      "line": 277,
+      "current_value": 0.65,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "volume_percentile_threshold",
+      "file": "gui/server.py",
+      "line": 293,
+      "current_value": 70,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "body_percentage_threshold",
+      "file": "gui/server.py",
+      "line": 294,
+      "current_value": 40,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "lookback_candles",
+      "file": "gui/server.py",
+      "line": 295,
+      "current_value": 30,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_period",
+      "file": "gui/server.py",
+      "line": 296,
+      "current_value": 14,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_multiplier",
+      "file": "gui/server.py",
+      "line": 297,
+      "current_value": 1.5,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "volume_threshold",
+      "file": "gui/server.py",
+      "line": 298,
+      "current_value": 1.2,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "min_zone_bars",
+      "file": "gui/server.py",
+      "line": 299,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "quality_threshold",
+      "file": "gui/server.py",
+      "line": 300,
+      "current_value": 0.45,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.6,
+      "auto_proposer_refs": 2
+    },
+    {
+      "name": "min_signal_quality",
+      "file": "gui/server.py",
+      "line": 303,
+      "current_value": 0.65,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_confidence",
+      "file": "gui/server.py",
+      "line": 307,
+      "current_value": 0.7,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "retrain_interval_hours",
+      "file": "gui/server.py",
+      "line": 309,
+      "current_value": 24,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "risk_assessment_status",
+      "file": "gui/server.py",
+      "line": 921,
+      "current_value": "N/A - ciclo de control GUI",
+      "type": "str",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "oracle_confidence",
+      "file": "gui/server.py",
+      "line": 1147,
+      "current_value": 0.89,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "limit",
+      "file": "gui/server.py",
+      "line": 1213,
+      "current_value": 50,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "blind_test_ratio",
+      "file": "gui/server.py",
+      "line": 2294,
+      "current_value": "0.12",
+      "type": "str",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_penetration",
+      "file": "indicators/zone_monitors.py",
+      "line": 24,
+      "current_value": 0.5,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_volume_ratio",
+      "file": "indicators/zone_monitors.py",
+      "line": 25,
+      "current_value": 1.2,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "timeout_s",
+      "file": "infrastructure/binance_data.py",
+      "line": 52,
+      "current_value": 20,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "volume_percentile_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 80,
+      "current_value": 70,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "body_percentage_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 81,
+      "current_value": 40,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "lookback_candles",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 82,
+      "current_value": 30,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_period",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 157,
+      "current_value": 14,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_multiplier",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 158,
+      "current_value": 1.5,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "volume_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 159,
+      "current_value": 1.2,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "min_zone_bars",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 160,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "quality_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 161,
+      "current_value": 0.7,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.6,
+      "auto_proposer_refs": 2
+    },
+    {
+      "name": "min_trend_length",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 331,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "volume_percentile_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 527,
+      "current_value": 70,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "body_percentage_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 528,
+      "current_value": 40,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.57,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "lookback_candles",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 529,
+      "current_value": 30,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_period",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 530,
+      "current_value": 14,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "atr_multiplier",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 531,
+      "current_value": 1.5,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "volume_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 532,
+      "current_value": 1.2,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "min_zone_bars",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 533,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "quality_threshold",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 534,
+      "current_value": 0.45,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.6,
+      "auto_proposer_refs": 2
+    },
+    {
+      "name": "min_trend_length",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 536,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "retest_timeout_bars",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 538,
+      "current_value": 50,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "outcome_lookahead_bars",
+      "file": "infrastructure/signal_detector/triple_coincidence.py",
+      "line": 539,
+      "current_value": 10,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "iterations_found",
+      "file": "learning/project_history_learner.py",
+      "line": 26,
+      "current_value": 0,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "MAX_ESCALATION_ATTEMPTS",
+      "file": "lila/evolution_orchestrator.py",
+      "line": 79,
+      "current_value": 3,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "_cooldown_seconds",
+      "file": "lila/evolution_orchestrator.py",
+      "line": 98,
+      "current_value": 300,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_tokens",
+      "file": "lila/llm/llm_switcher.py",
+      "line": 21,
+      "current_value": 600,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_confidence",
+      "file": "lila/llm/oracle.py",
+      "line": 41,
+      "current_value": 0.65,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "min_proposal_score",
+      "file": "lila/llm/proposer.py",
+      "line": 33,
+      "current_value": 0.75,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "score",
+      "file": "lila/llm/proposer.py",
+      "line": 156,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.74,
+      "auto_proposer_refs": 16
+    },
+    {
+      "name": "max_tokens",
+      "file": "lila/llm/providers/gemini_provider.py",
+      "line": 89,
+      "current_value": 32768,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_tokens",
+      "file": "lila/llm/providers/openai_provider.py",
+      "line": 74,
+      "current_value": 4096,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_tokens",
+      "file": "lila/llm/providers/zhipu_provider.py",
+      "line": 50,
+      "current_value": 4096,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_delta",
+      "file": "lila/nexus/gate.py",
+      "line": 34,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_blind_ratio",
+      "file": "lila/nexus/gate.py",
+      "line": 35,
+      "current_value": 0.25,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_test_coverage",
+      "file": "lila/nexus/gate.py",
+      "line": 36,
+      "current_value": 0.8,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "score",
+      "file": "lila/parameter_landscape.py",
+      "line": 345,
+      "current_value": 0,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.74,
+      "auto_proposer_refs": 16
+    },
+    {
+      "name": "pnl_pct",
+      "file": "risk/order_manager.py",
+      "line": 23,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_exposure_per_symbol",
+      "file": "risk/order_manager.py",
+      "line": 40,
+      "current_value": 0.25,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_concurrent_positions",
+      "file": "risk/order_manager.py",
+      "line": 41,
+      "current_value": 5,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_margin_available",
+      "file": "risk/order_manager.py",
+      "line": 42,
+      "current_value": 0.1,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "daily_profit_target_pct",
+      "file": "risk/order_manager.py",
+      "line": 46,
+      "current_value": 0.02,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "daily_stop_loss_pct",
+      "file": "risk/order_manager.py",
+      "line": 47,
+      "current_value": -0.015,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "session_pnl_pct",
+      "file": "risk/order_manager.py",
+      "line": 48,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "slippage_pct",
+      "file": "risk/order_manager.py",
+      "line": 74,
+      "current_value": 0.0001,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_drawdown_session_pct",
+      "file": "risk/risk_manager.py",
+      "line": 32,
+      "current_value": 5.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.65,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_position_size_pct",
+      "file": "risk/risk_manager.py",
+      "line": 33,
+      "current_value": 2.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.65,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_signals_per_hour",
+      "file": "risk/risk_manager.py",
+      "line": 34,
+      "current_value": 10,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "min_signal_quality_score",
+      "file": "risk/risk_manager.py",
+      "line": 35,
+      "current_value": 0.65,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "circuit_breaker_latency_window_s",
+      "file": "risk/risk_manager.py",
+      "line": 37,
+      "current_value": 60.0,
+      "type": "float",
+      "sensitivity": "high",
+      "causal_impact_est": 0.8,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "_drawdown_pct",
+      "file": "risk/risk_manager.py",
+      "line": 177,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.62,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "causal_score",
+      "file": "scripts/execute_evolution.py",
+      "line": 54,
+      "current_value": 0.25,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "confidence_fixed",
+      "file": "scripts/phase0_harvest.py",
+      "line": 352,
+      "current_value": 0.85,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.54,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "TOKEN",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 62,
+      "current_value": "cgalpha-v3-local-dev",
+      "type": "str",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_dd",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 241,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.43,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "limit",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 322,
+      "current_value": 25,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "risk",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 340,
+      "current_value": 3,
+      "type": "int",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.6,
+      "auto_proposer_refs": 2
+    },
+    {
+      "name": "limit",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 357,
+      "current_value": 10,
+      "type": "int",
+      "sensitivity": "low",
+      "causal_impact_est": 0.34,
+      "auto_proposer_refs": 0
+    },
+    {
+      "name": "max_drawdown_pct",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 476,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "win_rate_pct",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 477,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.43,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "net_return_pct",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 478,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    },
+    {
+      "name": "max_drawdown_pct",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 661,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "medium",
+      "causal_impact_est": 0.63,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "win_rate_pct",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 662,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.43,
+      "auto_proposer_refs": 3
+    },
+    {
+      "name": "net_return_pct",
+      "file": "scripts/phase1_oracle_training.py",
+      "line": 663,
+      "current_value": 0.0,
+      "type": "float",
+      "sensitivity": "low",
+      "causal_impact_est": 0.37,
+      "auto_proposer_refs": 1
+    }
+  ]
+}

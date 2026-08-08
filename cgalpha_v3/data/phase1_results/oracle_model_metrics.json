@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-04-12T01:15:09.808944+00:00",
+  "training_metrics": {
+    "n_samples": 98,
+    "train_accuracy": 0.9796,
+    "n_features": 7,
+    "class_distribution": {
+      "BOUNCE": 92,
+      "BREAKOUT": 6
+    },
+    "feature_importances": {
+      "vwap_at_retest": 0.1499,
+      "obi_10_at_retest": 0.1077,
+      "cumulative_delta_at_retest": 0.178,
+      "delta_divergence": 0.0687,
+      "atr_14": 0.3751,
+      "regime": 0.023,
+      "direction": 0.0976
+    }
+  },
+  "training_samples": 98,
+  "outcomes": {
+    "BOUNCE": 92,
+    "BREAKOUT": 6
+  }
+}

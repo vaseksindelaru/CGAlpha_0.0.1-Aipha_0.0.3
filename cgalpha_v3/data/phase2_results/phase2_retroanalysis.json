@@ -1,0 +1,193 @@
+{
+  "phase": "2 — Retroanalysis + Emergent Improvement",
+  "generated_at": "2026-04-12T01:47:07.515839+00:00",
+  "phase1_reference": {
+    "summary_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/data/phase1_results/phase1_summary.json",
+    "walk_forward_path": "/home/vaclav/CGAlpha_0.0.1-Aipha_0.0.3/cgalpha_v3/data/phase1_results/walk_forward_results.json",
+    "phase1_training_samples": 98,
+    "phase1_retests": 98
+  },
+  "dataset_structure": {
+    "n_samples": 98,
+    "class_distribution": {
+      "BOUNCE": 92,
+      "BREAKOUT": 6
+    },
+    "missing_by_feature": {
+      "vwap_at_retest": 0,
+      "obi_10_at_retest": 0,
+      "cumulative_delta_at_retest": 0,
+      "delta_divergence": 0,
+      "atr_14": 0,
+      "regime": 0,
+      "direction": 0
+    },
+    "duplicate_zone_timestamp_rows": 0,
+    "numeric_summary": {
+      "vwap_at_retest": {
+        "mean": 57193.897041,
+        "std": 3884.371715,
+        "min": 54144.59,
+        "max": 66408.18
+      },
+      "obi_10_at_retest": {
+        "mean": 0.012046,
+        "std": 0.160802,
+        "min": -0.4243,
+        "max": 0.3935
+      },
+      "cumulative_delta_at_retest": {
+        "mean": -114.644082,
+        "std": 336.23102,
+        "min": -725.87,
+        "max": 823.15
+      },
+      "atr_14": {
+        "mean": 3449.763061,
+        "std": 2122.812927,
+        "min": 725.71,
+        "max": 9066.47
+      }
+    },
+    "categorical_cardinality": {
+      "delta_divergence": 2,
+      "regime": 2,
+      "direction": 2
+    }
+  },
+  "feature_discrimination": {
+    "ranking_by_mutual_information": [
+      {
+        "feature": "cumulative_delta_at_retest",
+        "mutual_information": 0.051681,
+        "f_score": 0.322003,
+        "p_value": 0.57173124
+      },
+      {
+        "feature": "direction",
+        "mutual_information": 0.051642,
+        "f_score": 4.644869,
+        "p_value": 0.03364747
+      },
+      {
+        "feature": "atr_14",
+        "mutual_information": 0.042752,
+        "f_score": 8.221033,
+        "p_value": 0.00508989
+      },
+      {
+        "feature": "delta_divergence",
+        "mutual_information": 0.04124,
+        "f_score": 4.644869,
+        "p_value": 0.03364747
+      },
+      {
+        "feature": "vwap_at_retest",
+        "mutual_information": 0.00674,
+        "f_score": 0.195605,
+        "p_value": 0.65928673
+      },
+      {
+        "feature": "obi_10_at_retest",
+        "mutual_information": 0.0,
+        "f_score": 0.068084,
+        "p_value": 0.7947065
+      },
+      {
+        "feature": "regime",
+        "mutual_information": 0.0,
+        "f_score": 0.258371,
+        "p_value": 0.61240779
+      }
+    ],
+    "numeric_effect_sizes": [
+      {
+        "feature": "atr_14",
+        "bounce_mean": 3602.020652,
+        "breakout_mean": 1115.146667,
+        "effect_size": 1.649306
+      },
+      {
+        "feature": "cumulative_delta_at_retest",
+        "bounce_mean": -109.679457,
+        "breakout_mean": -190.768333,
+        "effect_size": 0.328993
+      },
+      {
+        "feature": "vwap_at_retest",
+        "bounce_mean": 57238.628696,
+        "breakout_mean": 56508.011667,
+        "effect_size": 0.215267
+      },
+      {
+        "feature": "obi_10_at_retest",
+        "bounce_mean": 0.013139,
+        "breakout_mean": -0.004717,
+        "effect_size": 0.122249
+      }
+    ],
+    "label_maps": {
+      "delta_divergence": [
+        "BEARISH_EXHAUSTION",
+        "BULLISH_ABSORPTION"
+      ],
+      "regime": [
+        "LATERAL",
+        "TREND"
+      ],
+      "direction": [
+        "bearish",
+        "bullish"
+      ]
+    }
+  },
+  "improvement_proposal": {
+    "title": "P2-Proposal: CodeCraft-Sage-guided feature refactor + robust OOS gates",
+    "technical_specs": [
+      {
+        "change_type": "feature",
+        "target": "cgalpha_v3/lila/llm/oracle.py",
+        "action": "Add engineered features: vwap_distance_bps, delta_over_atr, abs_obi",
+        "reason": "Current MI concentration suggests signal compression in ATR/VWAP/delta interactions."
+      },
+      {
+        "change_type": "validation",
+        "target": "cgalpha_v3/scripts/phase1_oracle_training.py",
+        "action": "Enforce min OOS events per window and fallback adaptive windowing",
+        "reason": "Two WF windows had very low OOS event count; reduce optimistic bias."
+      },
+      {
+        "change_type": "architecture",
+        "target": "cgalpha_v3/lila/codecraft_sage.py",
+        "action": "Introduce CodeCraft Sage pipeline: parse->modify->test barrier->git commit",
+        "reason": "AutoProposer currently produces specs but lacks automatic execution channel."
+      }
+    ],
+    "theoretical_support": [
+      {
+        "source": "Advances in Financial Machine Learning (2018)",
+        "supports": "Meta-labeling secondary filter architecture for execution gating."
+      },
+      {
+        "source": "VWAP benchmark literature (Journal of Finance)",
+        "supports": "VWAP-relative context as robust execution signal under institutional flow."
+      },
+      {
+        "source": "Probability of Backtest Overfitting (2014)",
+        "contradicts_or_warns": "High in-sample/OOS metrics can still be inflated with low-event windows."
+      }
+    ]
+  },
+  "phase2_decision": {
+    "promote_to_level4": false,
+    "reason": "Sharpe neto avg=1.1372 <= 1.5",
+    "critical_conclusion": "Fase 1 es positiva pero insuficiente para ADN nivel 4. Existe riesgo de sobreajuste por bajo recuento de eventos OOS en ventanas 1 y 3.",
+    "next_emergent_step": "Implementar CodeCraft Sage (parse->modify->tests->git), ampliar OOS a ventanas con mínimo 25 retests y activar Fase 3 live-data scaffolding."
+  },
+  "phase3_readiness": {
+    "websocket_binance_detected": false,
+    "websocket_references": [],
+    "shadow_trader_module_present": true,
+    "nexus_gate_module_present": true
+  }
+}

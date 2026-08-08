@@ -1,0 +1,12 @@
+{
+  "entry_id": "baseline-mantra-v1",
+  "level": "5",
+  "content": "mantra",
+  "content_hash": "cd99760aa9d34304",
+  "created_at": "2026-04-26T00:00:00+00:00",
+  "approved_by": "human",
+  "field": "architect",
+  "tags": [
+    "baseline"
+  ]
+}
